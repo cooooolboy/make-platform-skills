@@ -99,6 +99,51 @@ Validated in:
 
 This confirms that canvas-table is not only for main list pages, but also works well for embedded display-oriented subtables.
 
+### Cell-edit workflow
+
+Validated in:
+
+- `src/components/claim-table/index.tsx`
+- `src/components/claim-table/editors/*`
+- `src/components/claim-table/editing/*`
+- `src/components/claim-table/hooks/use-claim-table-drafts.ts`
+
+Validated field scope:
+
+- text fields: `title`, `department`, `applicantName`
+- select field: `status`
+- date-time field: `submitDate`
+
+Observed patterns:
+
+- editable columns declare `editType: 'custom'`
+- React host editors mount into DOM elements returned by `customEdit`
+- editor components expose `focus()` and `updateVal()` through refs
+- popup editors declare popup roots through `relatedElements()`
+- popup editors use `overlayOptions: { overflow: 'visible' }`
+- close behavior uses object `autoClose`
+- business write ownership uses `editApplyMode: 'controlled'`
+- accepted commits backfill canvas data with `setCellData(...)`
+- default page behavior can use immediate save while preserving draft mode as a configurable alternative
+- accepted immediate commits may refresh host rows, so focus restoration resolves the latest canvas instance and retries after the framework updates DOM
+- usable canvas height is resolved from explicit height, measured container height, or a conservative fallback
+- page-level draft state owns dirty row keys, save/discard, and unsaved-change guards
+- dirty row colors use `setRowColors(...)`
+- date-time editors resolve direct typed input before OK commits
+
+This supports treating Track B as a validated host-edit integration path for text/select/date fields.
+
+Browser validation covered:
+
+- text Enter commit
+- text Tab commit and focus restoration
+- status select commit
+- text Escape cancel
+- text outside-click commit
+- date-time typed input plus OK commit
+- page reload persistence through mock-store
+- zero console errors/warnings in the validated route
+
 ## 2. Not yet strongly validated by this sample project
 
 The following capabilities still exist in package docs, but are not yet strongly validated by `expensePoc/frontend`.
@@ -120,14 +165,14 @@ Implication:
 
 - deferring it from the first-version primary path remains correct
 
-### Cell-edit workflow
+### Attachment edit workflow
 
-Not yet included in this validation pass.
+Not yet validated here.
 
 Implication:
 
-- do not move edit workflows into the first-version primary path
-- wait for real project editing samples before writing the next enhancement pass
+- keep attachment guidance in the dedicated reference
+- do not imply upload/edit save semantics are already project-validated by `expensePoc/frontend`
 
 ### Built-in summary row
 

@@ -1,0 +1,157 @@
+# field editor patterns
+
+Use this file to map business field types to host editor patterns.
+
+This file is about host-side editor integration, not about forcing one UI library.
+
+## 1. Common editor interface
+
+Prefer a shared editor interface such as:
+
+- `focus()`
+- `updateVal()`
+
+The field editor should return enough information for the host save layer to distinguish:
+
+- display value
+- submit value
+- optional extra render mapping data
+
+## 2. Text fields
+
+Examples:
+
+- single-line text
+- multi-line text
+
+Recommended pattern:
+
+- simple text editor
+- submit-style editing
+- `updateVal()` returns the edited string for both display and submit in simple cases
+
+Good fit for:
+
+- `contenteditable`
+- host input component
+- textarea-like component when needed
+
+## 3. Number-like fields
+
+Examples:
+
+- number
+- amount
+- percentage
+
+Recommended pattern:
+
+- numeric input editor
+- submit-style editing
+- keep precision and unit behavior in field metadata or field config
+
+Typical concerns:
+
+- empty string vs null
+- precision
+- suffix/unit display
+- display string vs submit payload
+
+## 4. Date fields
+
+Recommended pattern:
+
+- date picker editor
+- often realtime-style editing
+- keep date format driven by field metadata
+
+Typical concerns:
+
+- display format vs submit format
+- whether selecting a value should close immediately or not
+- whether direct typed input has been parsed before OK / commit
+
+For date-time editors with an explicit OK button, resolve the current input text into the selected value before calling the table commit path. Some UI libraries do not emit `onChange` just because the user typed a complete date-time string.
+
+## 5. Select fields
+
+Examples:
+
+- single-select
+- multi-select
+
+Recommended pattern:
+
+### Single-select
+
+- often realtime-style
+- selecting a new value may commit immediately
+
+### Multi-select
+
+- often submit-style
+- editing may remain open while the user manages multiple selections
+
+Typical concerns:
+
+- label/value separation
+- search support
+- selected item display
+- whether display value is a tag list while submit value is ids/values
+
+## 6. Person fields
+
+Recommended pattern:
+
+- reuse the host project's existing people selector
+- treat `focus()` as "open the selector" rather than only text focus
+- usually submit-style editing
+
+Typical concerns:
+
+- display list vs submit ids
+- auxiliary render mapping data for avatars/names
+
+## 7. Department fields
+
+Recommended pattern:
+
+- reuse the host project's department selector
+- treat `focus()` as opening the selector
+- usually submit-style editing
+
+Typical concerns:
+
+- display list vs submit ids
+- extra mapped render data for downstream cell rendering
+
+## 8. Attachment fields
+
+Attachment fields are special and should usually be treated as their own category.
+
+Recommended pattern:
+
+- render in-table previews/icons through canvas-table rendering
+- reuse the host project's upload/file components for editing
+- usually submit-style editing
+
+Typical concerns:
+
+- image vs non-image file display
+- preview/open behavior
+- submit payload vs render payload
+- replacement/removal/reordering
+
+For details, read `attachment-editor-patterns.md`.
+
+## 9. Distinguish display value and submit value
+
+This distinction matters most for:
+
+- select fields
+- person fields
+- department fields
+- attachment fields
+- date fields with formatted display
+
+Do not assume one field value can always serve both rendering and API submission directly.
