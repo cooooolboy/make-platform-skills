@@ -55,7 +55,9 @@ Contains the current row data. Use `value` and `oldValue` for the cell value bou
 
 #### `rowKey` / `columnKey`
 
-Use these to build stable host commit payloads. Prefer business row keys over row indexes.
+Use these to build stable host commit payloads. Prefer stable backend/system row keys over row indexes.
+
+For persisted editable data, use the backend record identity when available, for example `recordID` in Make-backed data. Keep business codes such as `claimNo` as display/search fields unless the backend explicitly defines them as immutable record identities.
 
 #### `cellWidth` / `cellHeight`
 

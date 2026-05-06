@@ -132,8 +132,10 @@ Attachment fields are special and should usually be treated as their own categor
 Recommended pattern:
 
 - render in-table previews/icons through canvas-table rendering
-- reuse the host project's upload/file components for editing
+- reuse the host project's upload/file components for editing when available
+- otherwise provide a host DOM editor with drag/drop and click-to-upload file selection
 - usually submit-style editing
+- require a saved backend record identity when the backend upload API needs one
 
 Typical concerns:
 
@@ -141,6 +143,8 @@ Typical concerns:
 - preview/open behavior
 - submit payload vs render payload
 - replacement/removal/reordering
+- max file count
+- mock local data URL behavior vs real upload adapter behavior
 
 For details, read `attachment-editor-patterns.md`.
 

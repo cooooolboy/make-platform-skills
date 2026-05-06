@@ -196,9 +196,9 @@ The following points are already validated in a real host integration and should
      - create new
    - A practical Phase 1 default is: confirm first, then discard draft and continue.
 
-7. **First validated editable-list scope covers text, select, and date**
-   - A real React host has validated text fields, status select, and submit-date picker.
-   - Attachment editors remain a later scope and should still follow the dedicated attachment reference.
+7. **Validated editable-list scope covers text, select, date, and attachment metadata**
+   - A real React host has validated text fields, status select, submit-date picker, and attachment metadata editing.
+   - Attachment real upload remains a data-source / adapter scope and should still follow the dedicated attachment reference.
 
 8. **Use `editApplyMode: "controlled"` when a business save or draft layer owns writes**
    - In controlled mode, canvas-table emits edit events but does not mutate row data.
@@ -229,6 +229,16 @@ The following points are already validated in a real host integration and should
 13. **Date editors must resolve typed input before OK commits**
    - If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
    - Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
+
+14. **Use backend system identity for persisted editable rows**
+   - For persisted records, prefer `rowKey: "recordID"` or the host backend's equivalent system id.
+   - Keep business codes such as `claimNo` as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
+
+15. **Attachment editors are host popups with data-source upload boundaries**
+   - Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
+   - Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
+   - If real upload needs a saved record id, disable or omit attachment editing during create and enable it only after `recordID` exists.
+   - Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
 
 ## Choose a primary path first
 
@@ -272,6 +282,7 @@ Before changing code, identify:
 - existing business field editors
 - existing upload / date / select / people / department widgets
 - field metadata shape: editability, required, field type, precision, format, multi/single mode, attachment value structure
+- stable backend identity: `recordID` or equivalent row key for persisted rows and attachment upload
 
 Do not invent a new editor system if the project already has one.
 
@@ -305,6 +316,8 @@ Always follow these rules:
 - make the editor follow scroll / fixed-column positioning rules
 - do not mix display values and submit values for complex fields
 - attachment editing must be host-driven even if attachment rendering uses `ImgShape`
+- do not expose attachment upload for unsaved rows when the backend requires a record id
+- do not use business-only display fields as technical row keys for persisted editable rows
 
 ## Track A capability checklist
 
@@ -343,7 +356,8 @@ Use Track B to design and wire these capabilities correctly:
 - editor overlay positioning and scroll-follow behavior
 - `commit(...)` / `cancel(...)` / `updateValue(...)` usage, with `close(commit)` and `changeValue(...)` treated as legacy compatibility only
 - `edit:end` as the post-commit event surface
-- attachment field integration using host upload/file components plus canvas-table render support
+- attachment field integration using host upload/file components or drag/drop DOM editors plus canvas-table render support
+- backend system identity handling for row keys, dirty keys, detail routes, and attachment preconditions
 
 Use references as needed:
 
@@ -375,12 +389,14 @@ Use references as needed:
 2. Read package editing docs and the edit-related source entry points.
 3. Identify the host framework, component library, and existing field-editor components.
 4. Identify the field metadata that drives editability and field type.
-5. Design or reuse a host edit controller layer before writing field-specific code.
-6. Design or reuse a single editor-container abstraction before writing individual field editors.
-7. Implement or reuse field editors through a common editor interface.
-8. Distinguish submit-style editors from realtime-style editors.
-9. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
-10. Verify at least one real editable field flow in the target project.
+5. Identify the stable row identity used by backend reads, saves, dirty state, and detail routes.
+6. Design or reuse a host edit controller layer before writing field-specific code.
+7. Design or reuse a single editor-container abstraction before writing individual field editors.
+8. Implement or reuse field editors through a common editor interface.
+9. Distinguish submit-style editors from realtime-style editors.
+10. For attachment fields, identify whether upload requires a saved record id and where the data-source / adapter upload boundary lives.
+11. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
+12. Verify at least one real editable field flow in the target project.
 
 ## What to avoid
 
@@ -404,6 +420,8 @@ Before finishing, read `references/common-pitfalls.md`.
 - not updating editor position during scroll
 - closing complex editors without save / rollback logic
 - writing attachment support as render-only without an editor contract
+- putting real attachment upload calls into canvas-table or a generic table wrapper
+- using a business display code as the row key when persisted edits need a backend system id
 - copying a Vue pattern into React without converting it into hook/ref-based host patterns
 
 Before finishing, read `references/edit-common-pitfalls.md`.
@@ -447,6 +465,7 @@ After finishing, report:
 - which fields use submit-style updates vs realtime-style updates
 - how click-outside close is handled
 - how overlay positioning and scroll-follow behavior are handled
+- which stable row identity is used for persisted edits, dirty rows, detail routes, and attachment preconditions
 - how attachment fields are represented and edited
 - what was verified in the target project
 - whether anything is still blocked by missing field metadata, APIs, or host components

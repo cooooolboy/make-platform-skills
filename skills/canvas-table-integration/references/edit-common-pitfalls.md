@@ -123,7 +123,33 @@ Fix:
 
 - explicitly design the host attachment editor workflow and value structure
 
-## 12. Copying a Vue sample directly into React
+## 12. Upload logic bypasses the data-source layer
+
+Symptom:
+
+- attachment editor code or table-wrapper code calls the backend upload API directly
+- create flow tries to upload files before the backend has returned a saved record id
+
+Fix:
+
+- keep real upload calls in the host data-source / adapter layer
+- require a stable backend record id, for example `recordID`, before enabling persisted attachment upload
+- let the editor produce normalized attachment metadata or pending files, then let the save/data layer decide how to persist them
+
+## 13. Dirty checks depend on generated attachment ids
+
+Symptom:
+
+- an attachment row stays dirty after save/discard even though visible file data matches
+- local generated `uid` values differ between normalization passes
+
+Fix:
+
+- normalize attachment arrays before comparing
+- ignore generated `uid` fields during dirty comparison
+- compare stable file fields such as `name`, `url`, `filePath`, `size`, and `type`
+
+## 14. Copying a Vue sample directly into React
 
 Symptom:
 
@@ -133,7 +159,7 @@ Fix:
 
 - convert the pattern into hooks, refs, and imperative handles while preserving the same contract
 
-## 13. Restoring focus to a stale canvas after immediate save
+## 15. Restoring focus to a stale canvas after immediate save
 
 Symptom:
 
@@ -145,7 +171,7 @@ Fix:
 - after accepted commit or rollback, focus the current canvas instance, not only the instance captured when editing opened
 - in React, resolve `tableRef.current?.canvas` in each delayed focus attempt
 
-## 14. Initializing the table with a collapsed container height
+## 16. Initializing the table with a collapsed container height
 
 Symptom:
 
@@ -158,7 +184,7 @@ Fix:
 - otherwise use measured container height only when it is usable
 - fall back to a conservative default height
 
-## 15. Assuming date picker OK has already parsed typed text
+## 17. Assuming date picker OK has already parsed typed text
 
 Symptom:
 

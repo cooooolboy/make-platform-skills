@@ -63,6 +63,7 @@ Validated in `claim-table`:
 - the `claimNo` field is rendered through `render`
 - a `TextShape` is used as a clickable business anchor
 - shape events stop propagation before triggering the business jump
+- the visible business number remains `claimNo`, while the detail route uses the backend system `recordID`
 
 This strongly validates the first-version emphasis on lightweight clickable shape patterns.
 
@@ -82,14 +83,14 @@ Validated in `claim-table`:
 - `showSN.enabled = true`
 - custom formatter usage is present
 
-### Business-field `rowKey`
+### Stable backend `rowKey`
 
 Validated examples:
 
-- `rowKey: 'claimNo'`
-- `rowKey: 'itemName'`
+- `rowKey: 'recordID'` for persisted claim rows
+- `rowKey: 'recordID'` for persisted item rows
 
-This supports the guidance that host code should prefer a stable business identifier and not assume `id` is always available.
+This updates the row identity guidance: host code should prefer a stable backend/system identifier for persisted rows. Business fields such as `claimNo` should remain display/search fields, not technical row keys.
 
 ### Detail-page subtable usage
 
@@ -113,6 +114,7 @@ Validated field scope:
 - text fields: `title`, `department`, `applicantName`
 - select field: `status`
 - date-time field: `submitDate`
+- attachment field: `attachments`
 
 Observed patterns:
 
@@ -130,8 +132,16 @@ Observed patterns:
 - page-level draft state owns dirty row keys, save/discard, and unsaved-change guards
 - dirty row colors use `setRowColors(...)`
 - date-time editors resolve direct typed input before OK commits
+- attachment values are normalized into render/editor arrays
+- attachment dirty comparison ignores generated `uid` and compares stable file fields
+- attachment cells render up to 3 previews/items plus `+N`
+- image attachments use thumbnails and non-image attachments use extension/file chips
+- attachment editor supports drag/drop and click-to-upload local file selection
+- mock local files are stored as data URLs; real upload remains a data-source / adapter scope
+- attachment editing is enabled only for persisted rows with backend `recordID` when real upload requires record identity
+- attachment popup placement is handled by the host overlay/CSS, defaults left, switches right when right space is insufficient, and may cover the current edited cell
 
-This supports treating Track B as a validated host-edit integration path for text/select/date fields.
+This supports treating Track B as a validated host-edit integration path for text/select/date fields and attachment metadata editing.
 
 Browser validation covered:
 
@@ -141,8 +151,9 @@ Browser validation covered:
 - text Escape cancel
 - text outside-click commit
 - date-time typed input plus OK commit
+- attachment popup open/close and local file button visibility
 - page reload persistence through mock-store
-- zero console errors/warnings in the validated route
+- no new blocking console errors in the validated route
 
 ## 2. Not yet strongly validated by this sample project
 
@@ -165,14 +176,15 @@ Implication:
 
 - deferring it from the first-version primary path remains correct
 
-### Attachment edit workflow
+### Real attachment upload protocol
 
 Not yet validated here.
 
 Implication:
 
-- keep attachment guidance in the dedicated reference
-- do not imply upload/edit save semantics are already project-validated by `expensePoc/frontend`
+- keep real upload protocol guidance in the dedicated reference
+- do not imply backend upload semantics are project-validated by `expensePoc/frontend`
+- real upload should be integrated through the host data-source / adapter layer after the backend file API contract is available
 
 ### Built-in summary row
 

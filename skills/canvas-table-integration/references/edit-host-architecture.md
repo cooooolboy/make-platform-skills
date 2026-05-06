@@ -90,6 +90,7 @@ Responsibilities:
 - backfill the table cell or row data
 - restore canvas focus after accepted commit or rollback
 - update render-mapping caches for special field types if needed
+- for attachment fields, enforce saved-record identity requirements and call upload APIs through a data-source / adapter boundary
 
 ### Draft vs immediate save
 
@@ -128,6 +129,7 @@ If any of these happen, the host design is probably getting unhealthy:
 
 - `customEdit` contains all field-specific branches inline
 - field editors directly call backend APIs without a shared save layer
+- attachment upload calls live inside canvas-table, a generic table wrapper, or canvas render code
 - every field type has its own outside-click policy
 - display values and submit values are mixed together everywhere
 - the host introduces a whole new component library instead of reusing the current one
