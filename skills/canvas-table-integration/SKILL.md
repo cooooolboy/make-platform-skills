@@ -1,11 +1,11 @@
 ---
 name: canvas-table-integration
-description: Use when the user wants to integrate `@qfei-design/canvas-table` / `@qfei/canvas-table` into an existing app or page. This skill covers two major tracks: (1) base consumer integration of local or virtual tables, public props/methods/events, selection, drag, fixed columns, summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit architecture, including `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns, draft-vs-immediate save layers, popup editors, and attachment editor integration using the host project's existing component system. Read the installed package AI docs first, choose the correct track, use only documented public APIs, and verify the integration after editing. Do not use this skill to modify the table library itself.
+description: Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page. This skill covers two major tracks: (1) base consumer integration of local or virtual tables, public props/methods/events, selection, drag, fixed columns, summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit architecture, including `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns, draft-vs-immediate save layers, popup editors, and attachment editor integration using the host project's existing component system. Read the installed package AI docs first, choose the correct track, use only documented public APIs, and verify the integration after editing. Do not use this skill to modify the table library itself.
 ---
 
 # canvas-table-integration
 
-Use this skill only for **consumer-side integration** of `@qfei-design/canvas-table` / `@qfei/canvas-table`.
+Use this skill only for **consumer-side integration** of `@qfei-design/canvas-table`.
 
 This skill has two tracks:
 
@@ -64,16 +64,16 @@ Choose the track first. Do not mix a basic table integration request with a full
 
 Before editing code:
 
-1. Confirm `@qfei-design/canvas-table` or `@qfei/canvas-table` is installed in the current project.
+1. Confirm `@qfei-design/canvas-table` is installed in the current project.
 2. If there is no `package.json`, stop and tell the user the current directory is not an npm package.
 3. If the package is missing, detect the package manager from the lockfile and install it before continuing:
-   - `pnpm-lock.yaml` -> `pnpm add @qfei-design/canvas-table` or `pnpm add @qfei/canvas-table`
-   - `yarn.lock` -> `yarn add @qfei-design/canvas-table` or `yarn add @qfei/canvas-table`
-   - `package-lock.json` -> `npm install @qfei-design/canvas-table` or `npm install @qfei/canvas-table`
-4. If no lockfile exists, default to `npm install ...`.
+   - `pnpm-lock.yaml` -> `pnpm add @qfei-design/canvas-table`
+   - `yarn.lock` -> `yarn add @qfei-design/canvas-table`
+   - `package-lock.json` -> `npm install @qfei-design/canvas-table`
+4. If no lockfile exists, default to `npm install @qfei-design/canvas-table`.
 5. If install fails, stop and report the command and error.
 
-Prefer the package name already used by the project. Do not silently switch package names inside an existing codebase.
+Use `@qfei-design/canvas-table` consistently. If an existing codebase uses a different package name, stop and ask before changing the consumer app dependency.
 
 ## Required read order
 
