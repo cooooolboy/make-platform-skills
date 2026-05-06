@@ -1,0 +1,171 @@
+# edit interaction lifecycle
+
+Use this file to reason about the full editing lifecycle from activation to close.
+
+## 1. Entering edit mode
+
+Common entry paths:
+
+- pointer interaction on an active editable cell
+- keyboard input starting directly from the active cell
+
+When editing starts from keyboard input, `keyCode` may matter for the host editor.
+
+## 2. The editor is a DOM overlay
+
+Treat the editor as a DOM overlay above the canvas.
+
+Do not design complex editors as if they were drawn inside the canvas itself.
+
+## 3. Positioning rules
+
+Editor position typically depends on:
+
+- current cell coordinates
+- scroll offset
+- header offset
+- fixed-left region offset
+- canvas bounding rect in the viewport
+
+The editor container should respect the current cell width and height as a starting point.
+
+## 4. Scroll-follow behavior
+
+While editing is active:
+
+- scrolling should update editor position
+- fixed-column cells need special positioning behavior
+- editors may need to hide when the cell moves out of the visible area
+
+Do not assume an editor can stay static once opened.
+
+## 5. Click-outside close behavior
+
+For complex field editors, click-outside often means:
+
+1. read current value
+2. validate
+3. save or rollback
+4. reset state
+5. close
+
+Do not reduce outside-click behavior to a blind close.
+
+For popup editors, do not implement a separate host global outside-click listener first. Prefer:
+
+- `relatedElements()` for popup roots
+- object `autoClose.outsideClick`
+- `destroy()` for framework cleanup
+
+## 6. Keyboard behavior
+
+Common keyboard semantics:
+
+- `Escape` -> cancel-style exit
+- `Enter` -> commit-style exit, often then move to another cell
+- `Tab` -> commit-style exit, often then move horizontally
+
+These rules should stay consistent across field editors.
+
+For dropdown/date-like popup editors, `Enter` may need to stay inside the popup component. Prefer `autoClose.enter: "ignore"` for those editors, then commit through the editor's explicit OK/change callback.
+
+`Escape` should remain cancel-style even when the popup component also listens to keyboard events. Current package behavior listens in capture phase, so host editors should avoid stopping Escape unless they intentionally own the cancel behavior.
+
+## 7. `autoClose` behavior split
+
+### `autoClose: true`
+
+Better for lightweight editors where the table can manage more default close behavior.
+
+### `autoClose: false`
+
+Better for complex host-controlled editors where the host needs to manage:
+
+- outside click
+- popup interactions
+- save timing
+- rollback timing
+- special focus behavior
+
+### Object `autoClose`
+
+Preferred for first-pass business editors because each close trigger can be configured independently.
+
+Common examples:
+
+- text: outside click commit, Escape cancel, Enter commit, Tab commit and move
+- select/date popup: outside click commit, Escape cancel, Enter ignore, Tab commit and move
+
+## 8. Submit-style vs realtime-style editors
+
+### Submit-style editors
+
+Examples:
+
+- text
+- number / amount / percentage
+- person
+- department
+- multi-select
+- attachment
+
+These usually wait until an explicit save/close moment.
+
+### Realtime-style editors
+
+Examples:
+
+- date pickers
+- some single-select editors
+- some simple state toggles
+
+These may commit immediately on change.
+
+## 9. Post-edit behavior
+
+After commit, the host may need to:
+
+- update the cell data
+- update render-side mapped data
+- emit or observe `edit:end`
+- refresh dependent UI
+- restore keyboard focus to the current canvas
+
+If `editApplyMode: "controlled"` is used, the table will not mutate row data by itself. The host must call `setCellData(...)` or `setRowData(...)` only after the draft/save layer accepts the commit.
+
+When accepted commits trigger host row refreshes, delayed focus should resolve the latest table canvas instead of capturing only the original instance. A practical pattern is immediate focus, next-frame focus, and one short delayed focus against `tableRef.current?.canvas`.
+
+After cancel or rollback, the host may need to:
+
+- restore the old value
+- clear transient state
+- close the overlay cleanly
+- restore canvas focus if the edit session had taken focus into a DOM editor
+
+## 10. Behavior consistency rule
+
+The host should enforce one coherent editing lifecycle.
+
+Do not let each field editor invent its own unrelated close / save / rollback semantics unless there is a clear business reason.
+
+## 11. Table recreation rule
+
+Editable host components should keep table initialization stable while editing and while draft rows change.
+
+If recreation is unavoidable, reapply derived canvas state after `setData(...)`, including:
+
+- dirty row colors
+- selection if the host owns selection state
+- any row/cell visual state stored outside row data
+
+## 12. Container sizing rule
+
+Initialize the table only with a usable canvas height.
+
+Prefer this order:
+
+1. explicit height prop
+2. measured container height when it is large enough for rows
+3. conservative default height
+
+Do not let a padding-only or collapsed container produce a tiny canvas. It makes hit testing, scroll behavior, editor positioning, and empty-state judgment unreliable.

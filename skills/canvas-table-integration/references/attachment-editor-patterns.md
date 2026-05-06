@@ -1,0 +1,216 @@
+# attachment editor patterns
+
+Use this file when attachment/file fields are part of the editable canvas-table workflow.
+
+Attachment fields belong in the second-version editing scope, but they should be designed as host-driven editors, not as canvas-table-native uploaders.
+
+Validated reference implementation:
+
+- `/Users/caojianbo/ZSQF/make-group/expensePoc/frontend`
+- implemented attachment metadata editing, drag/drop/click local file selection, mock data URL persistence, and attachment cell rendering
+- real Make file upload was intentionally deferred and must remain outside the canvas-table package and table wrapper
+
+## 1. Three-layer model
+
+Treat attachment fields as three cooperating layers.
+
+### Table-render layer
+
+Canvas-table can support:
+
+- image thumbnails
+- file icons
+- preview/open click interactions
+- multi-item visual layout
+
+### Host-editor layer
+
+The host project must provide:
+
+- file selection UI
+- drag/drop and click-to-upload interaction
+- replacement / removal logic
+- ordering logic if needed
+- render payload construction
+
+### Data-source / adapter layer
+
+The host data layer must provide:
+
+- real upload API calls
+- submit payload construction
+- saved-record identity checks
+- mapping between backend file structures and render-friendly attachment values
+
+Do not put upload-service calls inside canvas-table, a generic table wrapper, or a canvas render function.
+
+## 2. In-table rendering
+
+A common pattern is:
+
+- parse the attachment value structure
+- detect image vs non-image files
+- render image thumbnails through `ImgShape`
+- render non-image file extension chips or file icons
+- show a bounded number of attachments, for example first 3 items plus `+N`
+- attach click behavior to preview/open the file URL
+
+Do not confuse this with the editing workflow itself.
+
+## 3. Why `ImgShape` matters
+
+`ImgShape` gives the table-render layer a good foundation for:
+
+- image display
+- icon display
+- click interaction
+- loading/error fallback behavior
+
+But `ImgShape` is not an uploader and not a file manager.
+
+## 4. Normalized attachment value
+
+Normalize backend and editor values before they reach rendering, dirty comparison, or submit logic.
+
+Recommended render/editor shape:
+
+```ts
+type CanvasAttachment = {
+  uid: string
+  name: string
+  url?: string
+  filePath?: string
+  size?: number
+  type?: string
+}
+```
+
+For Make FileField-style values, map:
+
+- `fileName` -> `name`
+- `fileURL` -> `url`
+- `filePath` -> `filePath`
+- `fileSizeInBytes` -> `size`
+
+Keep compatibility normalization in the data layer or a pure helper. It may tolerate:
+
+- an array of normalized attachments
+- a single Make FileField object
+- an array of Make FileField objects
+- a JSON string
+- a plain URL string
+
+After normalization, table/render/editor code should work with an array of `CanvasAttachment`.
+
+### Dirty comparison
+
+Do not compare attachment arrays by reference.
+
+Dirty comparison should ignore `uid` and compare stable business/file fields:
+
+- `name`
+- `url`
+- `filePath`
+- `size`
+- `type`
+
+This prevents generated local ids from leaving a row permanently dirty.
+
+## 5. Record identity and create-flow rule
+
+Attachment upload often requires a saved backend record identity.
+
+For Make-backed data, prefer the system `recordID` returned by the Data API. Do not add `recordID` to the entity DSL as a normal field, and do not use a business display field such as `claimNo` as the technical row key for attachment persistence.
+
+Recommended behavior:
+
+- persisted editable rows use `rowKey: "recordID"` or an equivalent stable backend id
+- create forms do not expose attachment upload when the backend requires `recordID`
+- new-record create payloads omit attachment fields when upload is a separate file API
+- after create succeeds, reload or merge the returned `recordID`, then enable attachment editing
+
+## 6. Attachment editor responsibilities
+
+The host editor should be responsible for:
+
+- selecting files
+- accepting drag/drop files
+- accepting click-to-upload through a hidden file input or host upload component
+- replacing files
+- removing files
+- reordering files when the business requires it
+- returning the correct render/editor value
+
+If the product allows local mock behavior before real upload integration, the editor may convert selected files to data URLs and store them as mock metadata. Mark this as mock behavior and keep the future real upload boundary in the data-source / adapter layer.
+
+## 7. Value structure guidance
+
+Keep these concepts distinct:
+
+- render value: normalized attachments for table display and editor state
+- submit value: API-specific payload, upload token, file id, or backend file field value
+- pending file value: optional editor-local files that still need the data-source adapter to upload
+- optional extra mapping data when the host render layer needs thumbnails or icon hints
+
+Do not assume one attachment value can always serve rendering, editing, and API submission directly.
+
+## 8. Interaction model
+
+Attachment editing is usually a submit-style editor.
+
+Common behavior:
+
+- open attachment panel
+- drag files into a drop zone or click the drop zone/button to choose local files
+- modify attachment list
+- commit on explicit save/close or on a controlled outside-click flow
+
+Do not default to instant commit unless the host project already uses that model.
+
+When an attachment panel is open from `customEdit`, use the table's popup coordination contract:
+
+- return the editor root or popup root from `relatedElements()`
+- set `overlayOptions: { overflow: "visible" }` when the panel overflows the cell
+- use object `autoClose`
+- use `enter: "ignore"` when the panel owns Enter handling
+- dispose framework roots from `destroy`, but defer root unmount if needed to avoid unmounting during the same click event that committed the editor
+
+## 9. Popup placement and cell coverage
+
+Attachment panels often need to be wider and taller than the edited cell.
+
+Recommended placement behavior:
+
+- default to left-aligned with the edited cell
+- switch to right-aligned only when the viewport or scroll container does not have enough right-side space
+- let the panel cover the edited cell border so the active cell editor outline does not remain visible through the attachment UI
+- handle placement with host-side CSS or a host-side positioner before considering canvas-table package changes
+
+Do not special-case attachment placement to avoid covering the current cell. Covering the current edited cell is acceptable and often preferred for popup editors.
+
+## 10. Component-library rule
+
+For attachment editors, strongly prefer the current project's existing upload/file component system.
+
+Do not force the skill to require a specific upload library.
+
+## 11. Verification checklist
+
+For an attachment field integration, verify:
+
+- persisted rows have a stable backend identity before attachment editing is enabled
+- create flow omits attachments when backend upload needs a record id
+- rendering handles images, non-images, empty values, and more-than-visible counts
+- clicking a rendered attachment opens/previews the file without triggering row navigation unexpectedly
+- drag/drop and click-to-upload both add files in the editor
+- removal updates the normalized array
+- dirty comparison clears after save/discard and does not depend on generated `uid`
+- popup roots are included in `relatedElements()`
+- the panel can overflow the cell and cover the active cell outline
+- table focus returns correctly after commit/cancel
+
+## 12. Scope discipline
+
+This skill should document how to integrate attachment editors into canvas-table.
+
+It should not attempt to define the full server-side upload protocol unless the host project already exposes that pattern and the user explicitly asks for it.
