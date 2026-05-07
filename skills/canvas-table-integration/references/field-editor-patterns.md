@@ -49,6 +49,9 @@ Recommended pattern:
 - numeric input editor
 - submit-style editing
 - keep precision and unit behavior in field metadata or field config
+- keep the row value and submit value as a number when the backend expects a number
+- put currency, percent, thousands separators, and unit display in the editor formatter or table render layer
+- parse formatted input back to a number before commit
 
 Typical concerns:
 
@@ -56,6 +59,13 @@ Typical concerns:
 - precision
 - suffix/unit display
 - display string vs submit payload
+- invalid input fallback and validation policy
+
+Good defaults:
+
+- `Enter` may commit for simple number editors, similar to text fields.
+- `Escape` should cancel without writing the candidate value.
+- Do not pre-format the row data into a display string before it reaches the editor; that often makes initial values and submit payloads brittle.
 
 ## 4. Date fields
 
@@ -152,6 +162,7 @@ For details, read `attachment-editor-patterns.md`.
 
 This distinction matters most for:
 
+- number-like fields with formatted display
 - select fields
 - person fields
 - department fields

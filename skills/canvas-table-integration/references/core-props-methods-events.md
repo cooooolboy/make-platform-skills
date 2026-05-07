@@ -58,9 +58,9 @@ Can be:
 - a string field name, e.g. `rowKey: 'id'`
 - a function, e.g. `(row, index) => ...`
 
-Prefer a stable backend identity field whenever possible. For persisted records, use the system record id returned by the backend, for example `recordID` in Make-backed data.
+Prefer a stable backend identity field whenever possible. For persisted records, use the system record id returned by the backend, for example `id`, `recordId`, or a platform-specific system id.
 
-Do not use a mutable or business-only display field as the technical row key when row state, drafts, detail routes, or attachment uploads depend on the key. For example, a claim number can be rendered and searched as business text while `recordID` remains the row key.
+Do not use a mutable or business-only display field as the technical row key when row state, drafts, detail routes, or attachment uploads depend on the key.
 
 #### `showSN`
 

@@ -106,3 +106,18 @@ Fix:
 
 - start with plain text columns
 - add `render + TextShape` only for high-value business interactions
+
+## 10. Hiding the focusable visual canvas host
+
+Symptom:
+
+- browser logs `Blocked aria-hidden` or similar focus accessibility warnings
+- the package-created canvas has `tabIndex=0` but an ancestor is `aria-hidden`
+- table focus or keyboard interaction becomes inconsistent
+
+Fix:
+
+- do not put `aria-hidden` on the visual canvas-table host or a focusable canvas ancestor
+- do not use `inert` on the visual host unless the table is intentionally disabled
+- keep any screen-reader fallback table as a separate visually-hidden structure
+- give the visual host a non-hidden accessible label, for example `role="group"` plus `aria-label`

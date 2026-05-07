@@ -157,15 +157,15 @@ This track covers:
 
 This track does **not** require a fixed UI library. Prefer the current project's existing editor components and component library.
 
-### Track B / Phase 1 validated architecture notes
+### Track B / pragmatic host-edit guidance
 
-The following points are already validated in a real host integration and should be treated as the current default guidance for first-pass editable-list work:
+Use these as defaults for first-pass editable-list work. Adapt them to the host project's real component system, save model, and backend contract.
 
-1. **`editType: "custom"` is the required entry point**
+1. **Declare custom editing on target columns**
    - If a target column is expected to enter the host-side custom editor flow, declare `editType: "custom"` on that column explicitly.
    - Do not assume `customEdit` alone is enough.
 
-2. **`customEdit` is viable in a React host app**
+2. **Start with the smallest working editor bridge**
    - For first-pass text-field editing, a simple host-created DOM input is a valid starting point.
    - Do not over-engineer the editor container before at least one real editable field flow is working end to end.
 
@@ -194,10 +194,11 @@ The following points are already validated in a real host integration and should
      - query/reset
      - open detail
      - create new
-   - A practical Phase 1 default is: confirm first, then discard draft and continue.
+   - A practical first-pass default is: confirm first, then discard draft and continue. Keep the exact policy aligned with the host product.
 
-7. **Validated editable-list scope covers text, select, date, and attachment metadata**
-   - A real React host has validated text fields, status select, submit-date picker, and attachment metadata editing.
+7. **Common editable-list scope covers text, number, select, date, and attachment metadata**
+   - Treat these as reusable patterns, not fixed component choices.
+   - For number-like fields, keep row/submit values numeric and move currency/unit formatting to display or render layers.
    - Attachment real upload remains a data-source / adapter scope and should still follow the dedicated attachment reference.
 
 8. **Use `editApplyMode: "controlled"` when a business save or draft layer owns writes**
@@ -216,10 +217,12 @@ The following points are already validated in a real host integration and should
    - In React, keep latest rows/callbacks in refs where needed and update data with `setData(...)`.
    - If the table is recreated due to resize or prop changes, reapply dirty row colors after `setData(...)`.
 
-11. **Restore focus to the current canvas after controlled commits**
+11. **Restore focus to the current canvas only inside the canvas edit lifecycle**
    - Immediate-save mode often refreshes host rows and may recreate or update the table instance.
-   - After accepted commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
-   - Use immediate, next-frame, and short-delay focus attempts when the host framework may commit DOM updates after the save promise resolves.
+   - After accepted cell-edit commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
+   - Use immediate, next-frame, and short-delay focus attempts only when returning from a canvas-table cell editor back to the table.
+   - Do not restore canvas focus while a host modal, drawer, dialog, popover, or form surface is opening or active.
+   - Do not run delayed canvas-focus retries after row clicks or actions that open host UI. Those surfaces own focus until they close.
 
 12. **Guarantee a usable canvas height before initializing the table**
    - Do not rely on a padding-only container height.
@@ -230,14 +233,14 @@ The following points are already validated in a real host integration and should
    - If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
    - Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
 
-14. **Use backend system identity for persisted editable rows**
-   - For persisted records, prefer `rowKey: "recordID"` or the host backend's equivalent system id.
-   - Keep business codes such as `claimNo` as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
+14. **Use stable backend identity for persisted editable rows**
+   - For persisted records, prefer the host backend's stable system id as `rowKey`.
+   - Keep mutable or display-only business codes as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
 
 15. **Attachment editors are host popups with data-source upload boundaries**
    - Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
    - Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
-   - If real upload needs a saved record id, disable or omit attachment editing during create and enable it only after `recordID` exists.
+   - If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
    - Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
 
 ## Choose a primary path first
@@ -282,13 +285,13 @@ Before changing code, identify:
 - existing business field editors
 - existing upload / date / select / people / department widgets
 - field metadata shape: editability, required, field type, precision, format, multi/single mode, attachment value structure
-- stable backend identity: `recordID` or equivalent row key for persisted rows and attachment upload
+- stable backend identity: the host backend's system id or equivalent row key for persisted rows and attachment upload
 
 Do not invent a new editor system if the project already has one.
 
-## Hard rules
+## Safety rules and defaults
 
-Always follow these rules:
+Treat these as safety rules:
 
 - browser / client-only; never instantiate during SSR
 - use a real DOM container with explicit width and height
@@ -298,6 +301,8 @@ Always follow these rules:
 - destroy the table instance on unmount / cleanup
 - never pass raw meta directly into the table runtime
 - convert meta into `IColumn[]` before creating the table
+- do not put `aria-hidden` or `inert` on the visual canvas-table host, or on any ancestor that can contain the package-created focusable canvas
+- if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
 
 ### Additional Track A rules
 
@@ -305,7 +310,7 @@ Always follow these rules:
 - when `virtualOptions.enabled === true`, listen to `data:load` and use `setData(rows, page)`
 - keep the table page contract zero-based; if the backend is one-based, translate inside the loader callback
 
-### Additional Track B rules
+### Track B defaults
 
 - do not force a fixed component library
 - prefer the host project's existing editor and field components
@@ -315,9 +320,11 @@ Always follow these rules:
 - treat the editor as a DOM overlay, not a canvas-drawn widget
 - make the editor follow scroll / fixed-column positioning rules
 - do not mix display values and submit values for complex fields
+- for number-like fields, keep submit values numeric; use render/editor formatting only for display
 - attachment editing must be host-driven even if attachment rendering uses `ImgShape`
 - do not expose attachment upload for unsaved rows when the backend requires a record id
 - do not use business-only display fields as technical row keys for persisted editable rows
+- canvas focus restoration is scoped to canvas-table edit commit/cancel/rollback; never let it steal focus from host modal, drawer, dialog, popover, or form interactions
 
 ## Track A capability checklist
 

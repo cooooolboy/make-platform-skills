@@ -88,7 +88,7 @@ Responsibilities:
 - submit to the host API
 - rollback on failure when needed
 - backfill the table cell or row data
-- restore canvas focus after accepted commit or rollback
+- restore canvas focus after accepted cell-edit commit or rollback only when returning to the table
 - update render-mapping caches for special field types if needed
 - for attachment fields, enforce saved-record identity requirements and call upload APIs through a data-source / adapter boundary
 
@@ -101,7 +101,7 @@ Support both modes explicitly when the product may need them:
 
 When either mode must approve writes, set `editApplyMode: "controlled"` and backfill with `setCellData(...)` or `setRowData(...)` only after acceptance.
 
-If immediate save refreshes host rows, focus restoration should resolve the latest table instance. Avoid focusing a stale canvas captured by the edit-start closure.
+If immediate save refreshes host rows, focus restoration should resolve the latest table instance. Avoid focusing a stale canvas captured by the edit-start closure. Skip focus restoration while host modal, drawer, dialog, popover, or form UI is opening or active.
 
 ### Dirty state belongs outside the table wrapper
 
@@ -137,3 +137,4 @@ If any of these happen, the host design is probably getting unhealthy:
 - dirty row colors disappear after resize or table recreation
 - Tab commit saves but keyboard focus remains on `body`
 - date typed input plus OK saves the previous value
+- opening a host drawer or modal immediately loses input focus because delayed canvas focus retries still run

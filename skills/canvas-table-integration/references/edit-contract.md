@@ -57,7 +57,7 @@ Contains the current row data. Use `value` and `oldValue` for the cell value bou
 
 Use these to build stable host commit payloads. Prefer stable backend/system row keys over row indexes.
 
-For persisted editable data, use the backend record identity when available, for example `recordID` in Make-backed data. Keep business codes such as `claimNo` as display/search fields unless the backend explicitly defines them as immutable record identities.
+For persisted editable data, use the backend's stable record identity when available, for example `id`, `recordId`, or a platform-specific system id. Keep mutable business codes as display/search fields unless the backend explicitly defines them as immutable record identities.
 
 #### `cellWidth` / `cellHeight`
 
@@ -173,7 +173,9 @@ The table emits edit events but does not mutate row data. Use this when the host
 
 After the host accepts a commit, call `setCellData(...)` or `setRowData(...)` to backfill canvas data.
 
-If the accepted commit triggers a host refresh, restore keyboard focus to the current canvas instance after backfill. In React, prefer a getter such as `() => tableRef.current?.canvas ?? table.canvas` so delayed focus attempts do not target a stale canvas.
+If the accepted cell-edit commit triggers a host refresh, restore keyboard focus to the current canvas instance after backfill. In React, prefer a getter such as `() => tableRef.current?.canvas ?? table.canvas` so delayed focus attempts do not target a stale canvas.
+
+This focus restoration is conditional. Skip it when a host modal, drawer, dialog, popover, or form surface is opening or active, or when the user's next interaction has moved focus into that surface. Do not use canvas focus restoration as a generic post-save or post-row-click behavior.
 
 ## 6. Event surface related to editing
 
@@ -230,3 +232,4 @@ Do not mix these concepts:
 - close behavior vs commit behavior
 - edit event emission vs row-data write timing
 - accepted commit vs focus restoration timing
+- canvas edit focus restoration vs host modal/drawer/dialog/form focus ownership

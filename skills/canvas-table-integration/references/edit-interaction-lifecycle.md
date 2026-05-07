@@ -129,18 +129,20 @@ After commit, the host may need to:
 - update render-side mapped data
 - emit or observe `edit:end`
 - refresh dependent UI
-- restore keyboard focus to the current canvas
+- restore keyboard focus to the current canvas when the interaction is returning from canvas cell editing back to the table
 
 If `editApplyMode: "controlled"` is used, the table will not mutate row data by itself. The host must call `setCellData(...)` or `setRowData(...)` only after the draft/save layer accepts the commit.
 
-When accepted commits trigger host row refreshes, delayed focus should resolve the latest table canvas instead of capturing only the original instance. A practical pattern is immediate focus, next-frame focus, and one short delayed focus against `tableRef.current?.canvas`.
+When accepted cell-edit commits trigger host row refreshes, delayed focus should resolve the latest table canvas instead of capturing only the original instance. A practical pattern is immediate focus, next-frame focus, and one short delayed focus against `tableRef.current?.canvas`.
+
+Never run those delayed focus attempts while a host modal, drawer, dialog, popover, or form surface is opening or active. If a row click, action button, or edit commit opens host UI, that host UI owns focus until it closes.
 
 After cancel or rollback, the host may need to:
 
 - restore the old value
 - clear transient state
 - close the overlay cleanly
-- restore canvas focus if the edit session had taken focus into a DOM editor
+- restore canvas focus if the edit session had taken focus into a DOM editor and no other host interaction surface now owns focus
 
 ## 10. Behavior consistency rule
 

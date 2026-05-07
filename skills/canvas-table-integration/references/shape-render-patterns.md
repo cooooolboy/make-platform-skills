@@ -19,15 +19,15 @@ import { TextShape, type IColumn } from '@qfei-design/canvas-table'
 
 const columns: IColumn[] = [
   {
-    key: 'claimNo',
-    title: '报销单号',
+    key: 'recordCode',
+    title: '业务编号',
     width: 180,
     showEllipsis: true,
     render: (cell, group) => {
       const text = String(cell.value ?? '-')
 
       const link = new TextShape({
-        name: 'claimNoLink',
+        name: 'recordCodeLink',
         x: 8,
         y: cell.height / 2,
         cursor: 'pointer',
@@ -47,7 +47,7 @@ const columns: IColumn[] = [
 
       link.on('click', (event) => {
         event.stopPropagation?.()
-        const id = cell.rowData.recordID
+        const id = cell.rowData.id
         if (id) {
           openDetail(id)
         }
@@ -82,7 +82,7 @@ Common patterns:
 - stop propagation on `mousedown`
 - stop propagation on `click`
 - trigger a business action from the row data
-- if the visible field is a business code such as `claimNo`, use the stable backend id such as `recordID` for navigation when detail routes and persistence depend on record identity
+- if the visible field is a business code, use the stable backend id for navigation when detail routes and persistence depend on record identity
 
 If you need table-level event wiring, prefer documented public events and `table.tableId` namespacing.
 
