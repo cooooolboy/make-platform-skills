@@ -81,20 +81,19 @@ Use `showEllipsis` for:
 { key: 'description', title: '说明', width: 260, showEllipsis: true }
 ```
 
-## 5. Prefer formatting data outside the table core
+## 5. Keep formatting close to the display boundary
 
-For currency, time, and enum display, prefer formatting before `setData(...)`:
+For display-only columns, formatting before `setData(...)` can keep column definitions simple:
 
 ```ts
 const formattedRows = rows.map((row) => ({
   ...row,
-  amount: formatCurrency(row.amount),
   submitDate: formatDateTime(row.submitDate),
   status: formatStatus(row.status),
 }))
 ```
 
-This keeps column definitions simpler.
+For editable number-like fields, keep row and submit values numeric, then format in the table `render` function or editor formatter/parser. Do not turn editable numeric row data into a currency string before it reaches the editor.
 
 ## 6. Use `render` only when necessary
 

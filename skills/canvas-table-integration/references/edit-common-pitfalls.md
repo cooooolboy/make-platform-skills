@@ -133,7 +133,7 @@ Symptom:
 Fix:
 
 - keep real upload calls in the host data-source / adapter layer
-- require a stable backend record id, for example `recordID`, before enabling persisted attachment upload
+- require a stable backend record id before enabling persisted attachment upload
 - let the editor produce normalized attachment metadata or pending files, then let the save/data layer decide how to persist them
 
 ## 13. Dirty checks depend on generated attachment ids
@@ -168,8 +168,10 @@ Symptom:
 
 Fix:
 
-- after accepted commit or rollback, focus the current canvas instance, not only the instance captured when editing opened
+- after accepted cell-edit commit or rollback, focus the current canvas instance, not only the instance captured when editing opened
 - in React, resolve `tableRef.current?.canvas` in each delayed focus attempt
+- keep this focus restoration scoped to canvas-table cell editing; skip it if a host modal, drawer, dialog, popover, or form surface is open or opening
+- cancel or guard delayed focus retries when row clicks or actions open host UI
 
 ## 16. Initializing the table with a collapsed container height
 
@@ -194,3 +196,18 @@ Fix:
 
 - before OK commits, resolve the current typed input into the editor's selected value/ref
 - keep display value and submit value normalized to the agreed date-time format
+
+## 18. Letting canvas focus steal host form focus
+
+Symptom:
+
+- opening a create/edit drawer or modal from a table row works, but inputs cannot keep focus
+- clicking a form input briefly focuses it, then focus returns to the canvas
+- delayed `requestAnimationFrame` or `setTimeout` focus retries run after host UI opens
+
+Fix:
+
+- treat modal, drawer, dialog, popover, and form components as separate host interaction surfaces that own focus while open
+- do not call `table.canvas.focus()` or `tableRef.current?.canvas.focus()` after opening those surfaces
+- guard delayed canvas-focus retries with an "is host surface open" check
+- only restore canvas focus after canvas-table cell-edit commit/cancel/rollback when the next intended target is the table
