@@ -544,7 +544,7 @@ validations:
 ```
 
 ## MultiDepartmentField | 部门字段
-存储和关联多选部门信息, 可以存储多个部门信息, 统一采用数组语义，通过 `maxCount` 控制用户数量上限
+存储和关联多选部门信息, 可以存储多个部门信息, 统一采用数组语义，通过 `maxCount` 控制部门数量上限
 详情请参考 @DepartmentFieldDesign.md
 
 ### MultiDepartmentField DSL
@@ -555,7 +555,7 @@ type: Make.Field.MultiDepartment
 meta:
   version: SemanticVersion
 properties:
-  maxCount: Integer # 最大用户数量, 默认为 1000
+  maxCount: Integer # 最大部门数量, 默认为 1000
 validations:
   isRequired: Boolean
 ```
@@ -563,7 +563,7 @@ validations:
 ### MultiDepartmentField 例子
 
 ```yaml
-name: 负责人
+name: 协作部门
 type: Make.Field.MultiDepartment
 meta:
   version: 1.0.0
