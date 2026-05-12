@@ -1,6 +1,20 @@
 ---
 name: canvas-table-integration
-description: Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page. This skill covers base table integration, host-side cell-edit architecture, and Make platform field-display integration for the currently supported 18 field types (`Make.Field.ID`, `Make.Field.Text`, `Make.Field.TextArea`, `Make.Field.URL`, `Make.Field.Number`, `Make.Field.Currency`, `Make.Field.Percent`, `Make.Field.Date`, `Make.Field.DateTime`, `Make.Field.DateRange`, `Make.Field.SingleSelect`, `Make.Field.MultiSelect`, `Make.Field.SingleUser`, `Make.Field.MultiUser`, `Make.Field.SingleDepartment`, `Make.Field.MultiDepartment`, `Make.Field.File`, `Make.Field.Lookup`). Use it to turn schema fields and backend values into correct canvas table columns/renderers with clear config/renderers/hooks/types separation. Read package AI docs first, choose the correct track, use public APIs, and verify after editing. Do not use this skill to modify the table library itself.
+description: >-
+  Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page.
+  This skill covers three tracks: (1) base consumer integration of local or virtual tables,
+  public props/methods/events, selection, drag, fixed columns, summary rows, empty states,
+  and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit
+  architecture for schema-driven business fields, including Make-style field types (`ID`, text,
+  URL, number/currency/percent, date/date-time/date-range, select, user, department, file,
+  lookup), `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`,
+  `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns,
+  value adapters, draft-vs-immediate save layers, popup editors, and attachment editor integration
+  using the host project's existing component system; (3) Make field-display integration for
+  schema-driven columns, value normalization, focused renderers, and display-only handling of
+  the supported Make field types. Read the installed package AI docs first, choose the correct
+  track, use only documented public APIs, and verify the integration after editing. Do not use
+  this skill to modify the table library itself.
 ---
 
 # canvas-table-integration
@@ -24,6 +38,7 @@ This skill has three tracks:
   - host-side edit controller architecture
   - editor-container patterns
   - field-editor mappings
+  - schema field-type mappings for display value vs submit value
   - draft save layer vs immediate save layer
   - positioning / scroll / popup close handling
   - attachment editor integration
@@ -55,6 +70,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 - 复用项目已有输入框 / 下拉 / 日期 / 人员 / 部门 / 附件组件
 - 处理编辑器定位、滚动、关闭、保存、回填、回滚
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
+- 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
 - 把现有项目字段编辑器接进 canvas table
 
 ### Track C: Make field-display integration
@@ -262,35 +278,41 @@ Use these as defaults for first-pass editable-list work. Adapt them to the host 
    - Avoid host-owned global outside-click listeners unless the package contract is insufficient.
 
 10. **Keep table initialization stable during draft updates**
-   - Do not recreate the canvas table just because merged rows or parent callbacks changed.
-   - In React, keep latest rows/callbacks in refs where needed and update data with `setData(...)`.
-   - If the table is recreated due to resize or prop changes, reapply dirty row colors after `setData(...)`.
+
+- Do not recreate the canvas table just because merged rows or parent callbacks changed.
+- In React, keep latest rows/callbacks in refs where needed and update data with `setData(...)`.
+- If the table is recreated due to resize or prop changes, reapply dirty row colors after `setData(...)`.
 
 11. **Restore focus to the current canvas only inside the canvas edit lifecycle**
-   - Immediate-save mode often refreshes host rows and may recreate or update the table instance.
-   - After accepted cell-edit commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
-   - Use immediate, next-frame, and short-delay focus attempts only when returning from a canvas-table cell editor back to the table.
-   - Do not restore canvas focus while a host modal, drawer, dialog, popover, or form surface is opening or active.
-   - Do not run delayed canvas-focus retries after row clicks or actions that open host UI. Those surfaces own focus until they close.
+
+- Immediate-save mode often refreshes host rows and may recreate or update the table instance.
+- After accepted cell-edit commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
+- Use immediate, next-frame, and short-delay focus attempts only when returning from a canvas-table cell editor back to the table.
+- Do not restore canvas focus while a host modal, drawer, dialog, popover, or form surface is opening or active.
+- Do not run delayed canvas-focus retries after row clicks or actions that open host UI. Those surfaces own focus until they close.
 
 12. **Guarantee a usable canvas height before initializing the table**
-   - Do not rely on a padding-only container height.
-   - Prefer explicit height, then measured container height, then a conservative default height.
-   - Too-small canvas height causes unreliable hit testing, popup positioning, and empty-state behavior.
+
+- Do not rely on a padding-only container height.
+- Prefer explicit height, then measured container height, then a conservative default height.
+- Too-small canvas height causes unreliable hit testing, popup positioning, and empty-state behavior.
 
 13. **Date editors must resolve typed input before OK commits**
-   - If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
-   - Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
+
+- If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
+- Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
 
 14. **Use stable backend identity for persisted editable rows**
-   - For persisted records, prefer the host backend's stable system id as `rowKey`.
-   - Keep mutable or display-only business codes as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
+
+- For persisted records, prefer the host backend's stable system id as `rowKey`.
+- Keep mutable or display-only business codes as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
 
 15. **Attachment editors are host popups with data-source upload boundaries**
-   - Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
-   - Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
-   - If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
-   - Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
+
+- Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
+- Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
+- If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
+- Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
 
 ## Choose a primary path first
 
@@ -409,6 +431,7 @@ Use Track B to design and wire these capabilities correctly:
 - submit-style field editors
 - realtime-style field editors
 - field-editor mapping by business field type
+- Make-style field coverage: `ID`, `Text`, `TextArea`, `URL`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `File`, `Lookup`
 - editor overlay positioning and scroll-follow behavior
 - `commit(...)` / `cancel(...)` / `updateValue(...)` usage, with `close(commit)` and `changeValue(...)` treated as legacy compatibility only
 - `edit:end` as the post-commit event surface
@@ -446,13 +469,14 @@ Use references as needed:
 3. Identify the host framework, component library, and existing field-editor components.
 4. Identify the field metadata that drives editability and field type.
 5. Identify the stable row identity used by backend reads, saves, dirty state, and detail routes.
-6. Design or reuse a host edit controller layer before writing field-specific code.
-7. Design or reuse a single editor-container abstraction before writing individual field editors.
-8. Implement or reuse field editors through a common editor interface.
-9. Distinguish submit-style editors from realtime-style editors.
-10. For attachment fields, identify whether upload requires a saved record id and where the data-source / adapter upload boundary lives.
-11. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
-12. Verify at least one real editable field flow in the target project.
+6. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
+7. Design or reuse a host edit controller layer before writing field-specific code.
+8. Design or reuse a single editor-container abstraction before writing individual field editors.
+9. Implement or reuse field editors through a common editor interface.
+10. Distinguish submit-style editors from realtime-style editors.
+11. For attachment fields, identify whether upload requires a saved record id and where the data-source / adapter upload boundary lives.
+12. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
+13. Verify at least one real editable field flow in the target project.
 
 ### Track C workflow
 

@@ -211,3 +211,56 @@ Fix:
 - do not call `table.canvas.focus()` or `tableRef.current?.canvas.focus()` after opening those surfaces
 - guard delayed canvas-focus retries with an "is host surface open" check
 - only restore canvas focus after canvas-table cell-edit commit/cancel/rollback when the next intended target is the table
+
+## 19. Treating all 18 Make field types as editable
+
+Symptom:
+
+- `ID` or `Lookup` cells enter edit mode but the backend rejects the write
+- generated values or derived lookup values are sent through the same save path as normal fields
+
+Fix:
+
+- classify `Make.Field.ID` and `Make.Field.Lookup` as read-only by default
+- include them in field coverage documentation, but do not wire save calls unless the backend explicitly supports editing them
+
+## 20. Submitting display strings instead of backend values
+
+Symptom:
+
+- currency fields submit `¥1,234.00`
+- percent fields submit a string with `%`
+- select, user, or department fields submit labels instead of ids
+- date ranges submit `"2026-01-01 至 2026-01-31"` instead of a structured range
+
+Fix:
+
+- keep `renderValue`, `displayValue`, and `submitValue` separate
+- normalize field values before dirty comparison and API calls
+- keep formatting in render/editor display helpers, not in persisted row data
+
+## 21. Ignoring numeric precision metadata
+
+Symptom:
+
+- entering three decimal places looks valid in the editor but the save API rejects the value
+- the cell briefly displays a value that the backend cannot persist
+
+Fix:
+
+- read precision metadata such as `precision` or `decimalPlaces`
+- round or validate before commit according to the host backend rule
+- test the normalized submit value, not only the input display
+
+## 22. Using fake identity options in production
+
+Symptom:
+
+- person or department dropdowns show local demo values that are not returned by real backend APIs
+- saving a selected fake id fails backend validation
+
+Fix:
+
+- use real host APIs or existing business selector data sources for identity candidates
+- use current cell values only as display/selection fallback, not as a fake global dictionary
+- if the real API returns empty data, keep the candidate list empty unless the product explicitly requests demo mode
