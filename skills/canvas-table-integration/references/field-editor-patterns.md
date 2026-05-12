@@ -4,6 +4,18 @@ Use this file to map business field types to host editor patterns.
 
 This file is about host-side editor integration, not about forcing one UI library.
 
+When the host backend exposes Make-style field schemas, handle the currently supported 18 field types explicitly enough to avoid ambiguous value shapes:
+
+- read-only / generated: `Make.Field.ID`, `Make.Field.Lookup`
+- text-like: `Make.Field.Text`, `Make.Field.TextArea`, `Make.Field.URL`
+- number-like: `Make.Field.Number`, `Make.Field.Currency`, `Make.Field.Percent`
+- date-like: `Make.Field.Date`, `Make.Field.DateTime`, `Make.Field.DateRange`
+- option-like: `Make.Field.SingleSelect`, `Make.Field.MultiSelect`
+- identity-like: `Make.Field.SingleUser`, `Make.Field.MultiUser`, `Make.Field.SingleDepartment`, `Make.Field.MultiDepartment`
+- attachment-like: `Make.Field.File`
+
+This grouping is guidance, not a requirement to use these exact file or component names. If the host schema has equivalent names, map them into the same groups before choosing editors.
+
 ## 1. Common editor interface
 
 Prefer a shared editor interface such as:
@@ -17,18 +29,60 @@ The field editor should return enough information for the host save layer to dis
 - submit value
 - optional extra render mapping data
 
-## 2. Text fields
+A useful value contract is:
+
+```ts
+type CellEditorValue = {
+  renderValue: unknown
+  submitValue: unknown
+  displayValue?: unknown
+  renderExtra?: unknown
+}
+```
+
+Use this shape or an equivalent host contract so the canvas renderer, editor UI, and API payload do not fight over one overloaded value.
+
+## 2. Make field-type grouping
+
+Start from field metadata, not column names. A practical mapping is:
+
+| Field type | Editor group | Default editability | Submit value |
+| --- | --- | --- | --- |
+| `Make.Field.ID` | read-only | read-only unless backend explicitly allows writes | none |
+| `Make.Field.Text` | text | editable | string |
+| `Make.Field.TextArea` | text | editable | string |
+| `Make.Field.URL` | text/url | editable | string |
+| `Make.Field.Number` | number | editable | number |
+| `Make.Field.Currency` | number | editable | number |
+| `Make.Field.Percent` | number | editable | number |
+| `Make.Field.Date` | date | editable | agreed date string |
+| `Make.Field.DateTime` | date-time | editable | agreed date-time string |
+| `Make.Field.DateRange` | date-range | editable | `{ begin, end }` or backend equivalent |
+| `Make.Field.SingleSelect` | select | editable | option value |
+| `Make.Field.MultiSelect` | select | editable | option value array |
+| `Make.Field.SingleUser` | identity/user | editable when candidates or current value can be resolved | user id |
+| `Make.Field.MultiUser` | identity/user | editable when candidates or current values can be resolved | user id array |
+| `Make.Field.SingleDepartment` | identity/department | editable when candidates or current value can be resolved | department id |
+| `Make.Field.MultiDepartment` | identity/department | editable when candidates or current values can be resolved | department id array |
+| `Make.Field.File` | attachment | editable when a saved record identity exists if upload requires it | backend file value or normalized file payload |
+| `Make.Field.Lookup` | read-only | read-only unless backend explicitly allows writes | none |
+
+Do not hard-code these field names as the only possible universe for every project. They are the current Make backend contract; adapt only when the host backend exposes a different but equivalent schema.
+
+## 3. Text fields
 
 Examples:
 
 - single-line text
 - multi-line text
+- URL text
 
 Recommended pattern:
 
 - simple text editor
 - submit-style editing
 - `updateVal()` returns the edited string for both display and submit in simple cases
+- URL fields may share the text editor; link rendering belongs in the display/render layer
 
 Good fit for:
 
@@ -36,13 +90,13 @@ Good fit for:
 - host input component
 - textarea-like component when needed
 
-## 3. Number-like fields
+## 4. Number-like fields
 
 Examples:
 
-- number
-- amount
-- percentage
+- `Make.Field.Number`
+- `Make.Field.Currency`
+- `Make.Field.Percent`
 
 Recommended pattern:
 
@@ -52,6 +106,7 @@ Recommended pattern:
 - keep the row value and submit value as a number when the backend expects a number
 - put currency, percent, thousands separators, and unit display in the editor formatter or table render layer
 - parse formatted input back to a number before commit
+- round or clamp to backend precision before submit when metadata such as `precision` or `decimalPlaces` is present
 
 Typical concerns:
 
@@ -66,8 +121,9 @@ Good defaults:
 - `Enter` may commit for simple number editors, similar to text fields.
 - `Escape` should cancel without writing the candidate value.
 - Do not pre-format the row data into a display string before it reaches the editor; that often makes initial values and submit payloads brittle.
+- Do not submit `¥3.005` or `3.005` when the backend field allows only two decimals; normalize to `3.01` or the host's agreed rounding rule before calling the save API.
 
-## 4. Date fields
+## 5. Date fields
 
 Recommended pattern:
 
@@ -83,12 +139,14 @@ Typical concerns:
 
 For date-time editors with an explicit OK button, resolve the current input text into the selected value before calling the table commit path. Some UI libraries do not emit `onChange` just because the user typed a complete date-time string.
 
-## 5. Select fields
+Date range fields should be their own editor group when the backend uses a structured value such as `{ begin, end }`. Do not flatten the range into a display string before submit.
+
+## 6. Select fields
 
 Examples:
 
-- single-select
-- multi-select
+- `Make.Field.SingleSelect`
+- `Make.Field.MultiSelect`
 
 Recommended pattern:
 
@@ -108,8 +166,11 @@ Typical concerns:
 - search support
 - selected item display
 - whether display value is a tag list while submit value is ids/values
+- responsive tag overflow for narrow cells
 
-## 6. Person fields
+For Make-style select fields, prefer schema options such as `{ label, value }`. Submit the raw value or value array; keep tag labels in `displayValue` or render mapping.
+
+## 7. Person fields
 
 Recommended pattern:
 
@@ -121,8 +182,11 @@ Typical concerns:
 
 - display list vs submit ids
 - auxiliary render mapping data for avatars/names
+- candidate source: existing row values, host user API, or existing people picker data source
 
-## 7. Department fields
+Do not fabricate mock user candidates in production just to make a dropdown look populated. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
+
+## 8. Department fields
 
 Recommended pattern:
 
@@ -134,8 +198,11 @@ Typical concerns:
 
 - display list vs submit ids
 - extra mapped render data for downstream cell rendering
+- candidate source: real department API, host department selector data, or current cell value fallback
 
-## 8. Attachment fields
+Do not replace an empty real department API result with local fallback data unless the product explicitly asks for demo/mock mode. Submitting a fake department id usually creates backend validation failures.
+
+## 9. Attachment fields
 
 Attachment fields are special and should usually be treated as their own category.
 
@@ -158,7 +225,7 @@ Typical concerns:
 
 For details, read `attachment-editor-patterns.md`.
 
-## 9. Distinguish display value and submit value
+## 10. Distinguish display value and submit value
 
 This distinction matters most for:
 
@@ -170,3 +237,17 @@ This distinction matters most for:
 - date fields with formatted display
 
 Do not assume one field value can always serve both rendering and API submission directly.
+
+## 11. Suggested code organization
+
+Keep field-type handling discoverable. Exact names can vary by host project, but avoid one large editor file.
+
+Common folders:
+
+- `config/`: schema-to-column and schema-to-editor mapping, including editability and field metadata
+- `editing/`: shared types, value adapters, equality/dirty checks, commit strategies, rollback/backfill helpers
+- `editors/`: DOM editor components grouped by text, number, date, select, identity, and attachment
+- `renderers/`: canvas display renderers for tags, users, departments, attachments, links, and formatted numbers
+- `hooks/`: framework-specific edit controller and draft state helpers
+
+If the host already has another folder convention, keep that convention but preserve these responsibility boundaries.

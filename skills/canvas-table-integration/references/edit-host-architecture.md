@@ -14,6 +14,8 @@ Split editing into these layers:
 4. field-editor layer
 5. save / data-sync layer
 
+For schema-driven tables, keep these layers visible in the filesystem. Exact folder names can follow the host project, but avoid mixing field mapping, editor UI, and save logic in the same module. A practical split is `config/`, `editing/`, `editors/`, `renderers/`, and `hooks/`.
+
 ## 2. Column-definition layer
 
 Responsibilities:
@@ -30,6 +32,8 @@ Typical metadata used here:
 - precision
 - date format
 - attachment shape
+
+For Make-style schemas, classify the 18 supported field types into text, number, date, option, identity, attachment, and read-only groups here. Treat `ID` and `Lookup` as read-only by default unless the backend explicitly supports writing them.
 
 ## 3. Edit-controller layer
 
@@ -91,6 +95,8 @@ Responsibilities:
 - restore canvas focus after accepted cell-edit commit or rollback only when returning to the table
 - update render-mapping caches for special field types if needed
 - for attachment fields, enforce saved-record identity requirements and call upload APIs through a data-source / adapter boundary
+
+The save layer should receive normalized submit values, not display strings. Examples: numbers remain numbers, select/user/department fields submit ids or value arrays, date ranges submit the backend range object, and attachments submit the host data-source payload.
 
 ### Draft vs immediate save
 

@@ -1,6 +1,6 @@
 ---
 name: canvas-table-integration
-description: Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page. This skill covers two major tracks: (1) base consumer integration of local or virtual tables, public props/methods/events, selection, drag, fixed columns, summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit architecture, including `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns, draft-vs-immediate save layers, popup editors, and attachment editor integration using the host project's existing component system. Read the installed package AI docs first, choose the correct track, use only documented public APIs, and verify the integration after editing. Do not use this skill to modify the table library itself.
+description: Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page. This skill covers two major tracks: (1) base consumer integration of local or virtual tables, public props/methods/events, selection, drag, fixed columns, summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit architecture for schema-driven business fields, including Make-style field types (`ID`, text, URL, number/currency/percent, date/date-time/date-range, select, user, department, file, lookup), `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns, value adapters, draft-vs-immediate save layers, popup editors, and attachment editor integration using the host project's existing component system. Read the installed package AI docs first, choose the correct track, use only documented public APIs, and verify the integration after editing. Do not use this skill to modify the table library itself.
 ---
 
 # canvas-table-integration
@@ -24,6 +24,7 @@ This skill has two tracks:
   - host-side edit controller architecture
   - editor-container patterns
   - field-editor mappings
+  - schema field-type mappings for display value vs submit value
   - draft save layer vs immediate save layer
   - positioning / scroll / popup close handling
   - attachment editor integration
@@ -49,6 +50,7 @@ Choose the track first. Do not mix a basic table integration request with a full
 - 复用项目已有输入框 / 下拉 / 日期 / 人员 / 部门 / 附件组件
 - 处理编辑器定位、滚动、关闭、保存、回填、回滚
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
+- 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
 - 把现有项目字段编辑器接进 canvas table
 
 ## Do not use this skill for
@@ -360,6 +362,7 @@ Use Track B to design and wire these capabilities correctly:
 - submit-style field editors
 - realtime-style field editors
 - field-editor mapping by business field type
+- Make-style field coverage: `ID`, `Text`, `TextArea`, `URL`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `File`, `Lookup`
 - editor overlay positioning and scroll-follow behavior
 - `commit(...)` / `cancel(...)` / `updateValue(...)` usage, with `close(commit)` and `changeValue(...)` treated as legacy compatibility only
 - `edit:end` as the post-commit event surface
@@ -397,13 +400,14 @@ Use references as needed:
 3. Identify the host framework, component library, and existing field-editor components.
 4. Identify the field metadata that drives editability and field type.
 5. Identify the stable row identity used by backend reads, saves, dirty state, and detail routes.
-6. Design or reuse a host edit controller layer before writing field-specific code.
-7. Design or reuse a single editor-container abstraction before writing individual field editors.
-8. Implement or reuse field editors through a common editor interface.
-9. Distinguish submit-style editors from realtime-style editors.
-10. For attachment fields, identify whether upload requires a saved record id and where the data-source / adapter upload boundary lives.
-11. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
-12. Verify at least one real editable field flow in the target project.
+6. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
+7. Design or reuse a host edit controller layer before writing field-specific code.
+8. Design or reuse a single editor-container abstraction before writing individual field editors.
+9. Implement or reuse field editors through a common editor interface.
+10. Distinguish submit-style editors from realtime-style editors.
+11. For attachment fields, identify whether upload requires a saved record id and where the data-source / adapter upload boundary lives.
+12. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
+13. Verify at least one real editable field flow in the target project.
 
 ## What to avoid
 
