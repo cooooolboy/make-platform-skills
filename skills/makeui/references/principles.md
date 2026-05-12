@@ -23,6 +23,30 @@ Use a focused object-management layout:
 - route pages only on explicit user request
 - table area fills remaining content height
 
+## Runtime baseline
+
+Make App frontend projects use Vite, so Node runtime compatibility must be checked before scaffolding or changing frontend dependencies.
+
+Default baseline:
+
+- minimum Node.js: `>=22.12.0`
+- recommended for new projects: current active LTS; at the time of this update, Node.js 24 LTS
+- avoid Node.js 20 as the default for new projects
+
+For new projects, add this to `package.json`:
+
+```json
+{
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
+```
+
+If the project uses `.nvmrc` or `.node-version`, prefer `24` unless the user or project requires another active LTS.
+
+If an existing project already declares a stricter Node requirement, keep the stricter project requirement.
+
 ## Decision order
 
 1. User's explicit request.
