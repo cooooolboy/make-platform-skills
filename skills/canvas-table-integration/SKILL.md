@@ -3,8 +3,8 @@ name: canvas-table-integration
 description: >-
   Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page.
   This skill covers three tracks: (1) base consumer integration of local or virtual tables,
-  public props/methods/events, selection, drag, fixed columns, summary rows, empty states,
-  and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit
+  public props/methods/events, selection, drag, fixed columns, row-head suffix actions,
+  summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit
   architecture for schema-driven business fields, including Make-style field types (`ID`, text,
   URL, number/currency/percent, date/date-time/date-range, select, user, department, file,
   lookup), `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`,
@@ -28,6 +28,7 @@ This skill has three tracks:
   - virtual remote table
   - common public props / methods / events
   - row selection / drag / summary / empty state
+  - row-head suffix actions such as an open-detail icon after the sequence number
   - lightweight `render + TextShape + shape click`
 - **Track B: second-version cell-edit enhancement**
   - `editType` / `customEdit`
@@ -60,6 +61,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 - 接一个本地数据表格
 - 接后端分页 / 虚拟滚动表格
 - 做行选择、汇总、空状态、固定列
+- 在序号列 / 行头后面添加进入详情、展开、快捷操作图标
 - 把单元格渲染成可点击文本 / 链接
 - 把 JSON meta 转成 `IColumn[]`
 
@@ -130,6 +132,7 @@ Then choose the track-specific references.
 Read as needed:
 
 - `references/core-props-methods-events.md`
+- `references/row-head-action-patterns.md` when adding an icon or action to the body row head / sequence-number area
 - `references/virtual-table-patterns.md` when using paginated virtual loading
 - `references/column-patterns.md` when shaping columns
 - `references/shape-render-patterns.md` when adding custom clickable cell content
@@ -171,6 +174,7 @@ Use Track A for:
 - row drag
 - column drag
 - fixed columns
+- body row-head suffix actions through `bodyRowHeadSuffixOptions`
 - summary rows
 - empty states
 - lightweight `render + TextShape + shape click` business interaction

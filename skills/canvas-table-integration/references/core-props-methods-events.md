@@ -40,6 +40,7 @@ Use these props first:
 - `showSN`
 - `selectable`
 - `rowSortable`
+- `bodyRowHeadSuffixOptions`
 - `showSummary`
 - `summaryRowHeight`
 - `summaryData`
@@ -82,6 +83,16 @@ Use for row drag sorting:
 
 - `enabled: true`
 - optional `rowDisabled(row, index)`
+
+#### `bodyRowHeadSuffixOptions`
+
+Use for compact row-head actions that visually belong beside the sequence number, selector, or drag handle.
+
+- `enabled: true`
+- `width`: the reserved suffix width
+- `render({ group, cell, x, y, height, rowData, index })`: add shapes to the provided row-head group
+
+For an open-detail icon after the sequence number, read `row-head-action-patterns.md`.
 
 #### `emptyStateOptions`
 

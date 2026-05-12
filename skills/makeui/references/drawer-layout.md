@@ -5,34 +5,54 @@
 Create, edit, and detail UIs default to a right-side Drawer.
 
 - placement: right
-- default width: `75%`
+- default width: `60%`
 - small screens: may use `100%`
-- close control in the Drawer header
+- header action area contains close and primary/secondary actions
+- no fixed footer by default
+- body scrolls inside the Drawer shell
+
+Treat these as Make UI defaults. User requirements and established project patterns may override them.
 
 Use route pages only when the user explicitly asks for an independent page, route, navigation, page jump, or standalone screen.
 
 Drawer presentation can still be driven by dynamic child routes when URL-addressable create/edit/detail state is required. In that case, keep the Drawer UI and use route params for object and record identity.
 
+## Header actions
+
+Use a compact header layout:
+
+- left side: fullscreen toggle when supported, then mode tag or record status, then title
+- right side: contextual actions, then close
+- detail actions usually include edit, delete, and close when those actions exist
+- create/edit actions usually include save, cancel, and close
+- keep button spacing compact
+- avoid decorative icons on text actions; reserve icons for compact controls such as fullscreen, exit fullscreen, and close
+
+When Ant Design is used, prefer `FullscreenOutlined` and `FullscreenExitOutlined` for fullscreen controls, and the project-standard close control for closing.
+
+If fullscreen is not implemented or not useful for a simple Drawer, keep a normal close control in the header.
+
 ## Create / edit Drawer
 
 Recommended structure:
 
-1. Drawer header: title and close action
+1. Drawer header: title plus save, cancel, close, and optional fullscreen action
 2. Drawer body: form content
-3. fixed Drawer footer: cancel and primary action
 
 Form layout:
 
 - group fields into sections
+- use horizontal label/value alignment by default on desktop
 - common fields use a two-column grid on desktop
 - long text, attachments, descriptions, and rich content span full width
 - collapse to one column on small screens
 
-Footer actions:
+Action placement:
 
-- cancel on the left side of the action group
 - save / submit as the primary action
+- cancel as a secondary action near save
 - destructive actions should not be primary
+- fixed footer is optional and should be added only when the user or existing project pattern requires persistent bottom actions
 
 Do not define business validation rules here. Only provide visual error, loading, and saving states.
 
@@ -40,10 +60,9 @@ Do not define business validation rules here. Only provide visual error, loading
 
 Recommended structure:
 
-1. Drawer header: record title or generic detail title
+1. Drawer header: fullscreen toggle when supported, record title or generic detail title, and contextual actions
 2. summary area: title, status, key metadata, and main actions
 3. detail sections: read-only information, related data, attachments
-4. optional fixed footer only when the detail flow has persistent actions
 
 Read-only information can use:
 
@@ -51,12 +70,25 @@ Read-only information can use:
 - information grid
 - sectioned cards or panels
 
+Use horizontal label/value alignment by default on desktop. Detail Drawers should not have a footer unless the user explicitly asks for persistent bottom actions.
+
 If a related-data section is tabular, route the table implementation to `@qfei-design/canvas-table` through `canvas-table-integration`.
 
 Do not add activity, dynamic records, timeline, comments, or operation logs by default. Add them only when the user explicitly asks.
+
+## Stacked Drawers
+
+When a user opens edit from detail, keep the detail Drawer mounted underneath and open the edit Drawer above it.
+
+- closing the edit Drawer returns to the detail Drawer
+- closing the detail Drawer returns to the list page
+- clicking the mask or blank area must close only the topmost Drawer
+- if the implementation cannot guarantee topmost-only mask close, disable mask close and rely on the header close action
+- use increasing z-index values or a Drawer stack manager so layers do not collapse together
+- avoid shared state handlers that close all active Drawers at once
 
 ## Drawer scrolling
 
 The Drawer shell remains fixed. The body scrolls.
 
-Do not let the underlying page scroll when the Drawer is open. Avoid layouts where the footer disappears below the viewport.
+Do not let the underlying page scroll when the Drawer is open.

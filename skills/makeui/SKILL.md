@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.3
+version: 0.3.4
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -80,7 +80,9 @@ Read only the reference files needed for the request:
   - create/new
 - Do not add filter, group, sort, column settings, import, or export unless the user explicitly asks.
 - Create, edit, and detail open in a right-side Drawer by default.
-- Drawer default width is `75%`; on small screens it may become `100%`.
+- Drawer default width is `60%`; on small screens it may become `100%`.
+- Create/edit/detail Drawers default to header actions plus scrollable body, without a fixed footer. Save/cancel/edit/delete/close actions belong in the header action area unless the user or existing project pattern requires a footer.
+- Dense Make record Drawers should support a fullscreen toggle in the header when practical. When nested Drawers are opened, keep the previous Drawer underneath and close only the topmost Drawer at a time.
 - Use route-based create/edit/detail pages only when the user explicitly asks for an independent page, route, navigation, page jump, or standalone screen.
 - Object list navigation should use a dynamic object route such as `/objects/:objectKey` unless the host project already has a different dynamic convention.
 - If create/edit/detail needs URL-addressable state, use dynamic child routes under the object route while keeping Drawer presentation by default.
