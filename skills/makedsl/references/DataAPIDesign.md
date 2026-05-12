@@ -15,6 +15,8 @@ Entity 可以理解是一张 Table, Record 可以理解是一个 Row, 也就是 
 - 禁止在一个`Entity`中定义与另一个`Entity`语义相同的字段。
 - 禁止通过自定义关联Id字段来描述两个`Entity`的关系，如果在一个`Entity`中需要展示另一个`Entity`的字段数据，则必须使用 `LookupField` 实现。规则详见 @FieldDesign.md
 - 禁止通过前端实现 `Record` 数据列表过滤功能，必须使用后端接口`MakeService.ListResources`的`filter`参数，详见：@EntityDataFilterUsage.md
+- 人员、部门类型字段在写入时必须提交字符串类型 ID；单选字段写入字符串，多选字段写入字符串数组，例如 `"owner": "19035"`、`"members": ["19034", "19035"]`、`"ownerDepartment": "2226"`、`"relatedDepartments": ["2227", "2228"]`
+- 在列表页编辑单列字段数据时必须使用 `批量更新一列数据` 接口
 
 ## JSON-RPC 接口
 
@@ -298,6 +300,10 @@ Request Body
     "deliveryPeriod",
     "status",
     "tags",
+    "owner",
+    "members",
+    "ownerDepartment",
+    "relatedDepartments",
     "locationPath",
     "attachments"
   ],
@@ -345,6 +351,41 @@ Response Body
       {
         "label": "对外",
         "value": "external"
+      }
+    ],
+    "owner": [
+      {
+        "recordID": "101", //字符串形式的用户ID
+        "name": "负责人A", //用户名称
+        "avatar": "https://example.com/avatar-a.png" //用户头像链接
+      }
+    ],
+    "members": [
+      {
+        "recordID": "101",
+        "name": "负责人A",
+        "avatar": "https://example.com/avatar-a.png"
+      },
+      {
+        "recordID": "102",
+        "name": "评审B",
+        "avatar": "https://example.com/avatar-b.png"
+      }
+    ],
+    "ownerDepartment": [
+      {
+        "recordID": "201", //字符串形式的部门ID
+        "name": "销售部" //部门名称
+      }
+    ],
+    "relatedDepartments": [
+      {
+        "recordID": "201",
+        "name": "销售部"
+      },
+      {
+        "recordID": "202",
+        "name": "交付部"
       }
     ],
     "locationPath": [
@@ -410,6 +451,10 @@ Request Body
     "deliveryPeriod",
     "status",
     "tags",
+    "owner",
+    "members",
+    "ownerDepartment",
+    "relatedDepartments",
     "locationPath",
     "attachments"
   ],
@@ -465,6 +510,41 @@ Response Body
         {
           "label": "对外",
           "value": "external"
+        }
+      ],
+      "owner": [
+        {
+          "recordID": "101",
+          "name": "负责人A",
+          "avatar": "https://example.com/avatar-a.png"
+        }
+      ],
+      "members": [
+        {
+          "recordID": "101",
+          "name": "负责人A",
+          "avatar": "https://example.com/avatar-a.png"
+        },
+        {
+          "recordID": "102",
+          "name": "评审B",
+          "avatar": "https://example.com/avatar-b.png"
+        }
+      ],
+      "ownerDepartment": [
+        {
+          "recordID": "201",
+          "name": "销售部"
+        }
+      ],
+      "relatedDepartments": [
+        {
+          "recordID": "201",
+          "name": "销售部"
+        },
+        {
+          "recordID": "202",
+          "name": "交付部"
         }
       ],
       "locationPath": [
@@ -660,21 +740,25 @@ Response Body
 
 ## 常规字段类型返回结构示例
 
-| 字段类型            | 返回结构示例                                                                                                                                                 | agent 使用提示                  |
-|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
-| `Make.Field.ID`            | `"SO-2026-0001"`                                                                                                                                       | 按 string 理解，不要当作数值自增主键      |
-| `Make.Field.Text`          | `"智能客服升级"`                                                                                                                                             | 单行文本                        |
-| `Make.Field.TextArea`     | `"升级 FAQ 与工单联动能力"`                                                                                                                                     | 多行文本，仍按 string 处理           |
-| `Make.Field.URL`           | `"https://example.com/projects/1"`                                                                                                                     | URL 字符串                     |
-| `Make.Field.Number`        | `95.5`                                                                                                                                                 | 按 number 处理                 |
-| `Make.Field.Currency`      | `"¥1,999.00"`                                                                                                                                          | 已带货币符号，按 string 展示          |
-| `Make.Field.Percent`       | `"85.00%"`                                                                                                                                             | 已带 `%`，按 string 展示          |
-| `Make.Field.Date`          | `"2026-02-24"`                                                                                                                                         | 按 string 理解                 |
-| `Make.Field.DateTime`     | `"2026-02-24 17:00:00"`                                                                                                                                | 按 string 理解                 |
-| `Make.Field.DateRange`    | `{"begin":"2026-02-24","end":"2026-03-31"}`                                                                                                            | 固定对象结构                      |
-| `Make.Field.SingleSelect` | `[{"label":"进行中","value":"in_progress"}]`                                                                                                              | 单选也返回数组，通常只有一个元素，label只负责展示 |
-| `Make.Field.MultiSelect`  | `[{"label":"紧急","value":"urgent"},{"label":"对外","value":"external"}]`                                                                                  | 多选返回数组                      |
-| `Make.Field.File`          | `[{"fileName":"proposal.pdf","filePath":"8/demo-app/project/proposal.pdf","fileURL":"https://cdn.example.com/proposal.pdf","fileSizeInBytes":102400}]` | 文件字段返回附件数组                  |
+| 字段类型            | 返回结构示例                                                                                                                                                 | agent 使用提示                                                         |
+|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| `Make.Field.ID`            | `"SO-2026-0001"`                                                                                                                                       | 按 string 理解，不要当作数值自增主键                                             |
+| `Make.Field.Text`          | `"智能客服升级"`                                                                                                                                             | 单行文本                                                               |
+| `Make.Field.TextArea`     | `"升级 FAQ 与工单联动能力"`                                                                                                                                     | 多行文本，仍按 string 处理                                                  |
+| `Make.Field.URL`           | `"https://example.com/projects/1"`                                                                                                                     | URL 字符串                                                            |
+| `Make.Field.Number`        | `95.5`                                                                                                                                                 | 按 number 处理                                                        |
+| `Make.Field.Currency`      | `"¥1,999.00"`                                                                                                                                          | 已带货币符号，按 string 展示                                                 |
+| `Make.Field.Percent`       | `"85.00%"`                                                                                                                                             | 已带 `%`，按 string 展示                                                 |
+| `Make.Field.Date`          | `"2026-02-24"`                                                                                                                                         | 按 string 理解                                                        |
+| `Make.Field.DateTime`     | `"2026-02-24 17:00:00"`                                                                                                                                | 按 string 理解                                                        |
+| `Make.Field.DateRange`    | `{"begin":"2026-02-24","end":"2026-03-31"}`                                                                                                            | 固定对象结构                                                             |
+| `Make.Field.SingleSelect` | `[{"label":"进行中","value":"in_progress"}]`                                                                                                              | 单选也返回数组，通常只有一个元素，label只负责展示                                        |
+| `Make.Field.MultiSelect`  | `[{"label":"紧急","value":"urgent"},{"label":"对外","value":"external"}]`                                                                                  | 多选返回数组                                                             |
+| `Make.Field.SingleUser` | `[{"recordID":"101","name":"负责人A","avatar":"https://example.com/avatar-a.png"}]` | 单选用户也返回数组，通常只有一个元素；`recordID` 是字符串形式的用户 ID，`name` 是用户名称，`avatar` 是用户头像链接 |
+| `Make.Field.MultiUser` | `[{"recordID":"101","name":"负责人A","avatar":"https://example.com/avatar-a.png"},{"recordID":"102","name":"评审B","avatar":"https://example.com/avatar-b.png"}]` | 多选用户返回用户对象数组                                                       |
+| `Make.Field.SingleDepartment` | `[{"recordID":"201","name":"销售部"}]` | 单选部门也返回数组，通常只有一个元素；`recordID` 是字符串形式的部门 ID，`name` 是部门名称                  |
+| `Make.Field.MultiDepartment` | `[{"recordID":"201","name":"销售部"},{"recordID":"202","name":"交付部"}]` | 多选部门返回部门对象数组                                                       |
+| `Make.Field.File`          | `[{"fileName":"proposal.pdf","filePath":"8/demo-app/project/proposal.pdf","fileURL":"https://cdn.example.com/proposal.pdf","fileSizeInBytes":102400}]` | 文件字段返回附件数组                                                         |
 
 ## 派生字段类型返回结构示例
 

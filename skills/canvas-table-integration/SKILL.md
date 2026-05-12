@@ -7,7 +7,7 @@ description: Use when the user wants to integrate `@qfei-design/canvas-table` in
 
 Use this skill only for **consumer-side integration** of `@qfei-design/canvas-table`.
 
-This skill has two tracks:
+This skill has three tracks:
 
 - **Track A: first-version base integration**
   - basic local table
@@ -28,8 +28,14 @@ This skill has two tracks:
   - draft save layer vs immediate save layer
   - positioning / scroll / popup close handling
   - attachment editor integration
+- **Track C: Make field-display integration**
+  - schema-driven columns for supported Make field types
+  - pure value normalization before canvas rendering
+  - text / URL / number / date / tag / user / department / attachment / lookup renderers
+  - folder separation for `config`, `renderers`, `hooks`, `types`, and value adapters
 
 Choose the track first. Do not mix a basic table integration request with a full cell-edit architecture refactor unless the user clearly wants the editing workflow.
+If the user says display-only, field type display, or schema field rendering, choose Track C and leave cell editing out unless explicitly requested.
 
 ## Typical requests
 
@@ -52,6 +58,14 @@ Choose the track first. Do not mix a basic table integration request with a full
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
 - 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
 - 把现有项目字段编辑器接进 canvas table
+
+### Track C: Make field-display integration
+
+- 根据 Make 字段类型生成 canvas table 展示列
+- 把 18 种字段类型按展示族分类处理
+- 把后端字段返回值规范化后展示在 canvas 表格中
+- 拆分 `config` / `renderers` / `hooks` / `types` / value adapter
+- 只处理展示，不做单元格编辑
 
 ## Do not use this skill for
 
@@ -122,6 +136,15 @@ Read in this order:
 
 If any required package file is missing, stop and tell the user exactly which file is missing.
 
+### For Track C: Make field-display integration
+
+Read:
+
+- `references/make-field-display-patterns.md`
+- `references/shape-render-patterns.md` when adding canvas shapes
+- `references/column-patterns.md` when deriving `IColumn[]` from field schemas
+- `references/common-pitfalls.md` before finalizing changes
+
 ## Track A: first-version base integration scope
 
 Use Track A for:
@@ -158,6 +181,32 @@ This track covers:
 - attachment-field editor integration
 
 This track does **not** require a fixed UI library. Prefer the current project's existing editor components and component library.
+
+## Track C: Make field-display integration scope
+
+Use Track C when the task is to show Make platform fields correctly in canvas-table. Keep it display-only: normalize backend values into a small display model, then route by display group to focused renderers. The 18 field types are the current backend contract, but implementation names and folder names may adapt to the host project.
+
+Default grouping:
+
+- text: `Make.Field.ID`, `Make.Field.Text`, `Make.Field.TextArea`
+- url: `Make.Field.URL`
+- number: `Make.Field.Number`, `Make.Field.Currency`, `Make.Field.Percent`
+- date: `Make.Field.Date`, `Make.Field.DateTime`, `Make.Field.DateRange`
+- select: `Make.Field.SingleSelect`, `Make.Field.MultiSelect`
+- user: `Make.Field.SingleUser`, `Make.Field.MultiUser`
+- department: `Make.Field.SingleDepartment`, `Make.Field.MultiDepartment`
+- file: `Make.Field.File`
+- lookup: `Make.Field.Lookup`
+
+Prefer this shape:
+
+- `config/`: schema field -> column config (`width`, `align`, `showEllipsis`, `renderKind`)
+- `renderers/`: canvas shape renderers by display group (`text`, `tag`, `user`, `attachment`)
+- `hooks/`: field option data needed for display, such as department candidates; never fetch per cell
+- `types/`: shared table/display contracts when they are used across modules
+- value adapter: pure functions that return `{ group, kind, text, labels, href, attachments, users, empty }`
+
+This is guidance, not a required folder taxonomy. Preserve an existing project structure when it already separates these responsibilities clearly.
 
 ### Track B / pragmatic host-edit guidance
 
@@ -215,35 +264,41 @@ Use these as defaults for first-pass editable-list work. Adapt them to the host 
    - Avoid host-owned global outside-click listeners unless the package contract is insufficient.
 
 10. **Keep table initialization stable during draft updates**
-   - Do not recreate the canvas table just because merged rows or parent callbacks changed.
-   - In React, keep latest rows/callbacks in refs where needed and update data with `setData(...)`.
-   - If the table is recreated due to resize or prop changes, reapply dirty row colors after `setData(...)`.
+
+- Do not recreate the canvas table just because merged rows or parent callbacks changed.
+- In React, keep latest rows/callbacks in refs where needed and update data with `setData(...)`.
+- If the table is recreated due to resize or prop changes, reapply dirty row colors after `setData(...)`.
 
 11. **Restore focus to the current canvas only inside the canvas edit lifecycle**
-   - Immediate-save mode often refreshes host rows and may recreate or update the table instance.
-   - After accepted cell-edit commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
-   - Use immediate, next-frame, and short-delay focus attempts only when returning from a canvas-table cell editor back to the table.
-   - Do not restore canvas focus while a host modal, drawer, dialog, popover, or form surface is opening or active.
-   - Do not run delayed canvas-focus retries after row clicks or actions that open host UI. Those surfaces own focus until they close.
+
+- Immediate-save mode often refreshes host rows and may recreate or update the table instance.
+- After accepted cell-edit commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
+- Use immediate, next-frame, and short-delay focus attempts only when returning from a canvas-table cell editor back to the table.
+- Do not restore canvas focus while a host modal, drawer, dialog, popover, or form surface is opening or active.
+- Do not run delayed canvas-focus retries after row clicks or actions that open host UI. Those surfaces own focus until they close.
 
 12. **Guarantee a usable canvas height before initializing the table**
-   - Do not rely on a padding-only container height.
-   - Prefer explicit height, then measured container height, then a conservative default height.
-   - Too-small canvas height causes unreliable hit testing, popup positioning, and empty-state behavior.
+
+- Do not rely on a padding-only container height.
+- Prefer explicit height, then measured container height, then a conservative default height.
+- Too-small canvas height causes unreliable hit testing, popup positioning, and empty-state behavior.
 
 13. **Date editors must resolve typed input before OK commits**
-   - If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
-   - Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
+
+- If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
+- Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
 
 14. **Use stable backend identity for persisted editable rows**
-   - For persisted records, prefer the host backend's stable system id as `rowKey`.
-   - Keep mutable or display-only business codes as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
+
+- For persisted records, prefer the host backend's stable system id as `rowKey`.
+- Keep mutable or display-only business codes as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
 
 15. **Attachment editors are host popups with data-source upload boundaries**
-   - Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
-   - Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
-   - If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
-   - Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
+
+- Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
+- Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
+- If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
+- Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
 
 ## Choose a primary path first
 
@@ -409,6 +464,17 @@ Use references as needed:
 12. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
 13. Verify at least one real editable field flow in the target project.
 
+### Track C workflow
+
+1. Check whether the package is installed and read the package docs in the required order.
+2. Identify the Make field schema shape and the actual backend value formats.
+3. Build or reuse a pure display adapter by field type before writing canvas shapes.
+4. Derive column configs from schema fields; avoid hand-maintained static columns for dynamic schemas.
+5. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, and generic text fallback.
+6. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
+7. Add focused tests for value normalization and renderer overflow/empty states.
+8. Verify at least one table path with representative backend values.
+
 ## What to avoid
 
 ### Avoid these mistakes in Track A
@@ -436,6 +502,15 @@ Before finishing, read `references/common-pitfalls.md`.
 - copying a Vue pattern into React without converting it into hook/ref-based host patterns
 
 Before finishing, read `references/edit-common-pitfalls.md`.
+
+### Avoid these mistakes in Track C
+
+- branching by field name for generic display behavior; branch by field type or explicit business role
+- rendering raw objects or JSON wrapper strings when a useful label can be extracted
+- fetching options, users, departments, or files inside a cell renderer
+- mixing display formatting with submit/edit payload conversion
+- making unknown future field types crash the table; use a safe text fallback
+- forcing exact folder/file names when the host project already has clear ownership boundaries
 
 ## Deferred topics
 
@@ -480,3 +555,15 @@ After finishing, report:
 - how attachment fields are represented and edited
 - what was verified in the target project
 - whether anything is still blocked by missing field metadata, APIs, or host components
+
+### For Track C
+
+After finishing, report:
+
+- which Make field types were covered
+- where schema-to-column config lives
+- where value normalization lives
+- which renderer groups were added or reused
+- how empty values, overflow, URLs, attachments, users, departments, and lookup wrappers are handled
+- what tests or visual checks were run
+- whether any display behavior is still blocked by missing backend value examples
