@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.2
+version: 0.3.3
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -30,23 +30,34 @@ Make App frontend defaults to:
 
 Do not switch to another full-stack frontend framework unless the user explicitly requests it and the project already supports it.
 
+## Node runtime
+
+Use Node.js `>=22.12.0` for Make App frontend projects.
+
+- Recommend the current active LTS for new projects. At the time of this update, use Node.js 24 LTS by default.
+- Do not choose Node.js 20 as the default for new projects.
+- For new projects, add `package.json` `engines.node` as `>=22.12.0`.
+- If the project uses a version manager, prefer a simple major-version file such as `.nvmrc` or `.node-version` with `24`.
+- If an existing project already has a stricter Node requirement, keep the stricter project requirement.
+
 ## Pre-flight workflow
 
 Before generating or editing UI:
 
-1. Inspect the project for existing frontend stack, component library, styling solution, routes, layout shell, and page patterns.
+1. Inspect the project for existing Node runtime requirements, frontend stack, component library, styling solution, routes, layout shell, and page patterns.
 2. Use existing project conventions first.
-3. If the project is being created from scratch, allow the user to choose the component library when that choice is in scope. Recommend Ant Design by default; Arco Design and TDesign are acceptable React alternatives.
-4. If the user did not specify a styling solution and the project has none, Less is an acceptable default candidate.
-5. Identify the page type:
+3. Verify the project Node runtime is compatible with the Make default baseline or the project's stricter requirement.
+4. If the project is being created from scratch, allow the user to choose the component library when that choice is in scope. Recommend Ant Design by default; Arco Design and TDesign are acceptable React alternatives.
+5. If the user did not specify a styling solution and the project has none, Less is an acceptable default candidate.
+6. Identify the page type:
    - list page
    - create/edit UI
    - detail UI
-6. Identify the container mode:
+7. Identify the container mode:
    - create/edit/detail default to right-side Drawer
    - route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
-7. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-8. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement.
+8. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
+9. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement.
 
 ## Required references
 
