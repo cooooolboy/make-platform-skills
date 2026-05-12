@@ -1,6 +1,20 @@
 ---
 name: canvas-table-integration
-description: Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page. This skill covers two major tracks: (1) base consumer integration of local or virtual tables, public props/methods/events, selection, drag, fixed columns, summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit architecture for schema-driven business fields, including Make-style field types (`ID`, text, URL, number/currency/percent, date/date-time/date-range, select, user, department, file, lookup), `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns, value adapters, draft-vs-immediate save layers, popup editors, and attachment editor integration using the host project's existing component system. Read the installed package AI docs first, choose the correct track, use only documented public APIs, and verify the integration after editing. Do not use this skill to modify the table library itself.
+description: >-
+  Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page.
+  This skill covers three tracks: (1) base consumer integration of local or virtual tables,
+  public props/methods/events, selection, drag, fixed columns, summary rows, empty states,
+  and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit
+  architecture for schema-driven business fields, including Make-style field types (`ID`, text,
+  URL, number/currency/percent, date/date-time/date-range, select, user, department, file,
+  lookup), `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`,
+  `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns,
+  value adapters, draft-vs-immediate save layers, popup editors, and attachment editor integration
+  using the host project's existing component system; (3) Make field-display integration for
+  schema-driven columns, value normalization, focused renderers, and display-only handling of
+  the supported Make field types. Read the installed package AI docs first, choose the correct
+  track, use only documented public APIs, and verify the integration after editing. Do not use
+  this skill to modify the table library itself.
 ---
 
 # canvas-table-integration
