@@ -42,7 +42,10 @@ Recommended structure:
 Form layout:
 
 - group fields into sections
-- use horizontal label/value alignment by default on desktop
+- create/edit forms can use a dedicated modifier class or style scope when their visual treatment differs from detail Drawers
+- for schema-driven forms where backend field names may be long or unpredictable, consider vertical labels in a two-column grid before choosing horizontal labels
+- horizontal label/value alignment remains acceptable when labels are short, stable, or already established by the project
+- when extra separation helps readability, prefer one lightweight form surface on a subtle neutral Drawer body; avoid nested cards unless the existing design system uses them
 - common fields use a two-column grid on desktop
 - long text, attachments, descriptions, and rich content span full width
 - collapse to one column on small screens
