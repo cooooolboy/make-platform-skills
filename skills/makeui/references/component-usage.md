@@ -6,13 +6,13 @@ Use this priority:
 
 1. User-specified component library.
 2. Existing project component library.
-3. Ant Design as the recommended default when no library exists.
+3. New-project selection among Ant Design, Arco Design, and TDesign when no library exists.
 
 Do not add a new component library to an existing project unless the user asks.
 
 Use this same rule for icons and styling tools.
 
-For new projects, the recommended component library is Ant Design. If the user wants alternatives, Arco Design and TDesign are acceptable choices because both support React.
+For new projects, actively ask the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design. If the user does not choose and the workflow must continue, use Ant Design and record that default. Arco Design and TDesign are acceptable React alternatives.
 
 Do not mix Ant Design, Arco Design, and TDesign in the same app unless the existing project already does so and the user asks to keep it.
 
@@ -33,6 +33,33 @@ When Ant Design is the selected or default component library:
 
 Use project-standard icons first. If using Ant Design, prefer `@ant-design/icons`.
 
+## Make schema-driven field components
+
+Before generating Make forms or field editors, read the available DSL/schema source. Use existing `apps/dsl`, Service `/api/schema`, or project-local schema/meta types. Do not hand-write static form controls when the schema is available.
+
+Use type-appropriate controls:
+
+| Make field group | Default control |
+| --- | --- |
+| `ID`, generated fields | read-only text |
+| `Text`, `TextArea`, `URL` | text, textarea, or URL input |
+| `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values |
+| `Date`, `DateTime`, `DateRange` | date, date-time, or range picker |
+| `SingleSelect`, `MultiSelect` | single or multiple select from schema options |
+| `SingleUser`, `MultiUser` | searchable user selector |
+| `SingleDepartment`, `MultiDepartment` | searchable department selector |
+| `File` | upload / attachment component |
+| `Lookup` | read-only lookup display by default; association selector only when schema/API explicitly supports editing |
+
+Do not silently degrade date, user, department, select, file, or lookup fields to a bare `Input`.
+
+When real user or department candidate APIs are missing, use a searchable selector shell that:
+
+- displays the current value from the record
+- allows an explicit manual-input fallback only when the product needs it
+- leaves a clear integration point for the real candidate API
+- avoids fake global demo candidates in production code
+
 ## Table component rule
 
 For Make record lists and related-data tables, do not use the table component from the selected UI library.
@@ -45,8 +72,9 @@ Always use:
 This applies to:
 
 - table display
-- row selection
+- row sequence numbers and row-head detail entry
 - pagination or virtual loading layout around the table
+- row selection, only when requested
 - cell editing, when requested
 
 The selected UI library can still provide surrounding controls such as buttons, inputs, drawers, popovers, forms, and feedback components.

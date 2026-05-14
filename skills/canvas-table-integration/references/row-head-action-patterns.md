@@ -2,6 +2,8 @@
 
 Use this file when a table needs a compact row-level action in the body row head, such as an open-detail icon beside the sequence number.
 
+For Make record lists, this is the default row detail entry pattern: show sequence numbers and an open-detail icon in the row head. Clicking the icon opens the record detail Drawer or the host project's established detail surface. Row selection is not enabled by default.
+
 ## 1. Use `bodyRowHeadSuffixOptions`
 
 Prefer `bodyRowHeadSuffixOptions` when the action belongs to the row head rather than a business data column.
@@ -11,6 +13,8 @@ Good cases:
 - open detail from the sequence-number area
 - row expand / collapse affordance
 - compact row-level quick action beside selection or drag handles
+
+For default Make record lists, use this pattern for open detail instead of making the entire row the default detail trigger.
 
 Avoid creating a fake fixed-left data column only to hold this icon. `bodyRowHeadSuffixOptions` is accounted for by the table's first-header width and fixed-left width calculation.
 
@@ -120,6 +124,7 @@ Then pass it to the table:
 
 - Stop propagation on `mousedown` and `click` so the icon does not accidentally trigger row selection, drag, or cell editing.
 - Use a stable backend id from `rowData` when opening persisted record detail.
+- Open the detail Drawer or the host project's established detail surface from the icon click.
 - Keep hover styling subtle and cheap; every row may create this shape.
 
 ## 5. Pitfalls
@@ -131,4 +136,3 @@ Avoid:
 - hard-coding extra fixed-left offsets in the host app
 - using internal table geometry to compensate for the icon width
 - adding complex menus or heavy React overlays from every row-head icon
-

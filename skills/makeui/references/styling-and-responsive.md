@@ -42,6 +42,15 @@ Avoid:
 - one-off gradients or ornaments
 - page sections that cause unnecessary vertical scrolling
 
+## Form Drawer polish
+
+- keep create/edit form Drawer styling scoped away from list and detail views
+- in percentage-based Drawers, prefer stable grids such as `minmax(0, 1fr)` columns with `min-width: 0` children
+- treat fixed minimum column widths as an overflow risk; use them only after checking the target Drawer width and breakpoint behavior
+- align label typography, control height, border radius, and focus ring with existing project tokens or Ant Design defaults before adding custom values
+- let long text, URL, file, attachment, description, and rich controls span full width when it improves readability
+- header button density can be slightly more relaxed when a form needs it, but changes should stay scoped away from list and detail action styling
+
 ## Responsive defaults
 
 - sidebar may collapse or become an overlay on small screens

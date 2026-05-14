@@ -42,10 +42,22 @@ Recommended structure:
 Form layout:
 
 - group fields into sections
-- use horizontal label/value alignment by default on desktop
+- create/edit forms can use a dedicated modifier class or style scope when their visual treatment differs from detail Drawers
+- for schema-driven forms where backend field names may be long or unpredictable, consider vertical labels in a two-column grid before choosing horizontal labels
+- horizontal label/value alignment remains acceptable when labels are short, stable, or already established by the project
+- when extra separation helps readability, prefer one lightweight form surface on a subtle neutral Drawer body; avoid nested cards unless the existing design system uses them
 - common fields use a two-column grid on desktop
 - long text, attachments, descriptions, and rich content span full width
 - collapse to one column on small screens
+
+Schema-driven Make forms:
+
+- read the DSL/schema before generating create/edit Drawer fields
+- derive field labels, editability, and control choice from schema metadata when available
+- use the field component mapping in `component-usage.md`
+- use date pickers for date fields, searchable selectors for user/department fields, select controls for select fields, attachment controls for file fields, and read-only/association displays for lookup fields
+- do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
+- if schema or candidate APIs are missing, state the reason and generate an explicit fallback with a later API integration point
 
 Action placement:
 

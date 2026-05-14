@@ -71,6 +71,14 @@ The table region should have:
 - `overflow: hidden` around the canvas table host
 - internal table scroll instead of page scroll
 
+Default CanvasTable row behavior for Make record lists:
+
+- show row sequence numbers by default
+- show an open-detail icon in the row-head suffix by default
+- clicking the open-detail icon opens the record detail Drawer or the project's established detail surface
+- do not make the whole row a default detail trigger unless the user or existing project pattern requires it
+- do not enable row selection by default; enable it only when the user asks for selection, batch actions, or multi-record operations
+
 ## Density
 
 Object list pages may be dense. Prefer compact, scan-friendly controls over large hero sections or marketing-style layouts.
