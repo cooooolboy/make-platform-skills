@@ -7,6 +7,7 @@ Use it to track which capabilities have been validated in real consumer projects
 Current validation basis:
 
 - a downstream React host integration with local tables, editable columns, attachment metadata, and host-side save flow
+- an ExpensePoc-style React Make App integration with Service-backed schema, remote records, editable cells, and real attachment proxy APIs
 
 ## 1. Validated by real project usage
 
@@ -80,6 +81,28 @@ This updates the row identity guidance: host code should prefer a stable backend
 
 This confirms that canvas-table is not only for main list pages, but also works well for embedded display-oriented subtables.
 
+### Virtual remote table
+
+Validated patterns:
+
+- `virtualOptions.enabled = true`
+- `data:load` requests additional pages from a host data source
+- the table page contract stays zero-based at the canvas-table boundary
+- the host data-source layer translates pagination for the backend when needed
+
+This validates the remote paginated list path for Make record pages.
+
+### Schema-driven Make columns
+
+Validated patterns:
+
+- Make schema fields are converted into canvas-table columns before table creation
+- field names become stable column keys/titles when the backend schema is dynamic
+- display normalization happens outside the table core
+- unsupported or unknown field types fall back to safe display text instead of crashing
+
+This validates the Track C guidance for dynamic Make object lists.
+
 ### Cell-edit workflow
 
 Validated field scope:
@@ -113,11 +136,23 @@ Observed patterns:
 - attachment cells render up to 3 previews/items plus `+N`
 - image attachments use thumbnails and non-image attachments use extension/file chips
 - attachment editor supports drag/drop and click-to-upload local file selection
-- mock local files are stored as data URLs; real upload remains a data-source / adapter scope
+- mock local files are stored as data URLs when demo mode is explicit
+- real upload remains a data-source / Service API adapter scope
 - attachment editing is enabled only for persisted rows with backend identity when real upload requires record identity
 - attachment popup placement is handled by the host overlay/CSS, defaults left, switches right when right space is insufficient, and may cover the current edited cell
 
 This supports treating Track B as a validated host-edit integration path for text, number, select, date, and attachment metadata editing.
+
+### Real attachment upload / delete / download proxy
+
+Validated patterns:
+
+- persisted rows use stable backend record identity before upload/delete is enabled
+- upload calls are made by the host data-source / Service API adapter, not by canvas renderers
+- removed attachments are deleted through the host adapter after comparing previous and next values
+- download URLs are normalized to a Service proxy URL instead of exposing raw backend file URLs in the UI
+
+This validates the attachment boundary rule: canvas-table renders and triggers editing, while persistence and file transfer remain host-owned.
 
 Browser validation covered:
 
@@ -136,15 +171,6 @@ Browser validation covered:
 
 The following capabilities still exist in package docs, but are not yet strongly validated by the current downstream sample.
 
-### Virtual remote table
-
-Not yet validated here.
-
-Implication:
-
-- keep the path in the skill
-- do not overstate it as project-validated by the current sample
-
 ### Group table
 
 Not yet validated here.
@@ -152,16 +178,6 @@ Not yet validated here.
 Implication:
 
 - deferring it from the first-version primary path remains correct
-
-### Real attachment upload protocol
-
-Not yet validated here.
-
-Implication:
-
-- keep real upload protocol guidance in the dedicated reference
-- do not imply backend upload semantics are project-validated by the current sample
-- real upload should be integrated through the host data-source / adapter layer after the backend file API contract is available
 
 ### Built-in summary row
 

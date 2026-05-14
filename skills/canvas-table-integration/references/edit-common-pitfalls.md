@@ -264,3 +264,21 @@ Fix:
 - use real host APIs or existing business selector data sources for identity candidates
 - use current cell values only as display/selection fallback, not as a fake global dictionary
 - if the real API returns empty data, keep the candidate list empty unless the product explicitly requests demo mode
+
+## 23. Defaulting complex Make fields to plain text inputs
+
+Symptom:
+
+- date cells use free-text inputs instead of date/date-time/range pickers
+- person or department cells use text inputs even though the schema says `SingleUser`, `MultiUser`, `SingleDepartment`, or `MultiDepartment`
+- select fields ignore schema options and save display labels
+- file fields render attachments but have no host upload/delete path
+- lookup fields enter edit mode even though the backend treats them as derived values
+
+Fix:
+
+- read the host Make schema and reuse the same field-type mapping as the Drawer form
+- use type-appropriate editors for date, select, user, department, and file fields
+- keep `Lookup` read-only unless the schema/API explicitly supports association editing
+- if candidate APIs are missing, use a selector shell with current-value display and a documented API integration point instead of fake candidates
+- document any explicit fallback and do not silently generate a bare `Input`

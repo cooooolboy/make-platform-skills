@@ -27,7 +27,8 @@ This skill has three tracks:
   - basic local table
   - virtual remote table
   - common public props / methods / events
-  - row selection / drag / summary / empty state
+  - default row sequence numbers and open-detail row-head suffix action
+  - optional row selection / drag / summary / empty state
   - row-head suffix actions such as an open-detail icon after the sequence number
   - lightweight `render + TextShape + shape click`
 - **Track B: second-version cell-edit enhancement**
@@ -60,7 +61,8 @@ If the user says display-only, field type display, or schema field rendering, ch
 - 把现有列表替换成 canvas table
 - 接一个本地数据表格
 - 接后端分页 / 虚拟滚动表格
-- 做行选择、汇总、空状态、固定列
+- 默认显示行序号和进入详情图标
+- 按需做行选择、汇总、空状态、固定列
 - 在序号列 / 行头后面添加进入详情、展开、快捷操作图标
 - 把单元格渲染成可点击文本 / 链接
 - 把 JSON meta 转成 `IColumn[]`
@@ -70,6 +72,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 - 给 canvas table 增加单元格编辑
 - 设计或接入 `customEdit`
 - 复用项目已有输入框 / 下拉 / 日期 / 人员 / 部门 / 附件组件
+- 让表格 cell editor 的 Make 字段映射与 Drawer 表单保持一致
 - 处理编辑器定位、滚动、关闭、保存、回填、回滚
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
 - 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
@@ -170,7 +173,9 @@ Use Track A for:
 - `virtual remote table`
 - common public `IColumn` / `TableCanvasProps` / instance-method usage
 - stable event-bus wiring
-- row selection
+- default sequence-number row head through `showSN`
+- default open-detail icon through `bodyRowHeadSuffixOptions`
+- optional row selection when the user asks for selection, batch actions, or multi-record operations
 - row drag
 - column drag
 - fixed columns
@@ -267,8 +272,10 @@ Use these as defaults for first-pass editable-list work. Adapt them to the host 
 
 7. **Common editable-list scope covers text, number, select, date, and attachment metadata**
    - Treat these as reusable patterns, not fixed component choices.
+   - Keep the field-type mapping aligned with the host Make Drawer form mapping.
    - For number-like fields, keep row/submit values numeric and move currency/unit formatting to display or render layers.
    - Attachment real upload remains a data-source / adapter scope and should still follow the dedicated attachment reference.
+   - Date, user, department, select, file, and lookup fields must not silently degrade to a plain text input. Use type-appropriate editors, read-only display, or an explicit documented fallback.
 
 8. **Use `editApplyMode: "controlled"` when a business save or draft layer owns writes**
    - In controlled mode, canvas-table emits edit events but does not mutate row data.
@@ -316,7 +323,7 @@ Use these as defaults for first-pass editable-list work. Adapt them to the host 
 - Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
 - Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
 - If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
-- Real upload belongs in the host data-source / adapter layer, not in canvas-table or a generic table wrapper.
+- Real upload, deletion, and download proxy generation belong in the host data-source / Service API adapter layer, not in canvas-table, a canvas renderer, or a generic table wrapper.
 
 ## Choose a primary path first
 
@@ -361,6 +368,7 @@ Before changing code, identify:
 - existing upload / date / select / people / department widgets
 - field metadata shape: editability, required, field type, precision, format, multi/single mode, attachment value structure
 - stable backend identity: the host backend's system id or equivalent row key for persisted rows and attachment upload
+- whether the host Drawer form already maps Make field types; reuse that mapping so table cell editors and Drawer forms submit the same value shapes
 
 Do not invent a new editor system if the project already has one.
 
@@ -384,6 +392,9 @@ Treat these as safety rules:
 - for normal tables, use `setData(rows)`
 - when `virtualOptions.enabled === true`, listen to `data:load` and use `setData(rows, page)`
 - keep the table page contract zero-based; if the backend is one-based, translate inside the loader callback
+- for Make record lists, enable `showSN` and an open-detail `bodyRowHeadSuffixOptions` icon by default
+- clicking the open-detail icon opens the record detail Drawer or the host project's established detail surface
+- do not enable `selectable` by default; enable row selection only when the user asks for selection, batch actions, or multi-record operations
 
 ### Track B defaults
 
@@ -395,9 +406,11 @@ Treat these as safety rules:
 - treat the editor as a DOM overlay, not a canvas-drawn widget
 - make the editor follow scroll / fixed-column positioning rules
 - do not mix display values and submit values for complex fields
+- do not silently map complex Make fields to plain text inputs; date, user, department, select, file, and lookup fields require explicit editors, read-only display, or documented fallback behavior
 - for number-like fields, keep submit values numeric; use render/editor formatting only for display
 - attachment editing must be host-driven even if attachment rendering uses `ImgShape`
 - do not expose attachment upload for unsaved rows when the backend requires a record id
+- do not put attachment upload, deletion, or download proxy calls inside canvas renderers or a generic table wrapper
 - do not use business-only display fields as technical row keys for persisted editable rows
 - canvas focus restoration is scoped to canvas-table edit commit/cancel/rollback; never let it steal focus from host modal, drawer, dialog, popover, or form interactions
 
@@ -409,7 +422,9 @@ Use Track A to wire these common capabilities correctly:
 - local data updates via `setData(rows)`
 - virtual paged updates via `setData(rows, page)`
 - `updateProps(...)` for column / size / config updates
-- row selection via `selectable` + `selection:change`
+- default sequence numbers via `showSN`
+- default detail entry via `bodyRowHeadSuffixOptions`
+- optional row selection via `selectable` + `selection:change`
 - row drag via `rowSortable`
 - column drag using the built-in header interaction
 - summary rows via `showSummary`, `summaryData`, `summaryRenderer`
@@ -473,14 +488,16 @@ Use references as needed:
 3. Identify the host framework, component library, and existing field-editor components.
 4. Identify the field metadata that drives editability and field type.
 5. Identify the stable row identity used by backend reads, saves, dirty state, and detail routes.
-6. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
-7. Design or reuse a host edit controller layer before writing field-specific code.
-8. Design or reuse a single editor-container abstraction before writing individual field editors.
-9. Implement or reuse field editors through a common editor interface.
-10. Distinguish submit-style editors from realtime-style editors.
-11. For attachment fields, identify whether upload requires a saved record id and where the data-source / adapter upload boundary lives.
-12. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
-13. Verify at least one real editable field flow in the target project.
+6. Read the host Make schema and Drawer form field mapping before coding editors.
+7. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
+8. For date, user, department, select, file, and lookup fields, choose a type-appropriate editor, read-only display, or explicit documented fallback before implementation.
+9. Design or reuse a host edit controller layer before writing field-specific code.
+10. Design or reuse a single editor-container abstraction before writing individual field editors.
+11. Implement or reuse field editors through a common editor interface.
+12. Distinguish submit-style editors from realtime-style editors.
+13. For attachment fields, identify whether upload requires a saved record id and where the data-source / Service API adapter upload/delete/download boundary lives.
+14. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
+15. Verify at least one real editable field flow in the target project.
 
 ### Track C workflow
 
@@ -516,6 +533,7 @@ Before finishing, read `references/common-pitfalls.md`.
 - closing complex editors without save / rollback logic
 - writing attachment support as render-only without an editor contract
 - putting real attachment upload calls into canvas-table or a generic table wrapper
+- defaulting date, user, department, select, file, or lookup fields to bare text inputs without explaining the missing schema/API reason
 - using a business display code as the row key when persisted edits need a backend system id
 - copying a Vue pattern into React without converting it into hook/ref-based host patterns
 

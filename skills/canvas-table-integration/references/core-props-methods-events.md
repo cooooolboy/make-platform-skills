@@ -70,12 +70,16 @@ Useful for sequence numbers.
 - `enabled: true`
 - optional `formatter(row, index)` for custom numbering
 
+For Make record lists, enable sequence numbers by default.
+
 #### `selectable`
 
 Use for row selection:
 
 - `enabled: true`
 - `type: 'single' | 'multiple'`
+
+Do not enable row selection by default for Make record lists. Add it only when the user asks for selection, batch actions, or multi-record operations.
 
 #### `rowSortable`
 
@@ -92,7 +96,7 @@ Use for compact row-head actions that visually belong beside the sequence number
 - `width`: the reserved suffix width
 - `render({ group, cell, x, y, height, rowData, index })`: add shapes to the provided row-head group
 
-For an open-detail icon after the sequence number, read `row-head-action-patterns.md`.
+For Make record lists, add an open-detail icon after the sequence number by default. Clicking that icon should open the record detail Drawer or the host project's established detail surface. Read `row-head-action-patterns.md`.
 
 #### `emptyStateOptions`
 

@@ -7,10 +7,12 @@
 ## Hard boundaries
 
 - Do not invent business fields, field meanings, API shapes, permission rules, approval states, or persistence behavior.
+- Do not generate Make object lists, Drawer forms/details, or route forms/details before checking the available DSL/schema source. Prefer `apps/dsl`, then Service `/api/schema`, then project-local schema/meta types or fixtures.
 - Do not infer that a requested table needs cell editing, virtual loading, or custom renderers; table implementation belongs to `canvas-table-integration`.
 - Make record tables and list tables must use `@qfei-design/canvas-table` through `canvas-table-integration`. If cell editing is needed, use `canvas-table-integration` for the editing design too.
 - Do not add product capabilities that were not requested, especially views, advanced filters, grouping, sorting, column settings, import, or export.
 - Do not force Ant Design or Less when the user or project already has another UI/styling system.
+- Do not silently downgrade `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` Make fields to plain text inputs. Explain any missing schema/API and use an explicit fallback.
 
 ## Default Make App pattern
 
@@ -22,6 +24,16 @@ Use a focused object-management layout:
 - create/edit/detail as right-side Drawer by default
 - route pages only on explicit user request
 - table area fills remaining content height
+
+Generated Make App projects should follow the makecli agent target structure:
+
+- `apps/ui`
+- `apps/service`
+- `apps/dsl`
+- `apps/docs`
+- `apps/packages/ui`, `apps/packages/types`, and `apps/packages/config` when shared packages are useful
+
+The generated app data flow is `apps/ui -> apps/service -> Make Data API -> Make Platform`. UI code must use the Service base URL and must not directly call Make APIs or hold Make credentials.
 
 ## Runtime baseline
 
@@ -54,6 +66,8 @@ If an existing project already declares a stricter Node requirement, keep the st
 3. Make defaults in this skill.
 
 If a detail is not requested and not present in the project, choose the simplest useful UI.
+
+For a new project with no established component library, ask the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design. If the user does not choose and the workflow must continue, use Ant Design and record that default.
 
 ## Dynamic object routes
 

@@ -50,6 +50,15 @@ Form layout:
 - long text, attachments, descriptions, and rich content span full width
 - collapse to one column on small screens
 
+Schema-driven Make forms:
+
+- read the DSL/schema before generating create/edit Drawer fields
+- derive field labels, editability, and control choice from schema metadata when available
+- use the field component mapping in `component-usage.md`
+- use date pickers for date fields, searchable selectors for user/department fields, select controls for select fields, attachment controls for file fields, and read-only/association displays for lookup fields
+- do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
+- if schema or candidate APIs are missing, state the reason and generate an explicit fallback with a later API integration point
+
 Action placement:
 
 - save / submit as the primary action
