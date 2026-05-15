@@ -7,9 +7,12 @@ Create, edit, and detail UIs default to a right-side Drawer.
 - placement: right
 - default width: `60%`
 - small screens: may use `100%`
+- mask closable: enabled by default; clicking the mask or blank area closes the current Drawer
 - header action area contains close and primary/secondary actions
 - no fixed footer by default
 - body scrolls inside the Drawer shell
+
+Mask click uses the same close path as the header close control. If a form has an explicit unsaved-change guard, apply that same guard to mask close instead of silently ignoring the mask click.
 
 Treat these as Make UI defaults. User requirements and established project patterns may override them.
 
@@ -24,7 +27,7 @@ Use a compact header layout:
 - left title area: fullscreen toggle when supported, then mode tag or record status, then title
 - right action area: contextual actions first, then one close control as the final far-right item
 - detail actions usually include edit/delete or other requested record actions before the close control
-- create/edit actions usually include save and cancel before the close control
+- create/edit actions usually include save/submit and the final close control; do not add a separate cancel button when it only duplicates close
 - keep button spacing compact
 - avoid decorative icons on text actions; reserve icons for compact controls such as fullscreen, exit fullscreen, and close
 - do not place a close icon/button in the left title area
@@ -39,7 +42,7 @@ If fullscreen is not implemented or not useful for a simple Drawer, keep a norma
 
 Recommended structure:
 
-1. Drawer header: left fullscreen toggle plus mode/title; right save, cancel, and final icon-only close
+1. Drawer header: left fullscreen toggle plus mode/title; right save/submit and final icon-only close
 2. Drawer body: form content
 
 Form layout:
@@ -69,7 +72,7 @@ Schema-driven Make forms:
 Action placement:
 
 - save / submit as the primary action
-- cancel as a secondary action near save
+- add a cancel action only when it performs distinct behavior beyond closing, such as an explicit discard flow required by the product
 - destructive actions should not be primary
 - fixed footer is optional and should be added only when the user or existing project pattern requires persistent bottom actions
 
@@ -112,7 +115,7 @@ When a user opens edit from detail, keep the detail Drawer mounted underneath an
 - closing the edit Drawer returns to the detail Drawer
 - closing the detail Drawer returns to the list page
 - clicking the mask or blank area must close only the topmost Drawer
-- if the implementation cannot guarantee topmost-only mask close, disable mask close and rely on the header close action
+- if the implementation cannot guarantee topmost-only mask close, fix the Drawer stack close handler; do not change the default behavior to mask-close disabled
 - use increasing z-index values or a Drawer stack manager so layers do not collapse together
 - avoid shared state handlers that close all active Drawers at once
 

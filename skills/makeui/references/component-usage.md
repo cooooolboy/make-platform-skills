@@ -81,11 +81,13 @@ This applies to:
 
 - table display
 - row sequence numbers and row-head detail entry
-- pagination or virtual loading layout around the table
+- pagination or virtual loading layout around the table, only when explicitly requested
 - row selection, only when requested
 - cell editing, when requested
 
 The selected UI library can still provide surrounding controls such as buttons, inputs, drawers, popovers, forms, and feedback components.
+
+Do not add pagination controls, page-size selectors, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
 
 ## Action hierarchy
 
@@ -99,6 +101,7 @@ Do not make every toolbar button primary.
 
 Optional controls only appear when requested:
 
+- pagination
 - filter
 - group
 - sort

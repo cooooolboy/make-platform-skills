@@ -13,7 +13,17 @@ Default object-list scaffold:
 3. Workspace header with selected object name on the left and current user/avatar on the right
 4. Local page toolbar
 5. CanvasTable container
-6. Pagination inside the list/table container when needed
+
+Do not add pagination by default. Pagination is an explicit user requirement, not a default list-page behavior.
+
+Unless the user asks for pagination, do not add:
+
+- visible pagination controls
+- page-size selectors
+- page state
+- page query params
+- total-count handling
+- paginated fetch logic
 
 Do not create a view switcher. A default list page includes only:
 
@@ -21,7 +31,6 @@ Do not create a view switcher. A default list page includes only:
 - refresh
 - create/new
 - table area
-- pagination if the table needs it
 
 ## Recommended structure
 
@@ -29,7 +38,8 @@ Use this order:
 
 1. local page toolbar
 2. table container
-3. pagination inside the list/table container
+
+Add pagination below or inside the table container only when the user explicitly requests it.
 
 Toolbar placement:
 
@@ -45,6 +55,7 @@ The local toolbar sits below the workspace header, not inside the header. Keep p
 
 Only add these when the user explicitly asks:
 
+- pagination
 - filter
 - group
 - sort
@@ -59,6 +70,7 @@ Recommended placement:
 - column settings: near the table's right side or after group/sort
 - import/export: right action group, usually left of create/new or inside a more-actions menu
 - batch actions: appear only after rows are selected, in a selection-state toolbar above the table
+- pagination: bottom-right or bottom-center inside the list/table container; do not reserve pagination space when pagination is not requested
 
 Do not add optional actions as decorative placeholders.
 
@@ -70,7 +82,7 @@ This skill only specifies:
 
 - where the table sits
 - how much space it gets
-- how toolbar and pagination wrap around it
+- how toolbar and optional pagination wrap around it
 - where optional controls should appear
 
 Do not use Ant Design Table, Arco Table, TDesign Table, or a hand-written HTML table for Make record lists.
