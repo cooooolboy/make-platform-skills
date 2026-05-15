@@ -48,7 +48,8 @@ The content area may scroll inside the app content region. Global header and sid
 Form layout:
 
 - two-column desktop grid for common fields
-- full-width rows for long text, attachments, and descriptions
+- full-width rows for long text and descriptions
+- create pages must omit attachment upload fields when upload requires a saved `recordID`; edit pages may show attachments only when the persisted record id exists
 - one-column layout on small screens
 - section headings rather than deeply nested cards
 

@@ -11,14 +11,26 @@ Use a fixed-height application shell:
 
 The shell should prevent body-level scrolling. Scrolling happens inside the sidebar, table, drawer body, or route content area.
 
+For generated Make App UI, the application shell is mandatory. Start layout work from the shell, not from an isolated list page. Only skip shell generation when an existing project already provides a reusable shell and the task is explicitly to plug a page into that shell.
+
+Default Make App shell:
+
+- left full-height sidebar for modules or Make object navigation
+- right-side vertical workspace
+- fixed top header inside the workspace
+- content region below the header
+- no body-level scroll
+
 ## Header
 
 Use the top header for global context and actions:
 
-- left side: app/product name, breadcrumb, or current module context
+- left side: current object/module name, breadcrumb, or current module context
 - right side: global actions such as settings, notifications, help, and user avatar
 
 Keep the header visually stable and do not place page-specific bulk actions there unless the page has no local toolbar.
+
+For object list pages, the header should show the selected object name on the left and current user/avatar on the right. Do not replace this stable header with a large app-title band above the whole page.
 
 ## Sidebar
 
@@ -29,6 +41,8 @@ Use the sidebar for app modules or object navigation.
 - Object navigation items should link to a dynamic object route, for example `/objects/:objectKey`, instead of separate hard-coded pages per object.
 - If navigation is long, scroll inside the sidebar only.
 - Do not let sidebar overflow force page-level scrolling.
+
+For a schema-driven Make App, build navigation from modules or object groups when available. If no grouping exists, list objects directly. Object entries still use a dynamic route such as `/objects/:objectKey`.
 
 ## Content height chain
 
