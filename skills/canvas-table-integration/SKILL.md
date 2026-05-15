@@ -60,7 +60,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 - 在页面里接入 `canvas-table`
 - 把现有列表替换成 canvas table
 - 接一个本地数据表格
-- 接后端分页 / 虚拟滚动表格
+- 接后端分页 / 虚拟滚动表格（仅在用户明确要求分页或虚拟加载时）
 - 默认显示行序号和进入详情图标
 - 按需做行选择、汇总、空状态、固定列
 - 在序号列 / 行头后面添加进入详情、展开、快捷操作图标
@@ -170,7 +170,7 @@ Read:
 Use Track A for:
 
 - `basic local table`
-- `virtual remote table`
+- `virtual remote table`, only when the user explicitly asks for pagination, virtual loading, or paginated backend integration
 - common public `IColumn` / `TableCanvasProps` / instance-method usage
 - stable event-bus wiring
 - default sequence-number row head through `showSN`
@@ -340,7 +340,7 @@ Start from:
 
 ### Track A / `virtual remote table`
 
-Use when rows come from a paginated backend API or the dataset is too large to load at once.
+Use only when the user explicitly asks for pagination, virtual loading, or paginated backend integration. Do not choose this path just because the page contains a table.
 
 Start from:
 
@@ -386,6 +386,7 @@ Treat these as safety rules:
 - convert meta into `IColumn[]` before creating the table
 - do not put `aria-hidden` or `inert` on the visual canvas-table host, or on any ancestor that can contain the package-created focusable canvas
 - if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
+- pagination is opt-in: do not add visible pagination controls, page-size selectors, page state, page query params, total-count handling, paginated fetch logic, `virtualOptions`, or `data:load` wiring unless the user explicitly asks for pagination, virtual loading, or paginated backend integration
 
 ### Additional Track A rules
 
@@ -477,7 +478,7 @@ Use references as needed:
 5. Open the corresponding recipe and minimal example.
 6. Adapt that example to the current project with the smallest reasonable diff.
 7. Preserve the local framework and state-management patterns.
-8. Add only the capabilities the page truly needs now.
+8. Add only the capabilities the user explicitly needs now. Pagination is not a default table capability.
 9. Avoid unrelated refactors.
 10. Run at least one concrete verification step if the environment allows it.
 

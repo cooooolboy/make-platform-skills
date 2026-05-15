@@ -44,7 +44,7 @@ npx skills update canvas-table-integration
 
 **使用场景**
 - 在页面里接入 `@qfei-design/canvas-table`
-- 接普通表格、分页表格、分组表格
+- 接普通表格；分页表格、虚拟加载、分组表格仅在用户明确要求时添加
 - 把 JSON meta 转成 `IColumn[]`
 
 ### make-integration

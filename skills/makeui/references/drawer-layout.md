@@ -7,9 +7,12 @@ Create, edit, and detail UIs default to a right-side Drawer.
 - placement: right
 - default width: `60%`
 - small screens: may use `100%`
+- mask closable: enabled by default; clicking the mask or blank area closes the current Drawer
 - header action area contains close and primary/secondary actions
 - no fixed footer by default
 - body scrolls inside the Drawer shell
+
+Mask click uses the same close path as the header close control. If a form has an explicit unsaved-change guard, apply that same guard to mask close instead of silently ignoring the mask click.
 
 Treat these as Make UI defaults. User requirements and established project patterns may override them.
 
@@ -112,7 +115,7 @@ When a user opens edit from detail, keep the detail Drawer mounted underneath an
 - closing the edit Drawer returns to the detail Drawer
 - closing the detail Drawer returns to the list page
 - clicking the mask or blank area must close only the topmost Drawer
-- if the implementation cannot guarantee topmost-only mask close, disable mask close and rely on the header close action
+- if the implementation cannot guarantee topmost-only mask close, fix the Drawer stack close handler; do not change the default behavior to mask-close disabled
 - use increasing z-index values or a Drawer stack manager so layers do not collapse together
 - avoid shared state handlers that close all active Drawers at once
 

@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.10
+version: 0.3.12
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -77,7 +77,7 @@ Before generating or editing UI:
    - create/edit/detail default to right-side Drawer
    - route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
 10. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-11. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement.
+11. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement. Do not add pagination controls, page-size controls, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
 
 ## Required references
 
@@ -100,15 +100,16 @@ Read only the reference files needed for the request:
   - current user/avatar and global actions on the header right
   - page-local toolbar below the header
   - `canvas-table` region filling the remaining height
-  - pagination inside the list/table container when needed
+  - no pagination by default
 - Do not create a "view" concept by default. No view tabs, view dropdowns, Kanban view, split view, or view switcher unless the user explicitly asks.
 - A default list page includes only:
   - search
   - refresh
   - create/new
-- Do not add filter, group, sort, column settings, import, or export unless the user explicitly asks.
+- Do not add pagination, filter, group, sort, column settings, import, or export unless the user explicitly asks.
 - Create, edit, and detail open in a right-side Drawer by default.
 - Drawer default width is `60%`; on small screens it may become `100%`.
+- Create/edit/detail Drawers are mask-closable by default. Clicking the mask or blank area closes the current Drawer, using the same close path as the header close control.
 - Create/edit/detail Drawers default to header actions plus scrollable body, without a fixed footer. Save/cancel/edit/delete/close actions belong in the header action area unless the user or existing project pattern requires a footer.
 - Drawer headers default to: left title area starts with fullscreen toggle when supported, followed by mode/status and title; right action area ends with one icon-only close button at the far right. Do not place a close button in the left title area and do not render both a left close icon and a right close action.
 - Create forms must not render `Make.Field.File` upload/attachment controls when attachment upload requires a saved `recordID`. New records do not have `recordID`; omit file fields from create payloads and expose attachments only after the record exists, usually in edit/detail.

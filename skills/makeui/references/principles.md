@@ -8,9 +8,9 @@
 
 - Do not invent business fields, field meanings, API shapes, permission rules, approval states, or persistence behavior.
 - Do not generate Make object lists, Drawer forms/details, or route forms/details before checking the available DSL/schema source. Prefer `apps/dsl`, then Service `/api/schema`, then project-local schema/meta types or fixtures.
-- Do not infer that a requested table needs cell editing, virtual loading, or custom renderers; table implementation belongs to `canvas-table-integration`.
+- Do not infer that a requested table needs pagination, cell editing, virtual loading, or custom renderers; table implementation belongs to `canvas-table-integration`.
 - Make record tables and list tables must use `@qfei-design/canvas-table` through `canvas-table-integration`. If cell editing is needed, use `canvas-table-integration` for the editing design too.
-- Do not add product capabilities that were not requested, especially views, advanced filters, grouping, sorting, column settings, import, or export.
+- Do not add product capabilities that were not requested, especially pagination, views, advanced filters, grouping, sorting, column settings, import, or export.
 - Do not force Ant Design or Less when the user or project already has another UI/styling system.
 - Do not silently choose Ant Design, Arco Design, or TDesign for a new project. Component-library selection is blocking until the user chooses.
 - Do not skip the Make App shell for generated object-list UI. Start from the shell unless the project already has one.
@@ -35,7 +35,8 @@ For generated object-list UI, the shell structure is:
 3. current user/avatar and global actions on the header right
 4. local list toolbar below the header
 5. canvas-table region filling the remaining height
-6. pagination inside the list/table container when needed
+
+Do not add pagination to generated object-list UI unless the user explicitly asks for it.
 
 Generated Make App projects should follow the makecli agent target structure:
 
