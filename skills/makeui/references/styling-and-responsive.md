@@ -45,11 +45,23 @@ Avoid:
 ## Form Drawer polish
 
 - keep create/edit form Drawer styling scoped away from list and detail views
+- use a subtle neutral Drawer body with lightweight white form panels when grouping helps readability
+- keep panel styling restrained: thin neutral border, 6-8px radius, moderate padding, low shadow at most
 - in percentage-based Drawers, prefer stable grids such as `minmax(0, 1fr)` columns with `min-width: 0` children
 - treat fixed minimum column widths as an overflow risk; use them only after checking the target Drawer width and breakpoint behavior
 - align label typography, control height, border radius, and focus ring with existing project tokens or Ant Design defaults before adding custom values
-- let long text, URL, file, attachment, description, and rich controls span full width when it improves readability
+- let long text, URL, description, and rich controls span full width when it improves readability
+- omit file upload fields in create mode when upload needs a saved `recordID`; show attachment controls only after a persisted record exists
 - header button density can be slightly more relaxed when a form needs it, but changes should stay scoped away from list and detail action styling
+
+## Detail Drawer polish
+
+- use compact horizontal label/value rows on desktop
+- use a two-column detail grid for common fields
+- make long text, file, lookup, URL-rich, and attachment-heavy values span full width
+- prefer subtle row dividers over card-per-field layouts
+- keep labels subdued and values readable with safe wrapping
+- do not render detail content as an unstyled list or a form-like editable layout
 
 ## Responsive defaults
 

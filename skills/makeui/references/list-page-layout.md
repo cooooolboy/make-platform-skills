@@ -4,6 +4,17 @@
 
 Default Make list pages are simple object lists.
 
+They must live inside the Make App shell. Do not generate a list page that owns the app title, user identity, and object navigation in the page body. Those belong to `app-shell-layout.md`.
+
+Default object-list scaffold:
+
+1. App shell
+2. Left sidebar with module/object navigation
+3. Workspace header with selected object name on the left and current user/avatar on the right
+4. Local page toolbar
+5. CanvasTable container
+6. Pagination inside the list/table container when needed
+
 Do not create a view switcher. A default list page includes only:
 
 - search
@@ -27,6 +38,8 @@ Toolbar placement:
 - create/new as the rightmost primary action
 
 The table container fills remaining height. The list page itself should not scroll.
+
+The local toolbar sits below the workspace header, not inside the header. Keep page actions out of the global header unless there is no local toolbar.
 
 ## Optional actions
 

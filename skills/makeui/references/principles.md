@@ -12,18 +12,30 @@
 - Make record tables and list tables must use `@qfei-design/canvas-table` through `canvas-table-integration`. If cell editing is needed, use `canvas-table-integration` for the editing design too.
 - Do not add product capabilities that were not requested, especially views, advanced filters, grouping, sorting, column settings, import, or export.
 - Do not force Ant Design or Less when the user or project already has another UI/styling system.
+- Do not silently choose Ant Design, Arco Design, or TDesign for a new project. Component-library selection is blocking until the user chooses.
+- Do not skip the Make App shell for generated object-list UI. Start from the shell unless the project already has one.
 - Do not silently downgrade `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` Make fields to plain text inputs. Explain any missing schema/API and use an explicit fallback.
+- Do not show attachment upload fields in create flows when upload requires a saved record identity. New records do not have `recordID`; omit file fields until edit/detail after persistence.
 
 ## Default Make App pattern
 
 Use a focused object-management layout:
 
-- global shell with top header and optional left navigation
+- global shell with top header and left navigation for generated Make App object-list UI
 - list page as the main entry
 - object navigation through dynamic React Router params
 - create/edit/detail as right-side Drawer by default
 - route pages only on explicit user request
 - table area fills remaining content height
+
+For generated object-list UI, the shell structure is:
+
+1. left full-height sidebar for module/object navigation
+2. right fixed header with selected object/module name on the left
+3. current user/avatar and global actions on the header right
+4. local list toolbar below the header
+5. canvas-table region filling the remaining height
+6. pagination inside the list/table container when needed
 
 Generated Make App projects should follow the makecli agent target structure:
 
@@ -67,7 +79,7 @@ If an existing project already declares a stricter Node requirement, keep the st
 
 If a detail is not requested and not present in the project, choose the simplest useful UI.
 
-For a new project with no established component library, ask the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design. If the user does not choose and the workflow must continue, use Ant Design and record that default.
+For a new project with no established component library, ask the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it automatically. If the user has not chosen, pause component-library-specific implementation and only provide a neutral plan or ask the selection question.
 
 ## Dynamic object routes
 
