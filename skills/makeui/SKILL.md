@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.12
+version: 0.3.13
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -110,7 +110,7 @@ Read only the reference files needed for the request:
 - Create, edit, and detail open in a right-side Drawer by default.
 - Drawer default width is `60%`; on small screens it may become `100%`.
 - Create/edit/detail Drawers are mask-closable by default. Clicking the mask or blank area closes the current Drawer, using the same close path as the header close control.
-- Create/edit/detail Drawers default to header actions plus scrollable body, without a fixed footer. Save/cancel/edit/delete/close actions belong in the header action area unless the user or existing project pattern requires a footer.
+- Create/edit/detail Drawers default to header actions plus scrollable body, without a fixed footer. Primary save/submit actions, detail contextual actions, and the final close action belong in the header action area unless the user or existing project pattern requires a footer. Do not add a separate cancel button when it only duplicates the final close action.
 - Drawer headers default to: left title area starts with fullscreen toggle when supported, followed by mode/status and title; right action area ends with one icon-only close button at the far right. Do not place a close button in the left title area and do not render both a left close icon and a right close action.
 - Create forms must not render `Make.Field.File` upload/attachment controls when attachment upload requires a saved `recordID`. New records do not have `recordID`; omit file fields from create payloads and expose attachments only after the record exists, usually in edit/detail.
 - Dense Make record Drawers should support a fullscreen toggle in the header when practical. When nested Drawers are opened, keep the previous Drawer underneath and close only the topmost Drawer at a time.

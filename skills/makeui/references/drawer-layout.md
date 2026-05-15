@@ -27,7 +27,7 @@ Use a compact header layout:
 - left title area: fullscreen toggle when supported, then mode tag or record status, then title
 - right action area: contextual actions first, then one close control as the final far-right item
 - detail actions usually include edit/delete or other requested record actions before the close control
-- create/edit actions usually include save and cancel before the close control
+- create/edit actions usually include save/submit and the final close control; do not add a separate cancel button when it only duplicates close
 - keep button spacing compact
 - avoid decorative icons on text actions; reserve icons for compact controls such as fullscreen, exit fullscreen, and close
 - do not place a close icon/button in the left title area
@@ -42,7 +42,7 @@ If fullscreen is not implemented or not useful for a simple Drawer, keep a norma
 
 Recommended structure:
 
-1. Drawer header: left fullscreen toggle plus mode/title; right save, cancel, and final icon-only close
+1. Drawer header: left fullscreen toggle plus mode/title; right save/submit and final icon-only close
 2. Drawer body: form content
 
 Form layout:
@@ -72,7 +72,7 @@ Schema-driven Make forms:
 Action placement:
 
 - save / submit as the primary action
-- cancel as a secondary action near save
+- add a cancel action only when it performs distinct behavior beyond closing, such as an explicit discard flow required by the product
 - destructive actions should not be primary
 - fixed footer is optional and should be added only when the user or existing project pattern requires persistent bottom actions
 
