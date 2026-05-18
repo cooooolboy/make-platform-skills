@@ -7,13 +7,11 @@ DepartmentField 的字段类型定义以 @FieldDesign.md 为准：
 - `Make.Field.SingleDepartment`：单选部门。
 - `Make.Field.MultiDepartment`：多选部门。
 
-底层组织部门数据可参考 @DepartmentInfo.md。Department 分页查询接口返回候选部门数据；业务 Record 中 DepartmentField 查询返回精简部门结构：`recordID`、`name`，其中 `recordID` 是字符串形式的部门 ID。
-
 ## Department 字段的流程
 
 1. 先创建 Entity，并在 Entity 中声明 SingleDepartmentField 或 MultiDepartmentField。
-2. 用户填写字段时，客户端调用 DataAPI 分页查询 Department 数据，作为部门选择器的候选项。
-3. 用户选择后，客户端把选中部门的 ID 以字符串形式写入 Record；单选写字符串 ID，多选写字符串 ID 数组。
+2. 用户填写字段时，客户端调用 @DataAPIDesign.md 中 `分页查询 Department 数据`，作为部门选择器的候选项。
+3. 用户选择后，客户端把候选接口返回的 `departmentId` 字符串写入 Record；单选写字符串 ID，多选写字符串 ID 数组。
 4. 创建或更新 Record 时，服务端校验部门是否存在、是否属于当前组织、是否在当前访问者权限范围内。
 5. 客户端获取 Record 时，DepartmentField 返回精简部门对象数组；单选部门通常只有一个元素。
 
@@ -78,11 +76,11 @@ HEADER
 
 Request Body
 
-`filter` 当前仅支持按 `departmentName` 过滤筛选；不支持通过 `departmentId`、`orgId`、`memberCount`、`platform` 等其它字段过滤。当前候选查询不支持排序；即使传入 `sort`，服务端也会忽略。
+`filter` 当前仅支持按 `departmentName` 过滤筛选；不支持通过 `departmentId`、`memberCount`、`platform` 等其它字段过滤。当前候选查询不支持排序；即使传入 `sort`，服务端也会忽略。`leader` 有值时使用 `userId`、`userName`、`avatar` 结构。
 
 ```json
 {
-  "fields": ["orgId", "departmentId", "departmentName", "memberCount", "platform", "leader"],
+  "fields": ["departmentId", "departmentName", "memberCount", "platform", "leader"],
   "filter": [
     {
       "departmentName": { "contains": "产品研发" }
@@ -97,14 +95,13 @@ Response Body
 ```json
 {
   "code": 200,
-  "msg": "query record success",
+  "msg": "成功",
   "data": [
     {
       "departmentId": "2226",
       "departmentName": "测试部门重复",
       "memberCount": 10,
-      "orgId": 3,
-      "platform": 1,
+      "platform": "1",
       "leader": null,
       "children": []
     }
@@ -119,7 +116,7 @@ Response Body
 
 #### Step 3: 创建 Record
 
-用户选择候选项后，客户端将选中部门的 ID 作为字符串类型 ID 写入 Record。
+用户选择候选项后，客户端将候选接口返回的 `departmentId` 字符串写入 Record。
 
 ```
 POST https://dev-make.qtech.cn/api/make/data/v1/record
@@ -210,7 +207,7 @@ Response Body
 - MultiDepartmentField 非必填时可以写入 `[]` 或不提交该字段；必填时数组不能为空。
 - MultiDepartmentField 通过 `maxCount` 控制最多可选择的部门数量，默认值以 @FieldDesign.md 为准。
 - MultiDepartmentField 中同一个部门 ID 不允许重复出现。
-- DataAPIDesign.md 中的接口写入的部门 ID 必须是字符串类型，并且必须来自 Department 分页查询接口返回的当前组织可见部门。
+- DataAPIDesign.md 中的接口写入的部门 ID 必须是字符串类型，并且必须来自 Department 分页查询接口返回的当前组织可见部门；候选查询响应 JSON 中的 `departmentId` 已是字符串。
 - 禁止通过前端实现 Department 数据过滤功能，必须使用后端接口`filter`参数实现。
 - 分页查询 Department 候选项时，`filter` 仅支持 `departmentName` 字段。
 - 部门不存在、已删除、不可见或不属于当前组织时，创建或更新 Record 应失败。

@@ -580,6 +580,152 @@ Response Body
 - 分页查询中的每条元素结构与单条查询的 `data` 完全一致，只是顶层从对象变成数组，数组中的单条数据根据字段类型不同，返回结构也会不同，详见：`常规字段类型返回结构示例` 和 `派生字段类型返回结构示例`
 - `pagination.total` 表示满足当前筛选条件的总记录数，而不是当前页记录数
 
+### 分页查询 User 数据
+
+用于查询当前组织内可见的用户候选项，常用于 `Make.Field.SingleUser` 和 `Make.Field.MultiUser` 字段填写前的用户选择器。
+
+```
+POST https://dev-make.qtech.cn/api/make/data/v1/user
+HEADER
+  Authorization: Bearer <MAKE_API_TOKEN>
+  Content-Type: application/json
+  X-Make-Target: MakeService.ListResources
+```
+
+Request Body
+
+```json
+{
+  "fields": ["userId", "userName", "avatar"],
+  "filter": [
+    {
+      "userName": {
+        "contains": "张"
+      }
+    }
+  ],
+  "sort": [
+    { "field": "userName", "order": "asc" }
+  ],
+  "pagination": { "page": 1, "size": 10 }
+}
+```
+
+说明：
+
+- Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `app` / `entity`
+- `fields` 可选；为空时返回当前接口可产出的全部字段
+- `filter` 可选；省略或传 `null` 表示不筛选
+- `filter` 必须是对象数组，仅支持单个 `userName.contains` 条件
+- `filter: []`、对象形式 `filter: {}`、非字符串右值、空白字符串右值均为非法参数
+- 当前接口不支持排序；即使传入 `sort`，服务端也会忽略并保持下游返回顺序
+- `pagination.page` 从 `1` 开始；不传 `pagination` 时默认 `page=1`、`size=10`
+
+Response Body
+
+```json
+{
+  "code": 200,
+  "msg": "成功",
+  "data": [
+    {
+      "userId": "19035",
+      "userName": "张三",
+      "avatar": "https://example.com/avatar-a.png"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "size": 10,
+    "total": 100
+  }
+}
+```
+
+说明：
+
+- 当前接口返回 `userId`、`userName`、`avatar`；
+- `userId` 在响应 JSON 中是字符串；写入 UserField 时继续提交该用户 ID 字符串
+- 请求了未知字段时，服务端会忽略该字段，只返回当前结果中存在的字段
+
+### 分页查询 Department 数据
+
+用于查询当前组织内可见的部门候选项，常用于 `Make.Field.SingleDepartment` 和 `Make.Field.MultiDepartment` 字段填写前的部门选择器。
+
+```
+POST https://dev-make.qtech.cn/api/make/data/v1/department
+HEADER
+  Authorization: Bearer <MAKE_API_TOKEN>
+  Content-Type: application/json
+  X-Make-Target: MakeService.ListResources
+```
+
+Request Body
+
+```json
+{
+  "fields": ["departmentId", "departmentName", "memberCount", "platform", "leader"],
+  "filter": [
+    {
+      "departmentName": {
+        "contains": "产品研发"
+      }
+    }
+  ],
+  "sort": [
+    { "field": "departmentName", "order": "asc" }
+  ],
+  "pagination": { "page": 1, "size": 10 }
+}
+```
+
+说明：
+
+- Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `app` / `entity`
+- `fields` 可选；为空时返回当前接口可产出的全部字段
+- `filter` 可选；省略或传 `null` 表示不筛选
+- `filter` 必须是对象数组，仅支持单个 `departmentName.contains` 条件
+- `filter: []`、对象形式 `filter: {}`、非字符串右值、空白字符串右值均为非法参数
+- 当前接口不支持排序；即使传入 `sort`，服务端也会忽略并保持下游返回顺序
+- `pagination.page` 从 `1` 开始；不传 `pagination` 时默认 `page=1`、`size=10`
+- `leader` 仅在 `fields` 为空或显式包含 `leader` 时返回；未显式请求 `leader` 时不会触发负责人补齐查询
+
+Response Body
+
+```json
+{
+  "code": 200,
+  "msg": "成功",
+  "data": [
+    {
+      "departmentId": "2226",
+      "departmentName": "产品研发中心",
+      "memberCount": 10,
+      "platform": "1",
+      "leader": {
+        "userId": "9001",
+        "userName": "负责人A",
+        "avatar": "https://example.com/avatar-a.png"
+      },
+      "children": []
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "size": 10,
+    "total": 100
+  }
+}
+```
+
+说明：
+
+- 当前接口返回 `departmentId`、`departmentName`、`memberCount`、`platform`、`leader` 和 `children`；
+- `departmentId` 在响应 JSON 中是字符串；写入 DepartmentField 时继续提交该部门 ID 字符串
+- `leader` 无负责人或未查询到负责人时返回 `null`；未请求 `leader` 字段时不返回 `leader` 键；有负责人时返回 `userId`、`userName`、`avatar`
+- 当前接口返回平铺部门列表；`children` 始终是数组，当前示例为 `[]`
+- 请求了未知字段时，服务端会忽略该字段；`children` 作为兼容字段仍会随部门记录返回
+
 
 ### 上传文件
 
