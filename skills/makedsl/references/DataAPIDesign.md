@@ -11,7 +11,7 @@ Entity 可以理解是一张 Table, Record 可以理解是一个 Row, 也就是 
 ## 约束
 
 - 如果两个`Entity`存在 `Relation` 关系，则在添加或更新数据时需要用 `data.qfei_relation` 传递参数。`Relation` 建模方式见 @RelationDesign.md
-- `qfei_relation` 的数组项格式固定为 `{ "entity": "<关联对象名称>", "id": "<关联 recordID>" }`
+- `qfei_relation` 的数组项格式固定为 `{ "entityKey": "<关联 Entity key>", "id": "<关联 recordID>" }`
 - 禁止在一个`Entity`中定义与另一个`Entity`语义相同的字段。
 - 禁止通过自定义关联Id字段来描述两个`Entity`的关系，如果在一个`Entity`中需要展示另一个`Entity`的字段数据，则必须使用 `LookupField` 实现。规则详见 @FieldDesign.md
 - 禁止通过前端实现 `Record` 数据列表过滤功能，必须使用后端接口`MakeService.ListResources`的`filter`参数，详见：@EntityDataFilterUsage.md
@@ -103,8 +103,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "<NAME>",
+  "appKey": "<APP_KEY>",
+  "entityKey": "<ENTITY_KEY>",
   "data": {
     "name": "张三",
     "hobby": ["xxx", "yyy"],
@@ -112,7 +112,7 @@ Request Body
     "datetime_field": "2026-02-24 17:00:00",
     "qfei_relation": [
       {
-        "entity": "档案",
+        "entityKey": "profile",
         "id": "123"
       }
     ]
@@ -122,7 +122,7 @@ Request Body
 
 其中：
 
-- `entity` 表示对端的 Entity 名称
+- `entityKey` 表示对端的 Entity key
 - `id` 表示对端记录的 `recordID`
 
 Response Body
@@ -157,8 +157,8 @@ Request Body
 
 ```json
 {
-  "app": <NAME>,
-  "entity": <NAME>,
+  "appKey": "<APP_KEY>",
+  "entityKey": "<ENTITY_KEY>",
   "recordIDList": ["record_id_1", "record_id_2"]
 }
 ```
@@ -190,17 +190,17 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "<NAME>",
+  "appKey": "<APP_KEY>",
+  "entityKey": "<ENTITY_KEY>",
   "recordID": "1",
   "data": {
-    "field_name_1": "张三",
-    "field_name_2": 100,
+    "field_key_1": "张三",
+    "field_key_2": 100,
     "date_field": "2026-02-24",
     "datetime_field": "2026-02-24 17:00:00",
     "qfei_relation": [
       {
-        "entity": "档案",
+        "entityKey": "profile",
         "id": "123"
       }
     ]
@@ -234,17 +234,17 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "<NAME>",
+  "appKey": "<APP_KEY>",
+  "entityKey": "<ENTITY_KEY>",
   "recordIDList": ["1", "2", "3"],
   "data": {
-    "field_name_1": "张三",
-    "field_name_2": 100,
+    "field_key_1": "张三",
+    "field_key_2": 100,
     "date_field": "2026-02-24",
     "datetime_field": "2026-02-24 17:00:00",
     "qfei_relation": [
       {
-        "entity": "档案",
+        "entityKey": "profile",
         "id": "123"
       }
     ]
@@ -284,8 +284,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "<NAME>",
+  "appKey": "<APP_KEY>",
+  "entityKey": "<ENTITY_KEY>",
   "fields": [
     "orderNo",
     "projectName",
@@ -435,8 +435,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "<NAME>",
+  "appKey": "<APP_KEY>",
+  "entityKey": "<ENTITY_KEY>",
   "fields": [
     "orderNo",
     "projectName",
@@ -460,8 +460,8 @@ Request Body
   ],
   "filter": {},
   "sort": [
-    { "field": "createdAt", "order": "desc" },
-    { "field": "orderNo", "order": "asc" }
+    { "fieldKey": "createdAt", "order": "desc" },
+    { "fieldKey": "orderNo", "order": "asc" }
   ],
   "pagination": { "page": 1, "size": 10 }
 }
@@ -469,7 +469,7 @@ Request Body
 
 说明：
 
-- `sort.field` 使用字段 key，不是字段名称
+- `sort.fieldKey` 使用字段 key，不是字段名称
 - `pagination.page` 从 `1` 开始
 - 如果不传 `fields`，返回结果默认包含全部字段
 
@@ -605,7 +605,7 @@ Request Body
     }
   ],
   "sort": [
-    { "field": "userName", "order": "asc" }
+    { "fieldKey": "userName", "order": "asc" }
   ],
   "pagination": { "page": 1, "size": 10 }
 }
@@ -613,7 +613,7 @@ Request Body
 
 说明：
 
-- Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `app` / `entity`
+- Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `appKey` / `entityKey`
 - `fields` 可选；为空时返回当前接口可产出的全部字段
 - `filter` 可选；省略或传 `null` 表示不筛选
 - `filter` 必须是对象数组，仅支持单个 `userName.contains` 条件
@@ -673,7 +673,7 @@ Request Body
     }
   ],
   "sort": [
-    { "field": "departmentName", "order": "asc" }
+    { "fieldKey": "departmentName", "order": "asc" }
   ],
   "pagination": { "page": 1, "size": 10 }
 }
@@ -681,7 +681,7 @@ Request Body
 
 说明：
 
-- Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `app` / `entity`
+- Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `appKey` / `entityKey`
 - `fields` 可选；为空时返回当前接口可产出的全部字段
 - `filter` 可选；省略或传 `null` 表示不筛选
 - `filter` 必须是对象数组，仅支持单个 `departmentName.contains` 条件
@@ -745,10 +745,10 @@ Content-Disposition: form-data; name="meta"
 Content-Type: application/json
 
 {
-  "app": "烽火项目管理",
-  "entity": "项目文档",
+  "appKey": "MatrixProject",
+  "entityKey": "project_docs",
   "recordID": "1",
-  "field": "invoice"
+  "fieldKey": "invoice"
 }
 --boundary
 Content-Disposition: form-data; name="file"; filename="发票.pdf"
@@ -791,10 +791,10 @@ Request Body
 
 ```json
 {
-  "app": "烽火项目管理",
-  "entity": "项目文档",
+  "appKey": "MatrixProject",
+  "entityKey": "project_docs",
   "recordID": "1",
-  "field": "invoice"
+  "fieldKey": "invoice"
 }
 ```
 
@@ -833,10 +833,10 @@ Request Body
 
 ```json
 {
-  "app": "烽火项目管理",
-  "entity": "项目文档",
+  "appKey": "MatrixProject",
+  "entityKey": "project_docs",
   "recordID": "1",
-  "field": "invoice",
+  "fieldKey": "invoice",
   "fileName": "89beb655c86b3794f72faf5fed8392ef97a7db93.md"
 }
 ```
@@ -912,9 +912,9 @@ Response Body
 
 ```json
 {
-  "<lookupFieldName>": {
-    "entity": "<目标对象名称>",
-    "field": "<目标字段名称>",
+  "<lookupFieldKey>": {
+    "entityKey": "<目标 Entity key>",
+    "fieldKey": "<目标字段 key>",
     "data": [
       {
         "recordID": "<关联记录ID，字符串>",

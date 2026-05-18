@@ -29,6 +29,7 @@ UserField 的字段类型定义以 @FieldDesign.md 为准：
 需要创建一个 Project(项目) 的 Entity。
 
 ```yaml
+key: project
 name: 项目
 type: Make.Entity
 app: <Make.App>
@@ -36,7 +37,8 @@ meta:
   version: 1.0.0
 properties:
   fields:
-    - name: projectName
+    - key: projectName
+      name: 项目名称
       type: Make.Field.Text
       meta:
         version: 1.0.0
@@ -44,7 +46,8 @@ properties:
       validations:
         isRequired: true
 
-    - name: owner
+    - key: owner
+      name: 项目负责人
       type: Make.Field.SingleUser
       meta:
         version: 1.0.0
@@ -52,7 +55,8 @@ properties:
       validations:
         isRequired: true
 
-    - name: members
+    - key: members
+      name: 项目成员
       type: Make.Field.MultiUser
       meta:
         version: 1.0.0
@@ -127,8 +131,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "项目",
+  "appKey": "<APP_KEY>",
+  "entityKey": "project",
   "data": {
     "projectName": "烽火项目管理",
     "owner": "19035",
@@ -163,8 +167,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "项目",
+  "appKey": "<APP_KEY>",
+  "entityKey": "project",
   "recordID": "rec_abc123"
 }
 ```

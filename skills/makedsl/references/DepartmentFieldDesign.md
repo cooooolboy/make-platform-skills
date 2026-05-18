@@ -29,6 +29,7 @@ DepartmentField 的字段类型定义以 @FieldDesign.md 为准：
 需要创建一个 Project(项目) 的 Entity。
 
 ```yaml
+key: project
 name: 项目
 type: Make.Entity
 app: <Make.App>
@@ -36,7 +37,8 @@ meta:
   version: 1.0.0
 properties:
   fields:
-    - name: projectName
+    - key: projectName
+      name: 项目名称
       type: Make.Field.Text
       meta:
         version: 1.0.0
@@ -44,7 +46,8 @@ properties:
       validations:
         isRequired: true
 
-    - name: ownerDepartment
+    - key: ownerDepartment
+      name: 项目所属部门
       type: Make.Field.SingleDepartment
       meta:
         version: 1.0.0
@@ -52,7 +55,8 @@ properties:
       validations:
         isRequired: true
 
-    - name: relatedDepartments
+    - key: relatedDepartments
+      name: 协作部门
       type: Make.Field.MultiDepartment
       meta:
         version: 1.0.0
@@ -130,8 +134,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "项目",
+  "appKey": "<APP_KEY>",
+  "entityKey": "project",
   "data": {
     "projectName": "烽火项目管理",
     "ownerDepartment": "2226",
@@ -166,8 +170,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "项目",
+  "appKey": "<APP_KEY>",
+  "entityKey": "project",
   "recordID": "rec_abc123"
 }
 ```
