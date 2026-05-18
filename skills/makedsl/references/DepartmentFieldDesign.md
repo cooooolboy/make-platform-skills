@@ -13,7 +13,7 @@ DepartmentField 的字段类型定义以 @FieldDesign.md 为准：
 2. 用户填写字段时，客户端调用 @DataAPIDesign.md 中 `分页查询 Department 数据`，作为部门选择器的候选项。
 3. 用户选择后，客户端把候选接口返回的 `departmentId` 字符串写入 Record；单选写字符串 ID，多选写字符串 ID 数组。
 4. 创建或更新 Record 时，服务端校验部门是否存在、是否属于当前组织、是否在当前访问者权限范围内。
-5. 客户端获取 Record 时，DepartmentField 返回精简部门对象数组；单选部门通常只有一个元素。
+5. 客户端获取 Record 时，DepartmentField 返回 `departmentId`、`departmentName` 精简部门对象数组；单选部门通常只有一个元素。
 
 ## 例子
 
@@ -187,18 +187,18 @@ Response Body
     "projectName": "烽火项目管理",
     "ownerDepartment": [
       {
-        "recordID": "2226", //字符串形式的部门ID
-        "name": "测试部门重复" //部门名称
+        "departmentId": "2226", //字符串形式的部门ID
+        "departmentName": "测试部门重复" //部门名称
       }
     ],
     "relatedDepartments": [
       {
-        "recordID": "2227",
-        "name": "重复部门"
+        "departmentId": "2227",
+        "departmentName": "重复部门"
       },
       {
-        "recordID": "2228",
-        "name": "产品研发中心"
+        "departmentId": "2228",
+        "departmentName": "产品研发中心"
       }
     ]
   }
@@ -216,4 +216,5 @@ Response Body
 - 分页查询 Department 候选项时，`filter` 仅支持 `departmentName` 字段。
 - 部门不存在、已删除、不可见或不属于当前组织时，创建或更新 Record 应失败。
 - DepartmentField 不支持通过数字 ID、`departmentName` 或完整 Department 对象作为唯一标识写入，避免重名造成歧义。
+- 返回 DepartmentField 时，服务端返回 `departmentId`、`departmentName` 精简字段；`departmentId` 是字符串形式的部门 ID。
 - Department 候选查询中的 `children` 只作为部门树快照返回，不作为组织架构变更来源；创建或更新 Record 时不提交完整子树。

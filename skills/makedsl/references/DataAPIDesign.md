@@ -355,37 +355,37 @@ Response Body
     ],
     "owner": [
       {
-        "recordID": "101", //字符串形式的用户ID
-        "name": "负责人A", //用户名称
+        "userId": "101", //字符串形式的用户ID
+        "userName": "负责人A", //用户名称
         "avatar": "https://example.com/avatar-a.png" //用户头像链接
       }
     ],
     "members": [
       {
-        "recordID": "101",
-        "name": "负责人A",
+        "userId": "101",
+        "userName": "负责人A",
         "avatar": "https://example.com/avatar-a.png"
       },
       {
-        "recordID": "102",
-        "name": "评审B",
+        "userId": "102",
+        "userName": "评审B",
         "avatar": "https://example.com/avatar-b.png"
       }
     ],
     "ownerDepartment": [
       {
-        "recordID": "201", //字符串形式的部门ID
-        "name": "销售部" //部门名称
+        "departmentId": "201", //字符串形式的部门ID
+        "departmentName": "销售部" //部门名称
       }
     ],
     "relatedDepartments": [
       {
-        "recordID": "201",
-        "name": "销售部"
+        "departmentId": "201",
+        "departmentName": "销售部"
       },
       {
-        "recordID": "202",
-        "name": "交付部"
+        "departmentId": "202",
+        "departmentName": "交付部"
       }
     ],
     "locationPath": [
@@ -514,37 +514,37 @@ Response Body
       ],
       "owner": [
         {
-          "recordID": "101",
-          "name": "负责人A",
+          "userId": "101",
+          "userName": "负责人A",
           "avatar": "https://example.com/avatar-a.png"
         }
       ],
       "members": [
         {
-          "recordID": "101",
-          "name": "负责人A",
+          "userId": "101",
+          "userName": "负责人A",
           "avatar": "https://example.com/avatar-a.png"
         },
         {
-          "recordID": "102",
-          "name": "评审B",
+          "userId": "102",
+          "userName": "评审B",
           "avatar": "https://example.com/avatar-b.png"
         }
       ],
       "ownerDepartment": [
         {
-          "recordID": "201",
-          "name": "销售部"
+          "departmentId": "201",
+          "departmentName": "销售部"
         }
       ],
       "relatedDepartments": [
         {
-          "recordID": "201",
-          "name": "销售部"
+          "departmentId": "201",
+          "departmentName": "销售部"
         },
         {
-          "recordID": "202",
-          "name": "交付部"
+          "departmentId": "202",
+          "departmentName": "交付部"
         }
       ],
       "locationPath": [
@@ -900,10 +900,10 @@ Response Body
 | `Make.Field.DateRange`    | `{"begin":"2026-02-24","end":"2026-03-31"}`                                                                                                            | 固定对象结构                                                             |
 | `Make.Field.SingleSelect` | `[{"label":"进行中","value":"in_progress"}]`                                                                                                              | 单选也返回数组，通常只有一个元素，label只负责展示                                        |
 | `Make.Field.MultiSelect`  | `[{"label":"紧急","value":"urgent"},{"label":"对外","value":"external"}]`                                                                                  | 多选返回数组                                                             |
-| `Make.Field.SingleUser` | `[{"recordID":"101","name":"负责人A","avatar":"https://example.com/avatar-a.png"}]` | 单选用户也返回数组，通常只有一个元素；`recordID` 是字符串形式的用户 ID，`name` 是用户名称，`avatar` 是用户头像链接 |
-| `Make.Field.MultiUser` | `[{"recordID":"101","name":"负责人A","avatar":"https://example.com/avatar-a.png"},{"recordID":"102","name":"评审B","avatar":"https://example.com/avatar-b.png"}]` | 多选用户返回用户对象数组                                                       |
-| `Make.Field.SingleDepartment` | `[{"recordID":"201","name":"销售部"}]` | 单选部门也返回数组，通常只有一个元素；`recordID` 是字符串形式的部门 ID，`name` 是部门名称                  |
-| `Make.Field.MultiDepartment` | `[{"recordID":"201","name":"销售部"},{"recordID":"202","name":"交付部"}]` | 多选部门返回部门对象数组                                                       |
+| `Make.Field.SingleUser` | `[{"userId":"101","userName":"负责人A","avatar":"https://example.com/avatar-a.png"}]` | 单选用户也返回数组，通常只有一个元素；`userId` 是字符串形式的用户 ID，`userName` 是用户名称，`avatar` 是用户头像链接 |
+| `Make.Field.MultiUser` | `[{"userId":"101","userName":"负责人A","avatar":"https://example.com/avatar-a.png"},{"userId":"102","userName":"评审B","avatar":"https://example.com/avatar-b.png"}]` | 多选用户返回用户对象数组；                                                      |
+| `Make.Field.SingleDepartment` | `[{"departmentId":"201","departmentName":"销售部"}]` | 单选部门也返回数组，通常只有一个元素；`departmentId` 是字符串形式的部门 ID，`departmentName` 是部门名称                  |
+| `Make.Field.MultiDepartment` | `[{"departmentId":"201","departmentName":"销售部"},{"departmentId":"202","departmentName":"交付部"}]` | 多选部门返回部门对象数组；                                                     |
 | `Make.Field.File`          | `[{"fileName":"proposal.pdf","filePath":"8/demo-app/project/proposal.pdf","fileURL":"https://cdn.example.com/proposal.pdf","fileSizeInBytes":102400}]` | 文件字段返回附件数组                                                         |
 
 ## 派生字段类型返回结构示例
