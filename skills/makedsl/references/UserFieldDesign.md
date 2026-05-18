@@ -7,13 +7,11 @@ UserField 的字段类型定义以 @FieldDesign.md 为准：
 - `Make.Field.SingleUser`：单选用户。
 - `Make.Field.MultiUser`：多选用户。
 
-底层组织用户数据可参考 @UserInfo.md。User 分页查询接口返回候选用户数据；业务 Record 中 UserField 查询返回精简用户结构：`recordID`、`name`、`avatar`，其中 `recordID` 是字符串形式的用户 ID。
-
 ## User 字段的流程
 
 1. 先创建 Entity，并在 Entity 中声明 SingleUserField 或 MultiUserField。
-2. 用户填写字段时，客户端调用 DataAPI 分页查询 User 数据，作为用户选择器的候选项。
-3. 用户选择后，客户端把选中用户的 `userId` 以字符串形式写入 Record；单选写字符串 ID，多选写字符串 ID 数组。
+2. 用户填写字段时，客户端调用 @DataAPIDesign.md 中 `分页查询 User 数据`接口，作为用户选择器的候选项。
+3. 用户选择后，客户端把候选接口返回的 `userId` 字符串写入 Record；单选写字符串 ID，多选写字符串 ID 数组。
 4. 创建或更新 Record 时，服务端校验用户是否存在、是否属于当前组织、是否在当前访问者权限范围内。
 5. 客户端获取 Record 时，UserField 返回精简用户对象数组；单选用户通常只有一个元素。
 
@@ -78,14 +76,14 @@ HEADER
 
 Request Body
 
-`filter` 当前仅支持按 `userName` 过滤筛选；不支持通过 `userId`、`email`、`mobile` 等其它字段过滤。当前候选查询不支持排序；即使传入 `sort`，服务端也会忽略。
+`filter` 当前仅支持按 `userName` 过滤筛选；不支持通过 `userId`、`email`、`mobile` 等其它字段过滤。当前候选查询不支持排序；即使传入 `sort`，服务端也会忽略。当前接口只返回 `userId`、`userName`、`avatar`。
 
 ```json
 {
-  "fields": ["userId", "orgId", "userName", "avatar"],
+  "fields": ["userId", "userName", "avatar"],
   "filter": [
     {
-      "userName": { "contains": "殷" }
+      "userName": { "contains": "张" }
     }
   ],
   "pagination": { "page": 1, "size": 10 }
@@ -97,11 +95,10 @@ Response Body
 ```json
 {
   "code": 200,
-  "msg": "query record success",
+  "msg": "成功",
   "data": [
     {
-      "userId": 19035,
-      "orgId": 31379,
+      "userId": "19035",
       "userName": "张三",
       "avatar": "https://s1-imfile.feishucdn.com/static-resource/v1/v3_00te_eb78734a-931f-4184-823d-e53a7213500g~?image_size=noop&cut_type=&quality=&format=png&sticker_format=.webp"
     }
@@ -116,7 +113,7 @@ Response Body
 
 #### Step 3: 创建 Record
 
-用户选择候选项后，客户端将选中用户的 `userId` 作为字符串类型 ID 写入 Record。
+用户选择候选项后，客户端将候选接口返回的 `userId` 字符串写入 Record。
 
 ```
 POST https://dev-make.qtech.cn/api/make/data/v1/record
@@ -210,7 +207,7 @@ Response Body
 - MultiUserField 非必填时可以写入 `[]` 或不提交该字段；必填时数组不能为空。
 - MultiUserField 通过 `maxCount` 控制最多可选择的用户数量，默认值以 @FieldDesign.md 为准。
 - MultiUserField 中同一个用户 ID 不允许重复出现。
-- DataAPIDesign.md 中的接口写入的用户 ID 必须是字符串类型，并且必须来自 User 分页查询接口返回的当前组织可见用户。
+- DataAPIDesign.md 中的接口写入的用户 ID 必须是字符串类型，并且必须来自 User 分页查询接口返回的当前组织可见用户；候选查询响应 JSON 中的 `userId` 已是字符串。
 - 禁止通过前端实现 User 数据过滤功能，必须使用后端接口`filter`参数实现。
 - 分页查询 User 候选项时，`filter` 仅支持 `userName` 字段。
 - 用户不存在、已停用、不可见或不属于当前组织时，创建或更新 Record 应失败。
