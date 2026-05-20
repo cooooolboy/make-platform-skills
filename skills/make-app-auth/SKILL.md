@@ -1,0 +1,96 @@
+---
+name: make-app-auth
+description: Use when generating, modifying, reviewing, or debugging Make App authentication and authenticated /api/make requests with @qfei/make-app-auth. Covers local token mode, unified login/OAuth/ngrok mode, 401/403 handling, logout, cookies, sessions, redirect callbacks, and Make App auth troubleshooting.
+version: 0.1.1
+metadata:
+  homepage: https://github.com/qfeius/make-platform-skills/make-app-auth
+---
+
+# make-app-auth
+
+Use this skill for **Make App authentication and authenticated Make API access**.
+
+## Scope
+
+This skill covers:
+
+- `@qfei/make-app-auth` SDK integration
+- local token mode with unified login disabled
+- unified login, OAuth, SSO, ngrok, cookie, logout, and callback testing
+- `/api/make/**` authenticated requests
+- 401, 403, and logout behavior
+- cookie, session, redirect, and callback troubleshooting
+
+This skill does not cover:
+
+- UI layout, component design, or Make App page structure; use `makeui`.
+- DSL modeling or Make resource definitions; use `makedsl`.
+- makecli command execution; use `makecli`.
+- make-gateway or Org server implementation changes.
+
+## Default Behavior
+
+Default Make App local development uses **token mode** with `unifiedLogin: false`.
+
+Do not require ngrok, Org callback whitelist, or browser OAuth unless the user explicitly asks to test unified login, OAuth, SSO, cookie behavior, logout, or redirect callback behavior.
+
+Mode selection:
+
+- `token`: default for local real-backend development and ordinary feature debugging.
+- `unified`: explicit mode for real Org unified login, OAuth, cookies, logout, and redirects.
+- `mock`: offline UI preview only; must not call real Make APIs.
+
+## Hard Rules
+
+- Always use `@qfei/make-app-auth`; do not fork a separate auth implementation.
+- Business requests to Make backend must go through `auth.api` under `/api/make/**`.
+- Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
+- Do not hand-write `Authorization`; token mode must provide tokens through SDK options.
+- Do not read, write, persist, or delete `zs_session` or `make_app_session` in App code.
+- Do not construct Org OAuth URLs, `redirect_uri`, `state`, `code_challenge`, token exchange, or Org logout URLs in generated App code.
+- Browser code cannot read `~/.make/credentials`.
+- Do not silently switch token mode to unified login because a token is missing or expired.
+
+## Pre-flight Workflow
+
+1. Determine auth mode.
+   - If the user asks for normal local development, feature debugging, or backend API integration, use `token`.
+   - If the user explicitly asks for unified login, OAuth, SSO, cookie, logout, ngrok, or redirect callback testing, use `unified`.
+   - If the user asks for pure UI preview, use `mock`.
+2. Read `references/sdk-integration.md` before generating or changing auth code.
+3. Read exactly one mode reference unless troubleshooting requires more.
+   - Token/default local development: `references/local-token-mode.md`
+   - Unified login testing: `references/unified-login-mode.md`
+   - 401, 403, logout: `references/logout-and-401.md`
+   - Incident/debugging: `references/troubleshooting.md`
+4. Keep auth bootstrap thin. Business features must consume `auth.api` and auth state, not auth internals.
+5. When changing generated code, add or update tests for the touched auth path: missing token, expired token, 403, logout, or unified-login redirect.
+
+## Reference Selection
+
+- SDK contract and request wrapper: `references/sdk-integration.md`
+- Default local token mode: `references/local-token-mode.md`
+- Real unified login mode: `references/unified-login-mode.md`
+- 401, 403, and logout behavior: `references/logout-and-401.md`
+- Auth incident diagnosis: `references/troubleshooting.md`
+
+## Expected User-Facing Behavior
+
+Token mode:
+
+- Missing token renders a token-required state.
+- Expired token renders: `当前调试 Token 已失效，请更新 Token 后重试。`
+- 403 renders: `当前 Token 无权限访问该资源。`
+- Do not redirect to Org and do not call OAuth challenge.
+
+Unified mode:
+
+- Unauthenticated state may show a user-click login action.
+- Authenticated App shell must expose a visible logout action, normally in the top header near the current user/avatar.
+- Login and logout must use SDK APIs.
+- Logout UI should call `auth.logout()` or the project auth wrapper that delegates directly to `auth.logout()`; do not add App-side Org logout URL fallback logic.
+- Callback testing requires a registered external domain or ngrok plus Org redirect whitelist.
+
+## Collaboration With makeui
+
+When `makeui` is generating or editing Make App frontend code, this skill owns all authentication decisions. `makeui` may design UI states around auth results, but it must not invent OAuth, cookie, token, logout, or `/api/make/**` request logic.

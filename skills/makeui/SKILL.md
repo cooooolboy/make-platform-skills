@@ -75,73 +75,15 @@ packages:
 
 For legacy-project refactors, do not finish after moving source files into `apps/ui` or `apps/service`. Verify and create the missing package manifests, scripts, workspace config, and Node engine declarations before considering the restructure complete. If UI and Service are published as separate K8s apps, both `apps/ui/package.json` and `apps/service/package.json` are required build inputs.
 
-## Make App auth baseline
+## Make App Auth Dependency
 
-When generating a gateway/unified-login Make App frontend, wire authentication through `@qfei/make-app-auth` by default. This is only the frontend authentication/access boundary; it does not define business API semantics. If the host project already declares the UI -> Service -> Make API flow, do not replace that flow with the auth-SDK gateway flow without explicit user confirmation.
+When generating or modifying Make App frontend authentication, always apply `make-app-auth`.
 
-Prefer copying the minimal setup shape from:
+`makeui` must not implement authentication details itself. Do not generate auth, OAuth, token, cookie, logout, or `/api/make/**` request logic directly from this skill.
 
-```text
-make-app-auth-sdk/templates/vibe-app
-```
+Default generated UI should use `make-app-auth` token mode for local development. Unified login, OAuth, SSO, cookies, logout, redirect callbacks, and authenticated `/api/make/**` requests are owned by `make-app-auth` and its references.
 
-Use the Git dependency unless the host project already has a published package source:
-
-```json
-{
-  "dependencies": {
-    "@qfei/make-app-auth": "git+ssh://git@git.qtech.cn/make/make-app-auth-sdk.git#main"
-  }
-}
-```
-
-Bootstrap should stay thin. Generated Vibe Apps should check the current App session first, render their own login screen when unauthenticated, and only jump to Org when the user clicks login:
-
-```js
-import { createMakeAppAuth } from '@qfei/make-app-auth';
-
-const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make' });
-const boot = await auth.init({ redirect: false });
-
-if (boot.status === 'authenticated') {
-  renderApp({ auth, context: boot.context });
-} else if (boot.status === 'forbidden') {
-  renderForbidden();
-} else {
-  renderLogin({ onLogin: () => auth.login({ redirect: true }) });
-}
-```
-
-For unified login local debugging, Vite must listen on `0.0.0.0:5174`, proxy `/api/make` to make-gateway, and expose only port `5174` through ngrok. Use `MAKE_GATEWAY_PROXY_TARGET` for the proxy target and default to `https://dev-make.qtech.cn` when the project has no stricter Make gateway target.
-
-Business requests should go through `auth.api` under `/api/make/**`. Do not generate raw `fetch('/api/make/...')` or `window.fetch('/api/make/...')` calls:
-
-```js
-await auth.api.post('/data/v1/record', {
-  app: 'your_app_name',
-  entity: 'your_entity_name',
-  fields: [],
-  pagination: { page: 1, size: 10 }
-}, {
-  headers: {
-    'X-Make-Target': 'MakeService.ListResources'
-  }
-});
-```
-
-Only include `filter` when the App has actual filter conditions. Do not send `filter: []` for an unfiltered list request.
-
-Do not:
-
-- read or persist Org tokens, `zs_session`, or `make_app_session`
-- bypass the SDK by hand-writing `Authorization`; token mode must use SDK token options
-- expose Make tokens through browser `VITE_*` config; in gateway/unified-login Apps, also do not expose Service URLs
-- build Org OAuth URLs inside the App
-- handle `redirect_uri`, `state`, `code_challenge`, or token exchange inside the App
-- use the App domain directly as the Org logout `redirect_uri`
-- monkey patch `window.fetch` or make the SDK intercept third-party requests
-- bypass `/api/make/**` to call meta/data services directly
-- route Make runtime data through `apps/service` in a gateway/unified-login App unless the user explicitly requested a server-side orchestration contract
+Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the project uses a gateway/unified-login Make App runtime path, coordinate auth and `/api/make/**` behavior through `make-app-auth`. `apps/service` remains required project structure.
 
 ## Node runtime
 
@@ -179,14 +121,18 @@ Before generating or editing UI:
 8. Before generating Make object lists, Drawer forms/details, route forms/details, or schema-driven fields, read the available DSL/schema source. Prefer existing `apps/dsl`, then Service `/api/schema`, then project-local schema/meta types or fixtures. If no schema source exists, explain the missing source and the explicit downgrade strategy before generating UI.
 9. Identify the Make field types that drive form controls and table display. Date, user, department, select, file, and lookup fields must not silently become plain text inputs.
 10. Identify the page type:
-   - list page
-   - create/edit UI
-   - detail UI
+
+- list page
+- create/edit UI
+- detail UI
+
 11. Identify the container mode:
-   - create/edit/detail default to right-side Drawer
-   - route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
+
+- create/edit/detail default to right-side Drawer
+- route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
+
 12. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-13. For gateway/unified-login Make App frontend projects, especially any login module or runtime Make data access, read `references/auth-sdk-integration.md`, use `@qfei/make-app-auth` for authentication bootstrap, and use `/api/make/**` gateway requests through `auth.api`.
+13. For Make App frontend authentication, login, logout, token mode, unified login, or authenticated `/api/make/**` behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
 14. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement. Do not add pagination controls, page-size controls, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
 
 ## Required references
@@ -198,9 +144,10 @@ Read only the reference files needed for the request:
 - List pages and toolbar button placement: `references/list-page-layout.md`
 - Create/edit/detail Drawer layout: `references/drawer-layout.md`
 - Route-based create/edit/detail pages: `references/page-route-layout.md`
-- Make App auth SDK integration for gateway/unified-login projects: `references/auth-sdk-integration.md`
 - Component library and styling selection: `references/component-usage.md`
 - Spacing, density, scroll, states, and responsiveness: `references/styling-and-responsive.md`
+
+Authentication and `/api/make/**` access are handled by the separate `make-app-auth` skill.
 
 ## Core defaults
 
@@ -208,7 +155,7 @@ Read only the reference files needed for the request:
 - The default Make object-list shell is:
   - left full-height sidebar for modules or object navigation
   - right fixed-height header with the current object/module name on the left
-  - current user/avatar and global actions on the header right
+  - current user/avatar and global actions from the host/auth layer on the header right
   - page-local toolbar below the header
   - `canvas-table` region filling the remaining height
   - no pagination by default

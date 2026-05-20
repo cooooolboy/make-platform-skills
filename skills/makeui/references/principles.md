@@ -47,7 +47,7 @@ Generated Make App projects should follow the makecli agent target structure:
 - `apps/docs`
 - `apps/packages/ui`, `apps/packages/types`, and `apps/packages/config` when shared packages are useful
 
-Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, UI code must use the Service API contract and must not directly call Make APIs or hold Make credentials. If the user is generating a gateway/unified-login Make App, runtime Make data access may use the auth-SDK gateway flow described in `auth-sdk-integration.md`, but `apps/service` remains part of the required project structure.
+Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, UI code must use the Service API contract and must not directly call Make APIs or hold Make credentials. If the user is generating a gateway/unified-login Make App, authentication and `/api/make/**` access must be handled through the separate `make-app-auth` skill, and `apps/service` remains part of the required project structure.
 
 When reorganizing a project into `apps/`, directories alone are not enough. Required workspace files are:
 
