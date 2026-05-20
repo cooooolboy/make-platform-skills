@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.13
+version: 0.3.14
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -48,85 +48,23 @@ apps/ui -> apps/service -> Make Data API -> Make Platform
 
 UI code must use the Service base URL and must not hold Make tokens, call Make APIs directly, or rely on a Vite token proxy such as `/make-api`. This project structure rule is for generated Make App projects; it does not mean the `makeui` skill repository itself should be reorganized into `apps/`.
 
-## Make App auth baseline
+## Make App Auth Dependency
 
-When generating a Make App frontend, wire authentication through `@qfei/make-app-auth` by default. This is only the frontend authentication/access boundary; it does not define business API semantics.
+When generating or modifying Make App frontend authentication, always apply `make-app-auth`.
 
-Prefer copying the minimal setup shape from:
+`makeui` must not implement authentication details itself. Do not generate auth, OAuth, token, cookie, logout, or `/api/make/**` request logic directly from this skill.
 
-```text
-make-app-auth-sdk/templates/vibe-app
-```
+Default generated UI should use `make-app-auth` **token mode** for local development. Do not require ngrok, Org callback whitelist, or browser OAuth unless the user explicitly asks to test unified login, OAuth, SSO, cookies, logout, or redirect callbacks.
 
-Use the Git dependency unless the host project already has a published package source:
+Hard boundary:
 
-```json
-{
-  "dependencies": {
-    "@qfei/make-app-auth": "git+ssh://git.qtech.cn/make/make-app-auth-sdk.git#main"
-  }
-}
-```
-
-Bootstrap should stay thin. Generated Vibe Apps should check the current App session first, render their own login screen when unauthenticated, and only jump to Org when the user clicks login:
-
-```js
-import { createMakeAppAuth } from '@qfei/make-app-auth';
-
-const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make' });
-const boot = await auth.init({ redirect: false });
-
-if (boot.status === 'authenticated') {
-  renderApp({ auth, context: boot.context });
-} else if (boot.status === 'forbidden') {
-  renderForbidden();
-} else {
-  renderLogin({ onLogin: () => auth.login({ redirect: true }) });
-}
-```
-
-Generated Vibe Apps should expose an explicit auth mode config. Default to local `token` mode so local-only vibe projects can call real Make backend APIs without ngrok:
-
-- `token`: default local real-backend debugging when the App is not deployed and no ngrok proxy is available. Create the SDK with `unifiedLogin: false` plus `accessToken` or `tokenProvider`; do not redirect to Org when the token is missing.
-- `unified`: explicit Make App unified login. Use this only when the App is deployed or exposed through a registered/ngrok App domain and the user enables unified login.
-- `mock`: offline preview only.
-
-If the backend disables unified login for a Make App, or the generated App is explicitly started in local token mode, still use `@qfei/make-app-auth`. Provide the token only through SDK options such as `accessToken`, `tokenProvider`, or Node/local credentials. Browser code cannot read `~/.make/credentials`; generated browser Apps must receive an explicit token or token provider from their host/debug setup. In token mode, business code should still call `auth.api`; the SDK adds `Authorization` for `/api/make/**` requests.
-
-```js
-const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
-  unifiedLogin: false,
-  accessToken: userProvidedToken
-});
-```
-
-Business requests should go through `auth.api` under `/api/make/**`. Do not generate raw `window.fetch('/api/make/...')` calls:
-
-```js
-await auth.api.post('/data/v1/record', {
-  app: 'your_app_name',
-  entity: 'your_entity_name',
-  fields: [],
-  pagination: { page: 1, size: 10 }
-}, {
-  headers: {
-    'X-Make-Target': 'MakeService.ListResources'
-  }
-});
-```
-
-Only include `filter` when the App has actual filter conditions. Do not send `filter: []` for an unfiltered list request.
-
-Do not:
-
-- read or persist Org tokens, `zs_session`, or `make_app_session`
-- bypass the SDK by hand-writing `Authorization`; token mode must use SDK token options
-- build Org OAuth URLs inside the App
-- handle `redirect_uri`, `state`, `code_challenge`, or token exchange inside the App
-- use the App domain directly as the Org logout `redirect_uri`
-- monkey patch `window.fetch` or make the SDK intercept third-party requests
-- bypass `/api/make/**` to call meta/data services directly
+- Use `@qfei/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
+- Do not hand-write `Authorization`.
+- Do not read or persist Org tokens, `zs_session`, or `make_app_session`.
+- Do not build Org OAuth/logout URLs in App UI code.
+- Do not bypass `/api/make/**` to call meta/data services directly.
+- In unified-login authenticated state, render a visible `退出账号` action in the App shell header and wire it to the auth wrapper/SDK `auth.logout()` only.
+- If logout should return users to the phone/code login flow, rely on the SDK; do not add UI-side account-center URL rewriting.
 
 ## Node runtime
 
@@ -157,7 +95,7 @@ Before generating or editing UI:
    - create/edit/detail default to right-side Drawer
    - route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
 10. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-11. For Make App frontend projects, use `@qfei/make-app-auth` for authentication bootstrap and `/api/make/**` gateway requests.
+11. For Make App frontend projects, apply `make-app-auth`; default to token/no-unified-login mode unless unified login testing is explicitly requested.
 12. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement. Do not add pagination controls, page-size controls, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
 
 ## Required references
@@ -169,7 +107,6 @@ Read only the reference files needed for the request:
 - List pages and toolbar button placement: `references/list-page-layout.md`
 - Create/edit/detail Drawer layout: `references/drawer-layout.md`
 - Route-based create/edit/detail pages: `references/page-route-layout.md`
-- Make App auth SDK integration: `references/auth-sdk-integration.md`
 - Component library and styling selection: `references/component-usage.md`
 - Spacing, density, scroll, states, and responsiveness: `references/styling-and-responsive.md`
 
@@ -179,7 +116,7 @@ Read only the reference files needed for the request:
 - The default Make object-list shell is:
   - left full-height sidebar for modules or object navigation
   - right fixed-height header with the current object/module name on the left
-  - current user/avatar and global actions on the header right
+  - current user/avatar and global actions on the header right; unified-login mode must include `退出账号`
   - page-local toolbar below the header
   - `canvas-table` region filling the remaining height
   - no pagination by default
