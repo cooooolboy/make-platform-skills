@@ -116,6 +116,9 @@ Read only the reference files needed for the request:
 - Dense Make record Drawers should support a fullscreen toggle in the header when practical. When nested Drawers are opened, keep the previous Drawer underneath and close only the topmost Drawer at a time.
 - Use route-based create/edit/detail pages only when the user explicitly asks for an independent page, route, navigation, page jump, or standalone screen.
 - Object list navigation should use a dynamic object route such as `/objects/:objectKey` unless the host project already has a different dynamic convention.
+- For Make v0.3.0 schemas, always treat `entity.key` as the object route/API key and `entity.name` as display text. Do not route by Chinese object names.
+- For fields, use `field.key` for record data keys, canvas-table column keys, filter fields, sort fields, edit commits, and API payloads. Use `field.name` only for labels, column titles, detail display, and menu text.
+- Lookup relation form logic must read `field.properties.relation` as relation key and `field.properties.targetFieldKey` as target field key. Relation writes use `qfei_relation: [{ entityKey, id }]`.
 - If create/edit/detail needs URL-addressable state, use dynamic child routes under the object route while keeping Drawer presentation by default.
 - Make record tables must use `@qfei-design/canvas-table`; do not replace them with Ant Design Table, Arco Table, TDesign Table, or a hand-written HTML table.
 - Make form fields must be schema-driven when DSL/schema is available. `Date`, `DateTime`, `DateRange`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `SingleSelect`, `MultiSelect`, `File`, and `Lookup` fields must use type-appropriate controls or read-only/association displays, not silent plain `Input` fallbacks. `File` fields are mode-sensitive: omit from create when upload needs `recordID`; render in edit/detail only when persisted record identity exists.
