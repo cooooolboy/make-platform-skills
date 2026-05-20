@@ -16,6 +16,7 @@
 - Do not skip the Make App shell for generated object-list UI. Start from the shell unless the project already has one.
 - Do not silently downgrade `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` Make fields to plain text inputs. Explain any missing schema/API and use an explicit fallback.
 - Do not show attachment upload fields in create flows when upload requires a saved record identity. New records do not have `recordID`; omit file fields until edit/detail after persistence.
+- Do not treat an `apps/ui` or `apps/service` directory as complete unless its required workspace package manifest exists.
 
 ## Default Make App pattern
 
@@ -46,7 +47,16 @@ Generated Make App projects should follow the makecli agent target structure:
 - `apps/docs`
 - `apps/packages/ui`, `apps/packages/types`, and `apps/packages/config` when shared packages are useful
 
-The generated app data flow is `apps/ui -> apps/service -> Make Data API -> Make Platform`. UI code must use the Service base URL and must not directly call Make APIs or hold Make credentials.
+Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, UI code must use the Service API contract and must not directly call Make APIs or hold Make credentials. If the user is generating a gateway/unified-login Make App, authentication and `/api/make/**` access must be handled through the separate `make-app-auth` skill, and `apps/service` remains part of the required project structure.
+
+When reorganizing a project into `apps/`, directories alone are not enough. Required workspace files are:
+
+- `apps/package.json`
+- `apps/pnpm-workspace.yaml`
+- `apps/ui/package.json`
+- `apps/service/package.json`
+
+`apps/pnpm-workspace.yaml` must include `ui`, `service`, and `packages/*`. `apps/package.json` scripts such as `app:ui`, `app:service`, and `dev` must use `pnpm --filter` targets that match the actual package names, including scoped names when used. Legacy refactors are incomplete until the required manifests and scripts for the chosen structure exist.
 
 ## Runtime baseline
 
@@ -71,6 +81,8 @@ For new projects, add this to `package.json`:
 If the project uses `.nvmrc` or `.node-version`, prefer `24` unless the user or project requires another active LTS.
 
 If an existing project already declares a stricter Node requirement, keep the stricter project requirement.
+
+For Service-based local development, preserve the host UI port. When the UI port changes, update Vite config, Service CORS, env examples or docs, API docs when they mention local origins, and tests together. Do not apply gateway/unified-login port defaults to a Service-based project unless the project explicitly uses that data flow.
 
 ## Decision order
 

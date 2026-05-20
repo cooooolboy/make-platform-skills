@@ -119,6 +119,14 @@ When a user opens edit from detail, keep the detail Drawer mounted underneath an
 - use increasing z-index values or a Drawer stack manager so layers do not collapse together
 - avoid shared state handlers that close all active Drawers at once
 
+When a user opens a related record from a Lookup value, use the same Drawer stack model:
+
+- only make Lookup values clickable when the parsed item has a target entity key and `recordID`, and is not marked deleted
+- append the related detail Drawer above the source detail Drawer
+- close only the topmost Drawer
+- bind edit/delete/detail actions to the Drawer instance's own entity and record id, not to a shared "current detail" singleton
+- guard async loads with the source Drawer identity so a stale response cannot reopen a closed Drawer
+
 ## Drawer scrolling
 
 The Drawer shell remains fixed. The body scrolls.

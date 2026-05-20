@@ -15,7 +15,7 @@ Prefer the Git dependency until a published package source is already configured
 ```json
 {
   "dependencies": {
-    "@qfei/make-app-auth": "git+ssh://git.qtech.cn/make/make-app-auth-sdk.git#main"
+    "@qfei/make-app-auth": "git+ssh://git@git.qtech.cn/make/make-app-auth-sdk.git#main"
   }
 }
 ```

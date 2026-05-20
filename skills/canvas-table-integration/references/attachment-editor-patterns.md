@@ -40,6 +40,8 @@ The host data layer usually provides when real upload is in scope:
 
 Do not put upload-service calls inside canvas-table, a generic table wrapper, or a canvas render function.
 
+For Make FileField-style APIs, keep the host route/API contract separate from the Make backend payload. A Service route may name its path parameter `:fieldKey`, but the Make `/data/v1/file` payload uses the key `field`, alongside the app/entity/record identity expected by the host backend. Map the host `fieldKey` to Make `field` at the Service adapter boundary; do not forward `fieldKey` into the Make file payload. Add tests for upload, read, and delete bodies so this does not regress.
+
 ## 2. In-table rendering
 
 A common pattern is:
@@ -206,6 +208,7 @@ For an attachment field integration, verify:
 - popup roots are included in `relatedElements()`
 - the panel can overflow the cell and cover the active cell outline
 - table focus returns correctly after commit/cancel when the interaction returns to the table, and does not steal focus from host modal/drawer/dialog/form UI
+- Make FileField adapters send the backend file field parameter as `field` in the Make API body, even when the host Service route uses `:fieldKey`
 
 ## 12. Scope discipline
 

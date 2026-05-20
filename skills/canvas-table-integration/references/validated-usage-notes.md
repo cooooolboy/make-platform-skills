@@ -97,7 +97,8 @@ This validates the remote paginated list path for Make record pages.
 Validated patterns:
 
 - Make schema fields are converted into canvas-table columns before table creation
-- field names become stable column keys/titles when the backend schema is dynamic
+- Make `field.key` becomes the stable canvas-table column key when the backend schema is dynamic
+- Make `field.name` becomes the visible column title only
 - display normalization happens outside the table core
 - unsupported or unknown field types fall back to safe display text instead of crashing
 

@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.14
+version: 0.3.16
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -35,18 +35,45 @@ Do not switch to another full-stack frontend framework unless the user explicitl
 When generating or reorganizing a Make App project, follow the makecli agent target structure:
 
 - `apps/ui`: React + Vite + React Router frontend
-- `apps/service`: Service layer for Make API credentials, schema, records, files, users, and departments
+- `apps/service`: required Service layer for server-side orchestration, scripts, logs, custom APIs, and the UI -> Service -> Make API flow when the host project requires it
 - `apps/dsl`: Make App / Entity / Relation DSL
 - `apps/docs`: PRD and UI/Service API contracts
 - `apps/packages/ui`, `apps/packages/types`, `apps/packages/config`: shared packages when needed
 
-The target data flow is:
+Preserve the host project's declared data flow:
+
+- If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow. UI code must use the Service API contract, must not hold Make tokens, and must not directly call Make APIs.
+- If the project is generating a gateway/unified-login Make App frontend, runtime Make data access may use:
 
 ```text
-apps/ui -> apps/service -> Make Data API -> Make Platform
+apps/ui -> @qfei/make-app-auth -> /api/make -> make-gateway -> Make Platform
 ```
 
-UI code must use the Service base URL and must not hold Make tokens, call Make APIs directly, or rely on a Vite token proxy such as `/make-api`. This project structure rule is for generated Make App projects; it does not mean the `makeui` skill repository itself should be reorganized into `apps/`.
+Do not silently switch an existing Service-based project to the gateway/auth-SDK flow, and do not silently route a gateway/auth-SDK project's runtime Make data through `apps/service`. Explain the proposed change and wait for user confirmation before changing the data flow. `apps/service` is still part of the required project structure. This project structure rule is for generated Make App projects; it does not mean the `makeui` skill repository itself should be reorganized into `apps/`.
+
+## Workspace package baseline
+
+When generating or reorganizing a Make App project into the `apps/` structure, directories alone are not enough. Each runnable app must be a valid workspace package.
+
+Required files:
+
+- `apps/package.json`
+- `apps/pnpm-workspace.yaml`
+- `apps/ui/package.json`
+- `apps/service/package.json`
+
+`apps/pnpm-workspace.yaml` must include:
+
+```yaml
+packages:
+  - "ui"
+  - "service"
+  - "packages/*"
+```
+
+`apps/package.json` must provide runnable entry scripts such as `app:ui`, `app:service`, and `dev`. Filter targets must match the actual package names. If package names are scoped, for example `@expense-poc/ui`, use the scoped names in `pnpm --filter`.
+
+For legacy-project refactors, do not finish after moving source files into `apps/ui` or `apps/service`. Verify and create the missing package manifests, scripts, workspace config, and Node engine declarations before considering the restructure complete. If UI and Service are published as separate K8s apps, both `apps/ui/package.json` and `apps/service/package.json` are required build inputs.
 
 ## Make App Auth Dependency
 
@@ -54,17 +81,9 @@ When generating or modifying Make App frontend authentication, always apply `mak
 
 `makeui` must not implement authentication details itself. Do not generate auth, OAuth, token, cookie, logout, or `/api/make/**` request logic directly from this skill.
 
-Default generated UI should use `make-app-auth` **token mode** for local development. Do not require ngrok, Org callback whitelist, or browser OAuth unless the user explicitly asks to test unified login, OAuth, SSO, cookies, logout, or redirect callbacks.
+Default generated UI should use `make-app-auth` token mode for local development. Unified login, OAuth, SSO, cookies, logout, redirect callbacks, and authenticated `/api/make/**` requests are owned by `make-app-auth` and its references.
 
-Hard boundary:
-
-- Use `@qfei/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
-- Do not hand-write `Authorization`.
-- Do not read or persist Org tokens, `zs_session`, or `make_app_session`.
-- Do not build Org OAuth/logout URLs in App UI code.
-- Do not bypass `/api/make/**` to call meta/data services directly.
-- In unified-login authenticated state, render a visible `退出账号` action in the App shell header and wire it to the auth wrapper/SDK `auth.logout()` only.
-- If logout should return users to the phone/code login flow, rely on the SDK; do not add UI-side account-center URL rewriting.
+Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the project uses a gateway/unified-login Make App runtime path, coordinate auth and `/api/make/**` behavior through `make-app-auth`. `apps/service` remains required project structure.
 
 ## Node runtime
 
@@ -76,27 +95,45 @@ Use Node.js `>=22.12.0` for Make App frontend projects.
 - If the project uses a version manager, prefer a simple major-version file such as `.nvmrc` or `.node-version` with `24`.
 - If an existing project already has a stricter Node requirement, keep the stricter project requirement.
 
+## Service-based local dev baseline
+
+For Service-based Make App projects, preserve the host project's existing dev port. If changing the UI dev port, update the whole local contract in the same change:
+
+- UI Vite server config and any shared dev-server config helper
+- Service CORS allowlist
+- `.env.example` or local environment documentation
+- `apps/docs/api.md` when the UI / Service contract mentions local origins
+- focused tests for the UI port config and Service CORS behavior
+
+Do not copy the gateway/unified-login `5174` port rule into a Service-based project unless that project explicitly uses the gateway flow.
+
 ## Pre-flight workflow
 
 Before generating or editing UI:
 
 1. Inspect the project for existing Node runtime requirements, frontend stack, component library, styling solution, routes, layout shell, and page patterns.
 2. Use existing project conventions first.
-3. Verify the project Node runtime is compatible with the Make default baseline or the project's stricter requirement.
-4. If the project is being created from scratch and no component library is established, stop before scaffolding component-library-specific UI and require the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it for the user. If the user has not chosen, only produce a component-library-neutral plan or ask the selection question.
-5. If the user did not specify a styling solution and the project has none, Less is an acceptable default candidate.
-6. Before generating Make object lists, Drawer forms/details, route forms/details, or schema-driven fields, read the available DSL/schema source. Prefer existing `apps/dsl`, then Service `/api/schema`, then project-local schema/meta types or fixtures. If no schema source exists, explain the missing source and the explicit downgrade strategy before generating UI.
-7. Identify the Make field types that drive form controls and table display. Date, user, department, select, file, and lookup fields must not silently become plain text inputs.
-8. Identify the page type:
-   - list page
-   - create/edit UI
-   - detail UI
-9. Identify the container mode:
-   - create/edit/detail default to right-side Drawer
-   - route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
-10. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-11. For Make App frontend projects, apply `make-app-auth`; default to token/no-unified-login mode unless unified login testing is explicitly requested.
-12. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement. Do not add pagination controls, page-size controls, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
+3. Identify the host data flow: UI -> Service -> Make API, or auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
+4. If reorganizing into `apps/`, verify the workspace package baseline and plan any missing `package.json`, workspace, scripts, and Node engine changes before editing UI code.
+5. Verify the project Node runtime is compatible with the Make default baseline or the project's stricter requirement.
+6. If the project is being created from scratch and no component library is established, stop before scaffolding component-library-specific UI and require the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it for the user. If the user has not chosen, only produce a component-library-neutral plan or ask the selection question.
+7. If the user did not specify a styling solution and the project has none, Less is an acceptable default candidate.
+8. Before generating Make object lists, Drawer forms/details, route forms/details, or schema-driven fields, read the available DSL/schema source. Prefer existing `apps/dsl`, then Service `/api/schema`, then project-local schema/meta types or fixtures. If no schema source exists, explain the missing source and the explicit downgrade strategy before generating UI.
+9. Identify the Make field types that drive form controls and table display. Date, user, department, select, file, and lookup fields must not silently become plain text inputs.
+10. Identify the page type:
+
+- list page
+- create/edit UI
+- detail UI
+
+11. Identify the container mode:
+
+- create/edit/detail default to right-side Drawer
+- route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
+
+12. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
+13. For Make App frontend authentication, login, logout, token mode, unified login, or authenticated `/api/make/**` behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
+14. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement. Do not add pagination controls, page-size controls, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
 
 ## Required references
 
@@ -110,13 +147,15 @@ Read only the reference files needed for the request:
 - Component library and styling selection: `references/component-usage.md`
 - Spacing, density, scroll, states, and responsiveness: `references/styling-and-responsive.md`
 
+Authentication and `/api/make/**` access are handled by the separate `make-app-auth` skill.
+
 ## Core defaults
 
 - New Make App UI must start from the application shell. Do not generate an object list page directly under `body` or a standalone page root unless the project already provides a reusable shell to plug into.
 - The default Make object-list shell is:
   - left full-height sidebar for modules or object navigation
   - right fixed-height header with the current object/module name on the left
-  - current user/avatar and global actions on the header right; unified-login mode must include `退出账号`
+  - current user/avatar and global actions from the host/auth layer on the header right
   - page-local toolbar below the header
   - `canvas-table` region filling the remaining height
   - no pagination by default
@@ -133,8 +172,12 @@ Read only the reference files needed for the request:
 - Drawer headers default to: left title area starts with fullscreen toggle when supported, followed by mode/status and title; right action area ends with one icon-only close button at the far right. Do not place a close button in the left title area and do not render both a left close icon and a right close action.
 - Create forms must not render `Make.Field.File` upload/attachment controls when attachment upload requires a saved `recordID`. New records do not have `recordID`; omit file fields from create payloads and expose attachments only after the record exists, usually in edit/detail.
 - Dense Make record Drawers should support a fullscreen toggle in the header when practical. When nested Drawers are opened, keep the previous Drawer underneath and close only the topmost Drawer at a time.
+- Lookup values may open associated record details only when the parsed lookup item has a target `entityKey`/entity and `recordID`, and is not marked deleted. Open the associated record in the established detail Drawer stack; do not create a public route just for this interaction unless the user asks. Guard async lookup-detail loads so a response cannot reopen a detail Drawer after the source Drawer has already closed.
 - Use route-based create/edit/detail pages only when the user explicitly asks for an independent page, route, navigation, page jump, or standalone screen.
 - Object list navigation should use a dynamic object route such as `/objects/:objectKey` unless the host project already has a different dynamic convention.
+- For Make v0.3.0 schemas, always treat `entity.key` as the object route/API key and `entity.name` as display text. Do not route by Chinese object names.
+- For fields, use `field.key` for record data keys, canvas-table column keys, filter fields, sort fields, edit commits, and API payloads. Use `field.name` only for labels, column titles, detail display, and menu text.
+- Lookup relation form logic must read `field.properties.relation` as relation key and `field.properties.targetFieldKey` as target field key. Relation writes use `qfei_relation: [{ entityKey, id }]`.
 - If create/edit/detail needs URL-addressable state, use dynamic child routes under the object route while keeping Drawer presentation by default.
 - Make record tables must use `@qfei-design/canvas-table`; do not replace them with Ant Design Table, Arco Table, TDesign Table, or a hand-written HTML table.
 - Make form fields must be schema-driven when DSL/schema is available. `Date`, `DateTime`, `DateRange`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `SingleSelect`, `MultiSelect`, `File`, and `Lookup` fields must use type-appropriate controls or read-only/association displays, not silent plain `Input` fallbacks. `File` fields are mode-sensitive: omit from create when upload needs `recordID`; render in edit/detail only when persisted record identity exists.

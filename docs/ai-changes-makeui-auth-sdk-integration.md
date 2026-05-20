@@ -1,5 +1,12 @@
 # makeui 接入 make-app-auth-sdk 规则更新
 
+## 2026-05-20 19:43
+
+- 解决 `skills/makeui/SKILL.md` 合并冲突：保留 `apps/service` 必须存在、workspace package 基线，以及宿主数据流不可静默切换的规则。
+- 将认证实现细节统一收口到独立 `make-app-auth` skill，`makeui` 仅保留认证协作边界，不再引用已删除的 `references/auth-sdk-integration.md`。
+- 同步修正 `skills/makeui/references/principles.md` 中的旧引用，避免提交后出现断链。
+- 修复 `skills/make-app-auth/references/sdk-integration.md` 中缺少 SSH 用户名的 Git 依赖示例。
+
 ## 2026-05-20 18:05
 
 - 修正统一登录分支生成规则：authenticated App shell 必须在 header 露出 `退出账号` 操作，避免测试人员无法重新进入验证码登录流程。
@@ -27,3 +34,12 @@
 - 后端请求统一走 `auth.api` 和 `/api/make/**`，禁止裸 `window.fetch('/api/make/...')` 和手写 `Authorization`。
 - 列表无过滤条件时不发送 `filter`，避免生成 `filter: []`。
 - 新增 `skills/makeui/references/auth-sdk-integration.md`，沉淀 401、403、退出、token 模式等边界。
+
+## 2026-05-20
+
+- 将 makeui 登录生成规则调整为飞书文档的全量网关方案：`apps/ui -> @qfei/make-app-auth -> /api/make -> make-gateway -> Make Platform`。
+- 将 `auth-sdk-integration.md` 明确为登录模块和 Make App 前端运行态数据访问的必读参考。
+- 补充本地统一登录调试规则：Vite 固定 `0.0.0.0:5174`，ngrok 只暴露 `5174`，`/api/make` 代理到 `MAKE_GATEWAY_PROXY_TARGET`，默认 `https://dev-make.qtech.cn`。
+- 修正 Git 依赖地址为 `git+ssh://git@git.qtech.cn/make/make-app-auth-sdk.git#main`，避免缺少 SSH 用户名导致安装失败。
+- 明确浏览器公开配置只允许非密钥值，禁止生成 `VITE_SERVICE_BASE_URL`、Make token、Org token、Cookie 或 `make_app_session` 配置。
+- 补充禁止规则：不得裸 `fetch('/api/make/...')`，不得手写 OAuth/token/cookie，不得把 Make 运行态数据默认绕回 `apps/service`。

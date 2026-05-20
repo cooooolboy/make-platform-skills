@@ -83,6 +83,7 @@ Common patterns:
 - stop propagation on `click`
 - trigger a business action from the row data
 - if the visible field is a business code, use the stable backend id for navigation when detail routes and persistence depend on record identity
+- for lookup/reference values, only attach click handlers after normalization confirms the target entity and `recordID`; deleted or incomplete references should remain display-only
 
 If you need table-level event wiring, prefer documented public events and `table.tableId` namespacing.
 

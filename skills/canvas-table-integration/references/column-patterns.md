@@ -121,6 +121,14 @@ Good first-pass uses:
 
 Do not turn headers into mini-apps in first-pass integrations.
 
+When `suffixRender` opens a host popup such as a sort/filter menu:
+
+- use `displayMode: "hover"` for inactive lightweight icons, and switch only the active column to always-visible while its popup is open
+- position the host popup from the clicked header cell and event; `cell.pointByCanvas` is already canvas-relative in current public types, so do not subtract horizontal scroll again unless the installed package docs say otherwise
+- close the popup on table `scroll:change`, because a detached DOM popup will not automatically follow the scrolled header cell
+- after changing active suffix state, refresh only header cells when the installed package exposes that public method; do not call `refreshCanvas()` or `scrollTo()` just to repaint header suffix icons, because full refreshes may reset scroll or disturb table state
+- test horizontal-scroll positioning, active/inactive `displayMode`, outside click close, and scroll close behavior
+
 ## 8. Meta-driven columns
 
 When upstream uses JSON meta:
