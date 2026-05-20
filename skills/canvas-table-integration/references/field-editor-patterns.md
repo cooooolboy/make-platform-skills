@@ -184,6 +184,8 @@ Typical concerns:
 - auxiliary render mapping data for avatars/names
 - candidate source: existing row values, host user API, or existing people picker data source
 
+For Make identity values, tolerate both record-style values and current identity-service values. Read ids from `recordID`, `userId`, or `id`, and labels from `name`, `userName`, `displayName`, or `label`. For multi-user fields, normalize arrays with the same priority before dirty comparison and submit conversion.
+
 Do not fabricate mock user candidates in production just to make a dropdown look populated. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
 
 ## 8. Department fields
@@ -199,6 +201,8 @@ Typical concerns:
 - display list vs submit ids
 - extra mapped render data for downstream cell rendering
 - candidate source: real department API, host department selector data, or current cell value fallback
+
+For Make department values, tolerate both record-style values and current department-service values. Read ids from `recordID`, `departmentId`, or `id`, and labels from `name`, `departmentName`, `displayName`, or `label`. For multi-department fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 
 Do not replace an empty real department API result with local fallback data unless the product explicitly asks for demo/mock mode. Submitting a fake department id usually creates backend validation failures.
 

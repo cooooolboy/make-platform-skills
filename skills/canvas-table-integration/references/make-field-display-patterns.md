@@ -83,6 +83,7 @@ Use tolerant extraction. Do not fail the cell because one key is absent.
 - attachment name priority: `name`, `fileName`, filename from URL
 - attachment metadata: `uid`, `filePath`, `size`, `fileSizeInBytes`, `type`, optional local `File`
 - lookup wrapper: if object or JSON string has `data`, extract labels from `data`; if `data` is empty, show empty
+- lookup references: when `data` items contain target entity, `recordID`, display value, and deletion status, normalize those into explicit reference items before rendering. Only clickable references with entity + `recordID` and not-deleted status should trigger detail navigation.
 
 ## Renderer Guidance
 
@@ -94,6 +95,7 @@ Keep renderers focused and canvas-only:
 - `user`: avatar image if present, otherwise deterministic color circle plus short name; render name with ellipsis; use `+N` for hidden users
 - `file`: image attachments use `ImgShape`; other files use a file icon/extension block; bind click to open safe URL; show `+N` only when width cannot fit all visible items
 - `lookup`: after normalization, usually reuse tag or text rendering
+- clickable lookup text should use shape-level click handlers only for valid reference items; missing `recordID` or deleted references render as plain text
 
 Use package text utilities such as `textEllipsis` and `getTextWidth` when available. Add an estimate fallback so unit tests and non-browser environments do not break.
 

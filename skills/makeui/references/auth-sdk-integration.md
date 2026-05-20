@@ -1,10 +1,12 @@
 # Make App Auth SDK Integration
 
-Use this reference when generating or modifying a Make App frontend.
+Use this reference when generating or modifying a gateway/unified-login Make App frontend.
 
 ## Rule
 
 Make App frontends only own UI and business interactions. Authentication state, tenant/user identity, App session cookies, 401/403 behavior, and logout are owned by `@qfei/make-app-auth` plus make-gateway.
+
+This reference does not override host projects that explicitly require `apps/ui -> apps/service -> Make Data API`. Preserve that Service contract unless the user confirms a data-flow change.
 
 ## Dependency
 
@@ -13,7 +15,7 @@ Prefer the Git dependency until a published package source is already configured
 ```json
 {
   "dependencies": {
-    "@qfei/make-app-auth": "git+ssh://git.qtech.cn/make/make-app-auth-sdk.git#main"
+    "@qfei/make-app-auth": "git+ssh://git@git.qtech.cn/make/make-app-auth-sdk.git#main"
   }
 }
 ```
@@ -41,41 +43,39 @@ if (boot.status === 'authenticated') {
 }
 ```
 
-## Unified Login Disabled / Token Mode
+## Local Unified Login Debug
 
-Generated Vibe Apps should expose an explicit auth mode config. Default to local `token` mode so local-only vibe projects can call real Make backend APIs without ngrok:
+For Make App unified login debugging, generate Vite config with:
 
-- `token`: default local real-backend debugging when the App is not deployed and no ngrok proxy is available.
-- `unified`: explicit Make App unified login. Use this only when the App is deployed or exposed through a registered/ngrok App domain and the user enables unified login.
-- `mock`: offline preview only.
+- `server.host = "0.0.0.0"`
+- `server.port = 5174`
+- proxy `/api/make` to `process.env.MAKE_GATEWAY_PROXY_TARGET || "https://dev-make.qtech.cn"`
+- `changeOrigin: true`
+- `secure: false` for local gateway debugging
 
-If make-gateway reports unified login is disabled for the App, or the generated App is explicitly started in local token mode, generated code must still use `@qfei/make-app-auth`. Do not fork a separate auth implementation.
+Only expose the Vite UI port through ngrok:
 
-Token source priority:
-
-1. `accessToken` or `token` passed to `createMakeAppAuth`.
-2. `tokenProvider()` passed to `createMakeAppAuth`.
-3. Node/local debug credentials from `~/.make/credentials` using profile `default` unless configured otherwise.
-
-Browser code cannot read `~/.make/credentials`. Browser Apps that run without unified login must receive `accessToken` or `tokenProvider` from the host/debug setup.
-
-```js
-const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
-  unifiedLogin: false,
-  accessToken: userProvidedToken
-});
-
-const boot = await auth.init({ redirect: false });
-
-if (boot.status === 'authenticated' && boot.context.authMode === 'token') {
-  renderApp({ auth, context: boot.context });
-}
+```bash
+ngrok http 5174
 ```
 
-In token mode, `init()` returns `authenticated` without exposing the token. `boot.context.authMode` is `token`, and `boot.context.tokenSource` may be used only for diagnostics.
+Generated browser config should only include non-secret values such as:
 
-If no token is available, render an unauthenticated/token-missing state. Do not redirect to Org, because unified login is explicitly disabled.
+```env
+VITE_MAKE_APP_KEY=ExpensePoc
+VITE_MAKE_LIST_PAGE_SIZE=100
+MAKE_GATEWAY_PROXY_TARGET=https://dev-make.qtech.cn
+```
+
+Do not generate `VITE_SERVICE_BASE_URL`, `VITE_MAKE_ACCESS_TOKEN`, Org token, Cookie, or `make_app_session` configuration for gateway/unified-login browser Apps. Service-based projects may have their own non-secret Service base URL contract; do not remove it when preserving that data flow.
+
+## Unified Login Disabled / Token Mode Exception
+
+Generated login modules default to full gateway unified login, not token mode.
+
+If the user explicitly asks for a token-mode local debug App, or make-gateway reports unified login disabled for that App, still use `@qfei/make-app-auth`. Do not fork a separate auth implementation. Token-mode code must receive tokens only through SDK options such as `accessToken` or `tokenProvider`, never through hand-written `Authorization` headers, and it must keep business code on `auth.api`.
+
+Browser code cannot read `~/.make/credentials`; do not generate browser code that attempts it. For unified login work, prefer ngrok + `/api/make` proxy over browser tokens.
 
 ## Business Requests
 
@@ -148,10 +148,13 @@ Do not construct Org logout URLs in generated App code. make-gateway and Org own
 
 - Reading, storing, or forwarding Org access tokens.
 - Reading, writing, or deleting `zs_session` or `make_app_session`.
+- Exposing Make tokens, Org tokens, or Cookie values through browser `VITE_*` config. In gateway/unified-login Apps, also do not expose Service URLs.
 - Browser code that tries to read `~/.make/credentials`.
 - Raw `Authorization` header logic outside the SDK.
 - Constructing Org OAuth URLs, `redirect_uri`, `state`, or `code_challenge`.
 - Handling Org OAuth `code` in the App.
 - Raw `window.fetch('/api/make/...')` for Make backend calls.
+- Raw `fetch('/api/make/...')` for Make backend calls.
 - Monkey-patching `window.fetch`.
 - Treating browser context data as server-trusted authorization.
+- Routing Make runtime data through `apps/service` in a gateway/unified-login App unless the user explicitly requested a server-side orchestration contract.
