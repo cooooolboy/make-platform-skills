@@ -13,7 +13,7 @@ UserField 的字段类型定义以 @FieldDesign.md 为准：
 2. 用户填写字段时，客户端调用 @DataAPIDesign.md 中 `分页查询 User 数据`接口，作为用户选择器的候选项。
 3. 用户选择后，客户端把候选接口返回的 `userId` 字符串写入 Record；单选写字符串 ID，多选写字符串 ID 数组。
 4. 创建或更新 Record 时，服务端校验用户是否存在、是否属于当前组织、是否在当前访问者权限范围内。
-5. 客户端获取 Record 时，UserField 返回精简用户对象数组；单选用户通常只有一个元素。
+5. 客户端获取 Record 时，UserField 返回 `userId`、`userName`、`avatar` 精简用户对象数组；单选用户通常只有一个元素。
 
 ## 例子
 
@@ -29,6 +29,7 @@ UserField 的字段类型定义以 @FieldDesign.md 为准：
 需要创建一个 Project(项目) 的 Entity。
 
 ```yaml
+key: project
 name: 项目
 type: Make.Entity
 app: <Make.App>
@@ -36,7 +37,8 @@ meta:
   version: 1.0.0
 properties:
   fields:
-    - name: projectName
+    - key: projectName
+      name: 项目名称
       type: Make.Field.Text
       meta:
         version: 1.0.0
@@ -44,7 +46,8 @@ properties:
       validations:
         isRequired: true
 
-    - name: owner
+    - key: owner
+      name: 项目负责人
       type: Make.Field.SingleUser
       meta:
         version: 1.0.0
@@ -52,7 +55,8 @@ properties:
       validations:
         isRequired: true
 
-    - name: members
+    - key: members
+      name: 项目成员
       type: Make.Field.MultiUser
       meta:
         version: 1.0.0
@@ -127,8 +131,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "项目",
+  "appKey": "<APP_KEY>",
+  "entityKey": "project",
   "data": {
     "projectName": "烽火项目管理",
     "owner": "19035",
@@ -163,8 +167,8 @@ Request Body
 
 ```json
 {
-  "app": "<NAME>",
-  "entity": "项目",
+  "appKey": "<APP_KEY>",
+  "entityKey": "project",
   "recordID": "rec_abc123"
 }
 ```
@@ -180,20 +184,20 @@ Response Body
     "projectName": "烽火项目管理",
     "owner": [
       {
-        "recordID": "19035", //字符串形式的用户ID
-        "name": "张三", //用户名称
+        "userId": "19035", //字符串形式的用户ID
+        "userName": "张三", //用户名称
         "avatar": "https://s1-imfile.feishucdn.com/static-resource/v1/v3_00te_eb78734a-931f-4184-823d-e53a7213500g~?image_size=noop&cut_type=&quality=&format=png&sticker_format=.webp" //用户头像链接
       }
     ],
     "members": [
       {
-        "recordID": "19034",
-        "name": "李四",
+        "userId": "19034",
+        "userName": "李四",
         "avatar": "https://s1-imfile.feishucdn.com/static-resource/v1/v3_00te_eb78734a-931f-4184-823d-e53a7213500g~?image_size=noop&cut_type=&quality=&format=png&sticker_format=.webp"
       },
       {
-        "recordID": "19035",
-        "name": "张三",
+        "userId": "19035",
+        "userName": "张三",
         "avatar": "https://s1-imfile.feishucdn.com/static-resource/v1/v3_00te_eb78734a-931f-4184-823d-e53a7213500g~?image_size=noop&cut_type=&quality=&format=png&sticker_format=.webp"
       }
     ]
@@ -212,4 +216,4 @@ Response Body
 - 分页查询 User 候选项时，`filter` 仅支持 `userName` 字段。
 - 用户不存在、已停用、不可见或不属于当前组织时，创建或更新 Record 应失败。
 - UserField 不支持通过数字 ID、`userName` 或完整 User 对象作为唯一标识写入，避免重名造成歧义。
-- 返回 UserField 时，服务端返回 `recordID`、`name`、`avatar` 精简字段；`recordID` 是字符串形式的用户 ID，并根据访问者权限裁剪敏感信息。
+- 返回 UserField 时，服务端返回 `userId`、`userName`、`avatar` 精简字段；`userId` 是字符串形式的用户 ID，并根据访问者权限裁剪敏感信息。
