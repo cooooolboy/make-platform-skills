@@ -1,20 +1,15 @@
 ---
 name: canvas-table-integration
 description: >-
-  Use when the user wants to integrate `@qfei-design/canvas-table` into an existing app or page.
-  This skill covers three tracks: (1) base consumer integration of local or virtual tables,
-  public props/methods/events, selection, drag, fixed columns, row-head suffix actions,
-  summary rows, empty states, and lightweight `render + TextShape + shape click` interactions; (2) host-side cell-edit
-  architecture for schema-driven business fields, including Make-style field types (`ID`, text,
-  URL, number/currency/percent, date/date-time/date-range, select, user, department, file,
-  lookup), `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`,
-  `overlayOptions`, `destroy`, `editApplyMode: controlled`, editor-container patterns,
-  value adapters, draft-vs-immediate save layers, popup editors, and attachment editor integration
-  using the host project's existing component system; (3) Make field-display integration for
-  schema-driven columns, value normalization, focused renderers, and display-only handling of
-  the supported Make field types. Read the installed package AI docs first, choose the correct
-  track, use only documented public APIs, and verify the integration after editing. Do not use
-  this skill to modify the table library itself.
+  Use when integrating `@qfei-design/canvas-table` into an existing app or page.
+  Covers consumer-side local or virtual tables, public props/methods/events,
+  row-head suffix actions, selection, drag, fixed columns, summary rows, empty
+  states, lightweight `render + TextShape + shape click` interactions, host-side
+  cell-edit architecture, schema-driven Make field editors, `customEdit`,
+  `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`,
+  `editApplyMode: controlled`, attachment editors, and Make field-display
+  columns with value normalization. Read package AI docs first, choose Track A,
+  B, or C, use documented public APIs, and do not modify the table library itself.
 ---
 
 # canvas-table-integration
@@ -52,6 +47,16 @@ This skill has three tracks:
 
 Choose the track first. Do not mix a basic table integration request with a full cell-edit architecture refactor unless the user clearly wants the editing workflow.
 If the user says display-only, field type display, or schema field rendering, choose Track C and leave cell editing out unless explicitly requested.
+
+## Quick start
+
+1. Confirm this is a consumer-side table integration, not table-library maintenance.
+2. Check package installation and read the package AI docs in the required order below.
+3. Choose exactly one primary track: Track A display table, Track B editable cells, or Track C Make field display.
+4. Read only the track references from the topic map.
+5. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
+6. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
+7. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
 
 ## Typical requests
 
@@ -129,6 +134,27 @@ If the project is working directly inside the table monorepo, use the source pat
 5. `packages/table/PUBLIC_API.md`
 
 Then choose the track-specific references.
+
+## Topic reference map
+
+| Task / topic | Read |
+| --- | --- |
+| Public props, methods, events, setup, cleanup | `references/core-props-methods-events.md` |
+| Row-head sequence number or open-detail action | `references/row-head-action-patterns.md` |
+| Virtual loading / paginated backend integration | `references/virtual-table-patterns.md` |
+| Schema/meta to `IColumn[]` | `references/column-patterns.md` |
+| Custom clickable cell shapes | `references/shape-render-patterns.md` |
+| Track A pitfalls | `references/common-pitfalls.md` |
+| Cell-edit contract | `references/edit-contract.md` |
+| Host-side edit architecture | `references/edit-host-architecture.md` |
+| Edit lifecycle, positioning, close/commit/rollback | `references/edit-interaction-lifecycle.md` |
+| Field editor mapping | `references/field-editor-patterns.md` |
+| Host component choice | `references/editor-component-selection.md` |
+| Attachment editor integration | `references/attachment-editor-patterns.md` |
+| Track B pitfalls | `references/edit-common-pitfalls.md` |
+| Make field display | `references/make-field-display-patterns.md` |
+| Proven downstream usage and unvalidated areas | `references/validated-usage-notes.md` |
+| Track workflows, capability checklists, output templates | `references/track-workflows.md` |
 
 ### For Track A: base integration
 
@@ -231,147 +257,6 @@ Prefer this shape:
 
 This is guidance, not a required folder taxonomy. Preserve an existing project structure when it already separates these responsibilities clearly.
 
-### Track B / pragmatic host-edit guidance
-
-Use these as defaults for first-pass editable-list work. Adapt them to the host project's real component system, save model, and backend contract.
-
-1. **Declare custom editing on target columns**
-   - If a target column is expected to enter the host-side custom editor flow, declare `editType: "custom"` on that column explicitly.
-   - Do not assume `customEdit` alone is enough.
-
-2. **Start with the smallest working editor bridge**
-   - For first-pass text-field editing, a simple host-created DOM input is a valid starting point.
-   - Do not over-engineer the editor container before at least one real editable field flow is working end to end.
-
-3. **Prefer page-level draft state over table-internal edit state**
-   - Treat the page/container as the source of truth for:
-     - draft values
-     - dirty row keys
-     - save / discard actions
-     - unsaved-change guards
-   - Treat the table as a controlled consumer that receives:
-     - merged rows
-     - dirty row keys
-     - `onCellCommit(...)`
-
-4. **Use `edit:end` as the stable post-commit boundary**
-   - The host page should consume committed values from `edit:end` (or an equivalent lifted callback path), then update page-level draft state.
-   - Do not hide all data mutation inside the table wrapper.
-
-5. **Dirty-row visualization should use canvas-table native row coloring**
-   - Prefer `setRowColors(rowKeys, color)` for dirty-row highlighting.
-   - Do not build a parallel DOM-layer highlight system when the table already provides row background APIs.
-
-6. **Unsaved-change protection is part of the editable-list architecture**
-   - For editable list pages, define a clear rule for context-changing actions such as:
-     - tab switch
-     - query/reset
-     - open detail
-     - create new
-   - A practical first-pass default is: confirm first, then discard draft and continue. Keep the exact policy aligned with the host product.
-
-7. **Common editable-list scope covers text, number, select, date, and attachment metadata**
-   - Treat these as reusable patterns, not fixed component choices.
-   - Keep the field-type mapping aligned with the host Make Drawer form mapping.
-   - For number-like fields, keep row/submit values numeric and move currency/unit formatting to display or render layers.
-   - Attachment real upload remains a data-source / adapter scope and should still follow the dedicated attachment reference.
-   - Date, user, department, select, file, and lookup fields must not silently degrade to a plain text input. Use type-appropriate editors, read-only display, or an explicit documented fallback.
-
-8. **Use `editApplyMode: "controlled"` when a business save or draft layer owns writes**
-   - In controlled mode, canvas-table emits edit events but does not mutate row data.
-   - After the draft or immediate save layer accepts the commit, call `setCellData(...)` or `setRowData(...)` to backfill canvas data.
-   - Keep a clear fallback for immediate-save mode when no immediate handler exists.
-
-9. **Popup editors should use table-provided close coordination**
-   - Return `relatedElements()` for dropdown/date/attachment popup roots.
-   - Return `overlayOptions: { overflow: "visible" }` when the popup must overflow the cell editor box.
-   - Prefer object `autoClose`, for example `escape: "cancel"`, `enter: "ignore"`, `tab: "commitAndMove"`.
-   - Avoid host-owned global outside-click listeners unless the package contract is insufficient.
-
-10. **Keep table initialization stable during draft updates**
-
-- Do not recreate the canvas table just because merged rows or parent callbacks changed.
-- In React, keep latest rows/callbacks in refs where needed and update data with `setData(...)`.
-- If the table is recreated due to resize or prop changes, reapply dirty row colors after `setData(...)`.
-
-11. **Restore focus to the current canvas only inside the canvas edit lifecycle**
-
-- Immediate-save mode often refreshes host rows and may recreate or update the table instance.
-- After accepted cell-edit commit or rollback, focus `tableRef.current?.canvas` rather than only the canvas captured by the old edit handler.
-- Use immediate, next-frame, and short-delay focus attempts only when returning from a canvas-table cell editor back to the table.
-- Do not restore canvas focus while a host modal, drawer, dialog, popover, or form surface is opening or active.
-- Do not run delayed canvas-focus retries after row clicks or actions that open host UI. Those surfaces own focus until they close.
-
-12. **Guarantee a usable canvas height before initializing the table**
-
-- Do not rely on a padding-only container height.
-- Prefer explicit height, then measured container height, then a conservative default height.
-- Too-small canvas height causes unreliable hit testing, popup positioning, and empty-state behavior.
-
-13. **Date editors must resolve typed input before OK commits**
-
-- If the date component supports direct text entry, read or resolve the typed input before calling `commit(...)`.
-- Do not assume the component has already emitted `onChange` when the user types a full date-time and clicks OK.
-
-14. **Use stable backend identity for persisted editable rows**
-
-- For persisted records, prefer the host backend's stable system id as `rowKey`.
-- Keep mutable or display-only business codes as display/search fields, not as technical row keys, dirty keys, detail route keys, or attachment upload identifiers.
-
-15. **Attachment editors are host popups with data-source upload boundaries**
-
-- Render attachment previews in canvas-table, but keep file selection and upload handling in host DOM/editor space.
-- Use drag/drop and click-to-upload patterns when the host has no stronger upload component.
-- If real upload needs a saved record id, disable or omit attachment upload during create and enable it only after the backend identity exists.
-- Real upload, deletion, and download proxy generation belong in the host data-source / Service API adapter layer, not in canvas-table, a canvas renderer, or a generic table wrapper.
-
-## Choose a primary path first
-
-Choose one primary path before coding.
-
-### Track A / `basic local table`
-
-Use when the page already has all rows in client memory.
-
-Start from:
-
-- `recipes.json` -> `basic-local-table`
-- `examples/react/basic-canvas-table.tsx`
-
-### Track A / `virtual remote table`
-
-Use only when the user explicitly asks for pagination, virtual loading, or paginated backend integration. Do not choose this path just because the page contains a table.
-
-Start from:
-
-- `recipes.json` -> `virtual-remote-table`
-- `examples/react/virtual-canvas-table.tsx`
-- `references/virtual-table-patterns.md`
-
-### Track A / `meta -> columns`
-
-Use when column configuration comes from JSON/meta instead of handwritten `IColumn[]`.
-
-Treat this as a supporting path, not the primary first-pass path, unless the page is clearly meta-driven.
-
-### Track B / `host cell-edit architecture`
-
-Use when the page must edit business fields in-place or through editor overlays.
-
-Prefer to anchor this track in a real project implementation before abstracting. Reuse existing host-side edit flows when they already exist.
-
-Before changing code, identify:
-
-- framework: React or Vue
-- existing component library
-- existing business field editors
-- existing upload / date / select / people / department widgets
-- field metadata shape: editability, required, field type, precision, format, multi/single mode, attachment value structure
-- stable backend identity: the host backend's system id or equivalent row key for persisted rows and attachment upload
-- whether the host Drawer form already maps Make field types; reuse that mapping so table cell editors and Drawer forms submit the same value shapes
-
-Do not invent a new editor system if the project already has one.
-
 ## Safety rules and defaults
 
 Treat these as safety rules:
@@ -388,219 +273,7 @@ Treat these as safety rules:
 - if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
 - pagination is opt-in: do not add visible pagination controls, page-size selectors, page state, page query params, total-count handling, paginated fetch logic, `virtualOptions`, or `data:load` wiring unless the user explicitly asks for pagination, virtual loading, or paginated backend integration
 
-### Additional Track A rules
+## Detailed workflows and maintenance references
 
-- for normal tables, use `setData(rows)`
-- when `virtualOptions.enabled === true`, listen to `data:load` and use `setData(rows, page)`
-- keep the table page contract zero-based; if the backend is one-based, translate inside the loader callback
-- for Make record lists, enable `showSN` and an open-detail `bodyRowHeadSuffixOptions` icon by default
-- clicking the open-detail icon opens the record detail Drawer or the host project's established detail surface
-- do not enable `selectable` by default; enable row selection only when the user asks for selection, batch actions, or multi-record operations
-
-### Track B defaults
-
-- do not force a fixed component library
-- prefer the host project's existing editor and field components
-- do not put the whole edit workflow directly inside one `customEdit` callback
-- separate column config, edit control, editor container, and field-editor implementations
-- for complex field editors, prefer object `autoClose`; use `autoClose: false` only when the host must fully own close behavior and the package coordination options are insufficient
-- treat the editor as a DOM overlay, not a canvas-drawn widget
-- make the editor follow scroll / fixed-column positioning rules
-- do not mix display values and submit values for complex fields
-- do not silently map complex Make fields to plain text inputs; date, user, department, select, file, and lookup fields require explicit editors, read-only display, or documented fallback behavior
-- for number-like fields, keep submit values numeric; use render/editor formatting only for display
-- attachment editing must be host-driven even if attachment rendering uses `ImgShape`
-- do not expose attachment upload for unsaved rows when the backend requires a record id
-- do not put attachment upload, deletion, or download proxy calls inside canvas renderers or a generic table wrapper
-- do not use business-only display fields as technical row keys for persisted editable rows
-- canvas focus restoration is scoped to canvas-table edit commit/cancel/rollback; never let it steal focus from host modal, drawer, dialog, popover, or form interactions
-
-## Track A capability checklist
-
-Use Track A to wire these common capabilities correctly:
-
-- base columns: `key`, `title`, `width`, `align`, `headerAlign`, `fixed`, `showEllipsis`
-- local data updates via `setData(rows)`
-- virtual paged updates via `setData(rows, page)`
-- `updateProps(...)` for column / size / config updates
-- default sequence numbers via `showSN`
-- default detail entry via `bodyRowHeadSuffixOptions`
-- optional row selection via `selectable` + `selection:change`
-- row drag via `rowSortable`
-- column drag using the built-in header interaction
-- summary rows via `showSummary`, `summaryData`, `summaryRenderer`
-- empty states via `emptyStateOptions`
-- custom cell rendering via `render`
-- lightweight clickable shapes via `TextShape` and shape-level click behavior
-
-Use references as needed:
-
-- API surface: `references/core-props-methods-events.md`
-- columns: `references/column-patterns.md`
-- clickable cell content: `references/shape-render-patterns.md`
-- virtual loading: `references/virtual-table-patterns.md`
-
-## Track B capability checklist
-
-Use Track B to design and wire these capabilities correctly:
-
-- editable column declaration via `editType`
-- `customEdit` contract handling
-- editor-container pattern with a stable editor interface
-- edit controller for old/new value, save, reset, rollback, and outside-click handling
-- submit-style field editors
-- realtime-style field editors
-- field-editor mapping by business field type
-- Make-style field coverage: `ID`, `Text`, `TextArea`, `URL`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `File`, `Lookup`
-- editor overlay positioning and scroll-follow behavior
-- `commit(...)` / `cancel(...)` / `updateValue(...)` usage, with `close(commit)` and `changeValue(...)` treated as legacy compatibility only
-- `edit:end` as the post-commit event surface
-- attachment field integration using host upload/file components or drag/drop DOM editors plus canvas-table render support
-- backend system identity handling for row keys, dirty keys, detail routes, and attachment preconditions
-
-Use references as needed:
-
-- edit contract: `references/edit-contract.md`
-- host architecture: `references/edit-host-architecture.md`
-- interaction lifecycle: `references/edit-interaction-lifecycle.md`
-- field types: `references/field-editor-patterns.md`
-- component choice: `references/editor-component-selection.md`
-- attachments: `references/attachment-editor-patterns.md`
-
-## Implementation workflow
-
-### Track A workflow
-
-1. Check whether the package is installed.
-2. If missing, install it with the lockfile-based package-manager rule above.
-3. Read the package docs in the required order.
-4. Choose the primary path.
-5. Open the corresponding recipe and minimal example.
-6. Adapt that example to the current project with the smallest reasonable diff.
-7. Preserve the local framework and state-management patterns.
-8. Add only the capabilities the user explicitly needs now. Pagination is not a default table capability.
-9. Avoid unrelated refactors.
-10. Run at least one concrete verification step if the environment allows it.
-
-### Track B workflow
-
-1. Check whether the package is installed.
-2. Read package editing docs and the edit-related source entry points.
-3. Identify the host framework, component library, and existing field-editor components.
-4. Identify the field metadata that drives editability and field type.
-5. Identify the stable row identity used by backend reads, saves, dirty state, and detail routes.
-6. Read the host Make schema and Drawer form field mapping before coding editors.
-7. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
-8. For date, user, department, select, file, and lookup fields, choose a type-appropriate editor, read-only display, or explicit documented fallback before implementation.
-9. Design or reuse a host edit controller layer before writing field-specific code.
-10. Design or reuse a single editor-container abstraction before writing individual field editors.
-11. Implement or reuse field editors through a common editor interface.
-12. Distinguish submit-style editors from realtime-style editors.
-13. For attachment fields, identify whether upload requires a saved record id and where the data-source / Service API adapter upload/delete/download boundary lives.
-14. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
-15. Verify at least one real editable field flow in the target project.
-
-### Track C workflow
-
-1. Check whether the package is installed and read the package docs in the required order.
-2. Identify the Make field schema shape and the actual backend value formats.
-3. Build or reuse a pure display adapter by field type before writing canvas shapes.
-4. Derive column configs from schema fields; avoid hand-maintained static columns for dynamic schemas.
-5. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, and generic text fallback.
-6. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
-7. Add focused tests for value normalization and renderer overflow/empty states.
-8. Verify at least one table path with representative backend values.
-
-## What to avoid
-
-### Avoid these mistakes in Track A
-
-- building a grouped-table solution when a flat table is enough
-- designing a full edit flow when the page only needs display + click actions
-- overusing custom shapes when plain columns are sufficient
-- relying on internal events or internal classes
-- stuffing raw meta directly into runtime props
-- skipping resize / cleanup handling
-
-Before finishing, read `references/common-pitfalls.md`.
-
-### Avoid these mistakes in Track B
-
-- forcing a brand-new component library into the project
-- putting all editor logic directly into `customEdit`
-- failing to separate display value and submit value
-- treating all field types as the same commit model
-- not updating editor position during scroll
-- closing complex editors without save / rollback logic
-- writing attachment support as render-only without an editor contract
-- putting real attachment upload calls into canvas-table or a generic table wrapper
-- defaulting date, user, department, select, file, or lookup fields to bare text inputs without explaining the missing schema/API reason
-- using a business display code as the row key when persisted edits need a backend system id
-- copying a Vue pattern into React without converting it into hook/ref-based host patterns
-
-Before finishing, read `references/edit-common-pitfalls.md`.
-
-### Avoid these mistakes in Track C
-
-- branching by field name for generic display behavior; branch by field type or explicit business role
-- rendering raw objects or JSON wrapper strings when a useful label can be extracted
-- fetching options, users, departments, or files inside a cell renderer
-- mixing display formatting with submit/edit payload conversion
-- making unknown future field types crash the table; use a safe text fallback
-- forcing exact folder/file names when the host project already has clear ownership boundaries
-
-## Deferred topics
-
-These topics exist in the package or adjacent project patterns, but are not the primary focus of this skill version:
-
-- grouped tables (`GroupTableComponent`, `group:load`, `group:expand`, grouped hydration)
-- grouped-table editing workflows
-- rich text / relation / advanced composite field editors
-- advanced shape animation systems
-- full event matrix beyond the stable consumer path
-- deep upload-service protocol design for attachments
-
-If the user explicitly needs those, treat them as a later enhancement path and read the package feature docs plus the host project's real implementation first.
-
-## Required output
-
-### For Track A
-
-After finishing, report:
-
-- which primary path was selected
-- which recipe and example were used
-- which files were changed
-- which core capabilities were added (selection / drag / summary / empty / shape render / etc.)
-- any important paging or meta-conversion constraints
-- what was verified
-- whether anything is still blocked by missing data or APIs
-
-### For Track B
-
-After finishing, report:
-
-- which editable field path was selected
-- which project component library and business editor components were reused
-- where the edit controller logic lives
-- whether a shared editor-container abstraction was used
-- which field types were implemented or documented
-- which fields use submit-style updates vs realtime-style updates
-- how click-outside close is handled
-- how overlay positioning and scroll-follow behavior are handled
-- which stable row identity is used for persisted edits, dirty rows, detail routes, and attachment preconditions
-- how attachment fields are represented and edited
-- what was verified in the target project
-- whether anything is still blocked by missing field metadata, APIs, or host components
-
-### For Track C
-
-After finishing, report:
-
-- which Make field types were covered
-- where schema-to-column config lives
-- where value normalization lives
-- which renderer groups were added or reused
-- how empty values, overflow, URLs, attachments, users, departments, and lookup wrappers are handled
-- what tests or visual checks were run
-- whether any display behavior is still blocked by missing backend value examples
+- For track workflows, capability checklists, avoid lists, deferred topics, and final response templates, read `references/track-workflows.md`.
+- Before using a capability that is not obviously covered by the current project or package docs, read `references/validated-usage-notes.md` to distinguish validated downstream patterns from less-proven package capabilities.

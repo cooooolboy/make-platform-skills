@@ -1,5 +1,14 @@
 # makeui 构建产物与 Service 配置基线
 
+## 2026-05-21 结构优化
+
+- 参考 1771 Technologies AI Skills 文档的结构方式，为 `skills/makeui/SKILL.md` 增加 Quick start、Topic reference map 和 Common gotchas。
+- 将任务类型和 reference 文件建立显式映射，便于按需读取 `principles`、App Shell、列表页、抽屉、路由页、组件选择和响应式规则。
+- 保留现有 gateway/auth-SDK、`/api/make`、token 模式、Make API host、具体 Make 环境变量名和 `make-app-auth` 登录相关规则，仅优化入口结构。
+- 将 `skills/makeui` 修订标识更新为 `0.3.18`，并把版本信息放到正文，避免 frontmatter 出现 skill 校验不支持的字段。
+- 压缩 `SKILL.md` frontmatter description，使其符合 skill 校验的 1024 字符限制，同时保留 UI、项目结构、构建产物、Service 配置、canvas-table 和 make-app-auth 触发语义。
+- 将 frontmatter `name` 从路径式 `skills/makeui` 规范为 `makeui`，满足 skill 命名校验；目录路径仍保持 `skills/makeui` 不变。
+
 ## 2026-05-21
 
 - 将 `skills/makeui` 版本更新为 `0.3.17`。

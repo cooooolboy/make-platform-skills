@@ -1,12 +1,13 @@
 ---
-name: skills/makeui
-description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.17
+name: makeui
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` code with React, Vite, and React Router. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, 前端代码, app shell, page layout, styling, component placement, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit/detail drawers, route-based form/detail pages, project structure, `apps/ui/dist` build output, and Service config entrypoint guidance. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, and authentication/login work to use `make-app-auth`. Does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
 
-# skills/makeui
+# makeui
+
+Current skill revision: 0.3.18.
 
 Use this skill for **Make App frontend UI design and generation**.
 
@@ -29,6 +30,42 @@ Make App frontend defaults to:
 - React Router
 
 Do not switch to another full-stack frontend framework unless the user explicitly requests it and the project already supports it.
+
+## Quick start
+
+For Make App UI work:
+
+1. Inspect the existing project stack, routes, shell, component library, styling, Node runtime, and `apps/` structure.
+2. Verify `apps/ui`, `apps/service`, package manifests, workspace config, `apps/ui/dist`, and Service config entrypoint requirements when creating or reorganizing projects.
+3. Preserve the host data flow and auth mode; use `make-app-auth` for authentication details and `canvas-table-integration` for Make record tables.
+4. Read the minimum references from the topic map below.
+5. Generate schema-driven UI only after reading DSL/schema; do not silently turn typed Make fields into plain text.
+6. Keep list pages simple by default: shell, local toolbar, search, refresh, create, and a canvas-table region with no pagination unless requested.
+
+## Topic reference map
+
+Read only the references needed for the current task:
+
+| Task / topic | Read |
+| --- | --- |
+| Project structure, boundaries, Node, build output, Service config | `references/principles.md` |
+| App shell, sidebar, top header, viewport height chain | `references/app-shell-layout.md` |
+| Object list page, toolbar placement, default actions | `references/list-page-layout.md` |
+| Create/edit/detail Drawer, stacked Drawers, mask close, header actions | `references/drawer-layout.md` |
+| Route-based create/edit/detail pages or URL-addressable state | `references/page-route-layout.md` |
+| Component library choice and schema-driven field controls | `references/component-usage.md` |
+| Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
+| Make record table display or cell editing | Use `canvas-table-integration` |
+| Authentication, login, logout, token mode, unified login, `/api/make/**` | Use `make-app-auth` |
+
+## Common gotchas
+
+- Do not consider an `apps/ui` or `apps/service` move complete until the child `package.json` files and `apps/pnpm-workspace.yaml` exist.
+- Do not put frontend build artifacts anywhere except `apps/ui/dist`.
+- Do not omit the Service config entrypoint; new projects use `apps/service/src/config.ts`.
+- Do not add pagination, views, import/export, filters, grouping, sorting, or selection unless the user asks.
+- Do not replace Make record tables with UI-library tables; use `canvas-table-integration`.
+- Do not invent business API shapes, permissions, approval states, persistence rules, or DSL changes from `makeui`.
 
 ## Target Make App structure
 
