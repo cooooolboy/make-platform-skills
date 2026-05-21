@@ -46,10 +46,10 @@ Preserve the host project's declared data flow:
 - If the project is generating a gateway/unified-login Make App frontend, runtime Make data access may use:
 
 ```text
-apps/ui -> @qfei/make-app-auth -> /api/make -> make-gateway -> Make Platform
+apps/ui -> @qfeius/make-app-auth auth.api -> /api/make/** -> make-gateway -> Make Platform
 ```
 
-Do not silently switch an existing Service-based project to the gateway/auth-SDK flow, and do not silently route a gateway/auth-SDK project's runtime Make data through `apps/service`. Explain the proposed change and wait for user confirmation before changing the data flow. `apps/service` is still part of the required project structure. This project structure rule is for generated Make App projects; it does not mean the `makeui` skill repository itself should be reorganized into `apps/`.
+Do not silently switch an existing Service-based project to the gateway/auth-SDK flow, and do not silently route a gateway/auth-SDK project's runtime Make data through `apps/service`. Explain the proposed change and wait for user confirmation before changing the data flow. UI code must not hold Make tokens, bypass `auth.api`, or rely on a Vite token proxy such as `/make-api`. `apps/service` is still part of the required project structure. This project structure rule is for generated Make App projects; it does not mean the `makeui` skill repository itself should be reorganized into `apps/`.
 
 ## Workspace package baseline
 
@@ -84,6 +84,18 @@ When generating or modifying Make App frontend authentication, always apply `mak
 Default generated UI should use `make-app-auth` token mode for local development. Unified login, OAuth, SSO, cookies, logout, redirect callbacks, and authenticated `/api/make/**` requests are owned by `make-app-auth` and its references.
 
 Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the project uses a gateway/unified-login Make App runtime path, coordinate auth and `/api/make/**` behavior through `make-app-auth`. `apps/service` remains required project structure.
+
+Hard boundary:
+
+- Use `@qfeius/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
+- Do not hand-write `Authorization`.
+- Do not hard-code Org, unified-login, or account-center domains; those URLs must come from make-gateway through `make-app-auth`.
+- Do not read or persist Org tokens, `zs_session`, or `make_app_session`.
+- In unified-login mode, direct unauthenticated App entry should go to the Org login page through `auth.init({ redirect: true })`; do not design an App-owned login page, login transition page, or signed-out completion page.
+- Do not build Org OAuth/logout URLs in App UI code.
+- Do not bypass `/api/make/**` to call meta/data services directly.
+- In unified-login authenticated state, render a visible `退出账号` action in the App shell header and wire it to the auth wrapper/SDK `auth.logout()` only.
+- If logout should return users to the phone/code login flow, rely on the SDK and the next `auth.init({ redirect: true })`; do not add UI-side account-center URL rewriting.
 
 ## Node runtime
 
