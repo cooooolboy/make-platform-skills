@@ -2,6 +2,7 @@
 
 ## 2026-05-21
 
+- 明确 `gatewayBaseUrl` 只是 SDK 参数名，实际值应复用 Make 后端 `server-url` 配置（`makecli configure get server-url`），不再为同一个 Make 后端入口另造配置概念。
 - 将生成规则的 SDK 依赖最低版本提升到 `@qfeius/make-app-auth@^0.1.1`，避免新 App 拉取仍带旧退出语义的版本。
 - 收口 browser-first Vibe App 数据流：`apps/ui` 通过 `auth.api('/api/make/**')` 访问 make-gateway；如未来生成 `apps/service` 后端，需要单独设计服务端委托鉴权，不混用浏览器 SDK 规则。
 - 退出链路最终口径：SDK 只跟随网关返回的 App `redirectUri`，退出后由下一次 `auth.init({ redirect: true })` 判断是否进入 Org 登录页。

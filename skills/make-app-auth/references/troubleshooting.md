@@ -28,7 +28,8 @@ For 401:
 
 - Confirm the SDK was created with `unifiedLogin: false`.
 - Confirm token was provided via `accessToken`, `token`, or `tokenProvider`.
-- Confirm `gatewayBaseUrl` is the intended Make API gateway base. For local dev, prefer `/api/make` plus dev-server proxy unless explicitly using a direct environment gateway.
+- Confirm `gatewayBaseUrl` matches the intended Make backend API base. It should normally reuse the host Make backend config / `makecli` `server-url`, not a separately invented URL.
+- For local dev, prefer `/api/make` plus dev-server proxy unless explicitly using a direct environment gateway.
 - Confirm browser code is not trying to read `~/.make/credentials`.
 - Confirm `auth.api` is adding `Authorization`; App code should not hand-write it.
 - Confirm business code passes relative paths to `auth.api`; arbitrary absolute URLs are rejected and must not receive `Authorization`.

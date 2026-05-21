@@ -38,7 +38,7 @@ import {
 } from '@qfeius/make-app-auth';
 
 const auth = createMakeAppAuth({
-  gatewayBaseUrl: makeAuthConfig.gatewayBaseUrl || '/api/make',
+  gatewayBaseUrl: makeAuthConfig.serverUrl || makeAuthConfig.gatewayBaseUrl || '/api/make',
   unifiedLogin: false,
   tokenProvider: async () => debugToken
 });
@@ -62,7 +62,11 @@ if (boot.status === 'authenticated') {
 
 Use `auth.api` for Make backend calls. The SDK handles `/api/make`, cookies, JSON request bodies, unified auth errors, and token-mode `Authorization` headers.
 
-`gatewayBaseUrl` is only the Make API gateway base. It is not the unified login, Org, or account-center URL. For a deployed unified-login App, prefer the SDK default `/api/make`; for local token-mode debugging it can point to an environment gateway such as the value of `VITE_MAKE_GATEWAY_BASE_URL`.
+`gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling this value already exists as `makecli` `server-url` (`makecli configure get server-url`, default `https://dev-make.qtech.cn/api/make`). Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
+
+For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. For local token-mode debugging, materialize the same Make backend `server-url` into browser-safe config such as `VITE_MAKE_SERVER_URL` or the existing project config, then pass it as `gatewayBaseUrl`. Browser code must not read `~/.make/config` directly.
+
+`gatewayBaseUrl` is not the unified login, Org, or account-center URL.
 
 Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it and will not attach token-mode `Authorization`.
 

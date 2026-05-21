@@ -46,7 +46,8 @@ Mode selection:
 - Business requests to Make backend must go through `auth.api` under `/api/make/**`.
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`; token mode must provide tokens through SDK options.
-- `gatewayBaseUrl` is only the Make API gateway base. It is not the unified login or account-center URL. Prefer the SDK default `/api/make` for deployed Apps.
+- `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the `makecli` `server-url` value; do not create a second environment concept for the same URL.
+- `gatewayBaseUrl` is not the unified login or account-center URL. Prefer the SDK default `/api/make` for deployed same-origin Apps.
 - Do not configure or hard-code unified login, Org, or account-center URLs in generated App code; make-gateway returns those URLs.
 - Do not read, write, persist, or delete `zs_session` or `make_app_session` in App code.
 - Do not construct Org OAuth URLs, `redirect_uri`, `state`, `code_challenge`, token exchange, or Org logout URLs in generated App code.

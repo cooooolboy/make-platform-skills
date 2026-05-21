@@ -88,6 +88,7 @@ Preserve the host project's declared data flow. If project instructions, `apps/d
 Hard boundary:
 
 - Use `@qfeius/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
+- If App code needs to pass SDK `gatewayBaseUrl`, reuse the host Make backend config / `makecli` `server-url` value. Do not create another URL setting for the same Make backend.
 - Do not hand-write `Authorization`.
 - Do not hard-code Org, unified-login, or account-center domains; those URLs must come from make-gateway through `make-app-auth`.
 - Do not read or persist Org tokens, `zs_session`, or `make_app_session`.
