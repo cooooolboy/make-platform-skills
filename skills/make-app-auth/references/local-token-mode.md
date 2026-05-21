@@ -26,7 +26,7 @@ Do not require ngrok, Org callback whitelist, or Org login page in this mode.
 
 ```js
 const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
+  gatewayBaseUrl: makeAuthConfig.serverUrl || makeAuthConfig.gatewayBaseUrl || '/api/make',
   unifiedLogin: false,
   accessToken: debugToken
 });
@@ -36,11 +36,15 @@ or:
 
 ```js
 const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
+  gatewayBaseUrl: makeAuthConfig.serverUrl || makeAuthConfig.gatewayBaseUrl || '/api/make',
   unifiedLogin: false,
   tokenProvider: async () => getDebugToken()
 });
 ```
+
+`gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the same value that Make tooling calls `server-url` (`makecli configure get server-url`, default `https://dev-make.qtech.cn/api/make`). Default to `/api/make` and rely on the local dev server proxy when the App is same-origin with make-gateway.
+
+Browser code cannot read `~/.make/config`; if local token mode must point directly to an environment gateway, expose the existing Make backend `server-url` through browser-safe project config such as `VITE_MAKE_SERVER_URL` rather than inventing a second URL concept.
 
 Token source priority:
 
@@ -82,3 +86,5 @@ Typical local route:
 ```text
 browser -> local Vite/App dev server -> /api/make proxy -> make-gateway -> Make services
 ```
+
+If local token mode points directly to an environment gateway, keep the same rule at SDK level: business code calls `auth.api('/data/v1/record')`, and the SDK attaches `Authorization` only under the configured `gatewayBaseUrl`.
