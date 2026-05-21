@@ -58,6 +58,12 @@ When reorganizing a project into `apps/`, directories alone are not enough. Requ
 
 `apps/pnpm-workspace.yaml` must include `ui`, `service`, and `packages/*`. `apps/package.json` scripts such as `app:ui`, `app:service`, and `dev` must use `pnpm --filter` targets that match the actual package names, including scoped names when used. Legacy refactors are incomplete until the required manifests and scripts for the chosen structure exist.
 
+Frontend build output must be `apps/ui/dist`. Generated or updated Vite config should set `build.outDir: "dist"` and `build.emptyOutDir: true`; do not publish or point static asset discovery at a root `dist` or `apps/dist`.
+
+Service projects must have one centralized runtime config entry. For new projects use `apps/service/src/config.ts`; for legacy projects, preserve an existing equivalent config entry if it already centralizes runtime config, otherwise add `apps/service/src/config.ts`.
+
+`makeui` does not decide which environment connects to which Make domain, gateway, or API host. Service config may read `MAKE_API_BASE_URL`, `MAKE_SERVER_URL`, or the host project's existing equivalent name, but domain mapping, gateway routing, and secret injection belong to backend, operations, Make tooling, or the deployed Service runtime. Env examples may expose blank config keys, but must not include real tokens or hard-code production, staging, or test Make API domains.
+
 ## Runtime baseline
 
 Make App frontend projects use Vite, so Node runtime compatibility must be checked before scaffolding or changing frontend dependencies.

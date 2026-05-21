@@ -1,12 +1,13 @@
 ---
-name: skills/makeui
-description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.16
+name: makeui
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` code with React, Vite, and React Router. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, 前端代码, app shell, page layout, styling, component placement, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit/detail drawers, route-based form/detail pages, project structure, `apps/ui/dist` build output, and Service config entrypoint guidance. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, and authentication/login work to use `make-app-auth`. Does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
 
-# skills/makeui
+# makeui
+
+Current skill revision: 0.3.18.
 
 Use this skill for **Make App frontend UI design and generation**.
 
@@ -29,6 +30,42 @@ Make App frontend defaults to:
 - React Router
 
 Do not switch to another full-stack frontend framework unless the user explicitly requests it and the project already supports it.
+
+## Quick start
+
+For Make App UI work:
+
+1. Inspect the existing project stack, routes, shell, component library, styling, Node runtime, and `apps/` structure.
+2. Verify `apps/ui`, `apps/service`, package manifests, workspace config, `apps/ui/dist`, and Service config entrypoint requirements when creating or reorganizing projects.
+3. Preserve the host data flow and auth mode; use `make-app-auth` for authentication details and `canvas-table-integration` for Make record tables.
+4. Read the minimum references from the topic map below.
+5. Generate schema-driven UI only after reading DSL/schema; do not silently turn typed Make fields into plain text.
+6. Keep list pages simple by default: shell, local toolbar, search, refresh, create, and a canvas-table region with no pagination unless requested.
+
+## Topic reference map
+
+Read only the references needed for the current task:
+
+| Task / topic | Read |
+| --- | --- |
+| Project structure, boundaries, Node, build output, Service config | `references/principles.md` |
+| App shell, sidebar, top header, viewport height chain | `references/app-shell-layout.md` |
+| Object list page, toolbar placement, default actions | `references/list-page-layout.md` |
+| Create/edit/detail Drawer, stacked Drawers, mask close, header actions | `references/drawer-layout.md` |
+| Route-based create/edit/detail pages or URL-addressable state | `references/page-route-layout.md` |
+| Component library choice and schema-driven field controls | `references/component-usage.md` |
+| Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
+| Make record table display or cell editing | Use `canvas-table-integration` |
+| Authentication, login, logout, token mode, unified login, `/api/make/**` | Use `make-app-auth` |
+
+## Common gotchas
+
+- Do not consider an `apps/ui` or `apps/service` move complete until the child `package.json` files and `apps/pnpm-workspace.yaml` exist.
+- Do not put frontend build artifacts anywhere except `apps/ui/dist`.
+- Do not omit the Service config entrypoint; new projects use `apps/service/src/config.ts`.
+- Do not add pagination, views, import/export, filters, grouping, sorting, or selection unless the user asks.
+- Do not replace Make record tables with UI-library tables; use `canvas-table-integration`.
+- Do not invent business API shapes, permissions, approval states, persistence rules, or DSL changes from `makeui`.
 
 ## Target Make App structure
 
@@ -74,6 +111,16 @@ packages:
 `apps/package.json` must provide runnable entry scripts such as `app:ui`, `app:service`, and `dev`. Filter targets must match the actual package names. If package names are scoped, for example `@expense-poc/ui`, use the scoped names in `pnpm --filter`.
 
 For legacy-project refactors, do not finish after moving source files into `apps/ui` or `apps/service`. Verify and create the missing package manifests, scripts, workspace config, and Node engine declarations before considering the restructure complete. If UI and Service are published as separate K8s apps, both `apps/ui/package.json` and `apps/service/package.json` are required build inputs.
+
+## Build and Service config baseline
+
+When generating or reorganizing a Make App project:
+
+- The frontend build output must be `apps/ui/dist`. Generated or updated `apps/ui/vite.config.ts` should set `build.outDir: "dist"` and `build.emptyOutDir: true`. Do not publish, upload, or point static asset discovery at a root `dist` or `apps/dist`.
+- Service must have one centralized runtime config entry. For new projects, use `apps/service/src/config.ts`. For legacy projects, preserve an existing equivalent config entry if it already centralizes runtime config; otherwise add `apps/service/src/config.ts`.
+- Service config may read environment variables such as `MAKE_API_BASE_URL`, `MAKE_SERVER_URL`, or the host project's existing equivalent name. Follow existing naming instead of forcing a rename.
+- `makeui` must not decide which environment connects to which Make domain, gateway, or API host. Domain mapping, gateway routing, and secret injection belong to backend, operations, Make tooling, or the deployed Service runtime.
+- `apps/service/.env.example` may expose config keys with blank placeholders, but must not include real tokens or hard-code production, staging, or test Make API domains. Make API URL examples belong to `makedsl`/`makecli` references, not Make UI generation rules.
 
 ## Make App Auth Dependency
 
@@ -127,7 +174,7 @@ Before generating or editing UI:
 1. Inspect the project for existing Node runtime requirements, frontend stack, component library, styling solution, routes, layout shell, and page patterns.
 2. Use existing project conventions first.
 3. Identify the host data flow: UI -> Service -> Make API, or auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
-4. If reorganizing into `apps/`, verify the workspace package baseline and plan any missing `package.json`, workspace, scripts, and Node engine changes before editing UI code.
+4. If reorganizing into `apps/`, verify the workspace package baseline, `apps/ui/dist` build output, and Service config baseline before editing UI code.
 5. Verify the project Node runtime is compatible with the Make default baseline or the project's stricter requirement.
 6. If the project is being created from scratch and no component library is established, stop before scaffolding component-library-specific UI and require the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it for the user. If the user has not chosen, only produce a component-library-neutral plan or ask the selection question.
 7. If the user did not specify a styling solution and the project has none, Less is an acceptable default candidate.
