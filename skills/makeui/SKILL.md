@@ -1,7 +1,7 @@
 ---
 name: skills/makeui
 description: Use when designing or generating Make App frontend UI, `apps/ui` code, UI, 界面, or 前端代码 with React + Vite + React Router. This skill covers general page layout, visual styling, component placement, simple page interactions, responsive behavior, dynamic object routes, schema-driven Make forms, list pages, create/edit drawers, detail drawers, component-library selection guidance, and route-based form/detail pages when explicitly requested. It requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, including cell editing when needed. It does not cover business modeling, APIs, permissions, data persistence, approval flows, or canvas-table internals.
-version: 0.3.16
+version: 0.3.17
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
@@ -75,6 +75,16 @@ packages:
 
 For legacy-project refactors, do not finish after moving source files into `apps/ui` or `apps/service`. Verify and create the missing package manifests, scripts, workspace config, and Node engine declarations before considering the restructure complete. If UI and Service are published as separate K8s apps, both `apps/ui/package.json` and `apps/service/package.json` are required build inputs.
 
+## Build and Service config baseline
+
+When generating or reorganizing a Make App project:
+
+- The frontend build output must be `apps/ui/dist`. Generated or updated `apps/ui/vite.config.ts` should set `build.outDir: "dist"` and `build.emptyOutDir: true`. Do not publish, upload, or point static asset discovery at a root `dist` or `apps/dist`.
+- Service must have one centralized runtime config entry. For new projects, use `apps/service/src/config.ts`. For legacy projects, preserve an existing equivalent config entry if it already centralizes runtime config; otherwise add `apps/service/src/config.ts`.
+- Service config may read environment variables such as `MAKE_API_BASE_URL`, `MAKE_SERVER_URL`, or the host project's existing equivalent name. Follow existing naming instead of forcing a rename.
+- `makeui` must not decide which environment connects to which Make domain, gateway, or API host. Domain mapping, gateway routing, and secret injection belong to backend, operations, Make tooling, or the deployed Service runtime.
+- `apps/service/.env.example` may expose config keys with blank placeholders, but must not include real tokens or hard-code production, staging, or test Make API domains. Make API URL examples belong to `makedsl`/`makecli` references, not Make UI generation rules.
+
 ## Make App Auth Dependency
 
 When generating or modifying Make App frontend authentication, always apply `make-app-auth`.
@@ -114,7 +124,7 @@ Before generating or editing UI:
 1. Inspect the project for existing Node runtime requirements, frontend stack, component library, styling solution, routes, layout shell, and page patterns.
 2. Use existing project conventions first.
 3. Identify the host data flow: UI -> Service -> Make API, or auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
-4. If reorganizing into `apps/`, verify the workspace package baseline and plan any missing `package.json`, workspace, scripts, and Node engine changes before editing UI code.
+4. If reorganizing into `apps/`, verify the workspace package baseline, `apps/ui/dist` build output, and Service config baseline before editing UI code.
 5. Verify the project Node runtime is compatible with the Make default baseline or the project's stricter requirement.
 6. If the project is being created from scratch and no component library is established, stop before scaffolding component-library-specific UI and require the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it for the user. If the user has not chosen, only produce a component-library-neutral plan or ask the selection question.
 7. If the user did not specify a styling solution and the project has none, Less is an acceptable default candidate.
