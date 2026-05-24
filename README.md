@@ -75,6 +75,7 @@ npx skills update make-app-auth
 - 本地开发默认使用 token/no-unified-login 模式，不要求 ngrok 或 Org 回调白名单
 - 专项测试统一登录、OAuth、SSO、Cookie、logout、redirect callback
 - 处理 Token 失效、权限不足、登录态过期和退出链路
+- 约束所有 Make 后端请求通过共享 API adapter 包装 `auth.api`，统一处理 401/403
 - 约束前端不要手写 `Authorization`、不要操作 `zs_session`、不要自行拼 Org OAuth/logout URL
 
 ### make-integration

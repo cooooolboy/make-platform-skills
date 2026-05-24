@@ -135,6 +135,8 @@ Preserve the host project's declared data flow. If project instructions, `apps/d
 Hard boundary:
 
 - Use `@qfeius/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
+- All Make backend requests must go through a shared Make API adapter or data-source layer that wraps `auth.api`; do not scatter direct `auth.api` calls across UI components without the shared 401/403 handler.
+- Schema/meta, list, get, create, update, delete, attachment/file, lookup, user, and department candidate requests are all Make backend requests and must follow the same adapter rule.
 - If App code needs to pass SDK `gatewayBaseUrl`, reuse the host Make backend config / `makecli` `server-url` value. Do not create another URL setting for the same Make backend.
 - Do not hand-write `Authorization`.
 - Do not hard-code Org, unified-login, or account-center domains; those URLs must come from make-gateway through `make-app-auth`.
@@ -192,7 +194,7 @@ Before generating or editing UI:
 - route-based pages only when the user explicitly asks for a page, route, navigation, or standalone screen
 
 12. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-13. For Make App frontend authentication, login, logout, token mode, unified login, or authenticated `/api/make/**` behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
+13. For Make App frontend authentication, login, logout, token mode, unified login, authenticated `/api/make/**`, or business-request 401/403 behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
 14. For any Make record table or list table, use `@qfei-design/canvas-table` through `canvas-table-integration`. This includes table display and cell editing. This skill only defines the surrounding layout and placement. Do not add pagination controls, page-size controls, page state, page query params, total-count handling, or paginated data-fetch logic unless the user explicitly asks for pagination.
 
 ## Required references

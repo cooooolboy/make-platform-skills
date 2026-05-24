@@ -35,8 +35,10 @@ Behavior:
 
 - Show only a neutral loading state while the browser is being redirected.
 - Use `auth.login({ redirect: true })` to enter the Org login page.
+- If the current App session may be stale or broken, first clear the App session with `auth.logout({ redirect: false })`, then call `auth.login({ redirect: true })`. Ignore logout failures in this recovery path so the browser is not stranded.
 - Do not render an App-owned login page, login transition page, or signed-out completion page.
 - Do not silently redirect on every API call.
+- Do not leave business views in a schema/list/create/update/delete error state for 401. Route 401 through the shared expired-session handler.
 
 Logout:
 
@@ -50,16 +52,21 @@ The SDK calls make-gateway logout and follows the gateway-provided App `redirect
 
 ## Error Handling Pattern
 
+Handle 401/403 in one Make API adapter or data-source layer. Every frontend request to the Make backend, including schema/meta, records, lookup, user, department, and file APIs, must go through that shared handler.
+
 ```js
-try {
-  await auth.api.post('/data/v1/record', payload);
-} catch (error) {
+async function handleMakeRequestError(error) {
   if (error instanceof MakeAppUnauthorizedError) {
     if (authMode === 'token') {
       renderTokenExpired({ message: '当前调试 Token 已失效，请更新 Token 后重试。' });
       return;
     }
     renderLoading();
+    try {
+      await auth.logout({ redirect: false });
+    } catch {
+      // Recovery must continue to login; logout failure should not strand the user.
+    }
     await auth.login({ redirect: true });
     return;
   }
@@ -69,13 +76,22 @@ try {
     return;
   }
 
-  renderError(error.message);
+  throw error;
+}
+
+try {
+  await auth.api.post('/data/v1/record', payload);
+} catch (error) {
+  await handleMakeRequestError(error);
 }
 ```
 
 ## Anti-patterns
 
 - Redirecting to Org automatically on every 401 in token mode.
+- Handling 401 only in App bootstrap while business requests use unhandled `auth.api` calls.
+- Calling `auth.api` directly from scattered UI components without the shared 401/403 handler.
+- Using raw `window.fetch('/api/make/...')` for any Make backend request.
 - Rebuilding Org authorize/logout URLs in App code.
 - Hard-coding Org, unified-login, or account-center environment domains in App code.
 - Clearing `zs_session` or `make_app_session` from App code.

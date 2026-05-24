@@ -61,4 +61,5 @@ ngrok only exposes the frontend. It does not automatically forward `/api/make/**
 - Confirm `/api/make/**` reaches make-gateway.
 - Complete Org login and callback in the same browser.
 - Confirm the next protected `/api/make/**` request succeeds without hand-written `Authorization`.
+- Confirm business-request 401 from schema/meta/list/create/update/delete/file/user/department APIs goes through the shared Make API adapter and redirects into Org login recovery.
 - Confirm logout uses the SDK and follows the make-gateway-provided App `redirectUri`. A browser stuck on a gateway `/api/org/public/sso/logout` or account-center URL means the gateway logout response or route configuration should be fixed, not patched in App UI code.

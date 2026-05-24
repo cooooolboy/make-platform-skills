@@ -17,7 +17,7 @@ Most false diagnoses come from applying unified-login assumptions to token-mode 
 
 - Active auth mode: `token`, `unified`, or `mock`.
 - Request URL and status for the failing `/api/make/**` call.
-- Whether the request was made through `auth.api`.
+- Whether the request was made through the shared Make API adapter that wraps `auth.api`.
 - Browser request headers: especially Cookie and Authorization presence, without exposing full token values in reports.
 - User-facing message shown by the App.
 - make-gateway response body, request ID, or trace ID when available.
@@ -31,7 +31,7 @@ For 401:
 - Confirm `gatewayBaseUrl` matches the intended Make backend API base. It should normally reuse the host Make backend config / `makecli` `server-url`, not a separately invented URL.
 - For local dev, prefer `/api/make` plus dev-server proxy unless explicitly using a direct environment gateway.
 - Confirm browser code is not trying to read `~/.make/credentials`.
-- Confirm `auth.api` is adding `Authorization`; App code should not hand-write it.
+- Confirm the shared Make API adapter uses `auth.api`, and that `auth.api` is adding `Authorization`; App code should not hand-write it.
 - Confirm business code passes relative paths to `auth.api`; arbitrary absolute URLs are rejected and must not receive `Authorization`.
 - Confirm the token is valid against Org verify endpoint or a known protected Make API.
 
@@ -48,6 +48,7 @@ For redirect/callback failures:
 - Confirm the App is reachable through a registered external HTTPS domain or ngrok.
 - Confirm Org whitelist contains the exact callback `redirect_uri`.
 - Confirm `/api/make/**` routes to make-gateway from that domain.
+- Confirm every schema/meta/list/create/update/delete/file/user/department request goes through the shared Make API adapter, not scattered unhandled `auth.api` calls or raw fetch.
 - Confirm browser accepts and sends cookies for the App domain.
 - Confirm the page does not auto-loop login on every 401.
 
@@ -82,6 +83,7 @@ For logout problems:
 - `token_forbidden`: 403 in token mode.
 - `redirect_uri_not_whitelisted`: Org rejects callback.
 - `api_proxy_missing`: frontend loads, but `/api/make/**` does not reach make-gateway.
+- `api_adapter_missing`: Make backend requests bypass the shared adapter, so business-request 401 is not routed into the login recovery flow.
 - `cookie_not_set`: exchange/login succeeded but browser has no App session cookie.
 - `cookie_not_sent`: browser stores cookie but request does not include it.
 - `logout_contract_mismatch`: App expects redirect/link but gateway returns a different shape.

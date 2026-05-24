@@ -44,6 +44,8 @@ Mode selection:
 
 - Always use `@qfeius/make-app-auth`; do not fork a separate auth implementation.
 - Business requests to Make backend must go through `auth.api` under `/api/make/**`.
+- All frontend requests to Make backend must go through `auth.api`, including schema/meta, list, get, create, update, delete, attachment/file, lookup, user, and department candidate requests.
+- Generated Apps must centralize Make backend access in a shared API adapter or data-source layer that wraps `auth.api` and handles `MakeAppUnauthorizedError` / `MakeAppForbiddenError`. Do not scatter direct `auth.api` calls across UI components without the shared 401/403 handler.
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`; token mode must provide tokens through SDK options.
 - `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the `makecli` `server-url` value; do not create a second environment concept for the same URL.
@@ -66,8 +68,9 @@ Mode selection:
    - Unified login testing: `references/unified-login-mode.md`
    - 401, 403, logout: `references/logout-and-401.md`
    - Incident/debugging: `references/troubleshooting.md`
-4. Keep auth bootstrap thin. Business features must consume `auth.api` and auth state, not auth internals.
-5. When changing generated code, add or update tests for the touched auth path: missing token, expired token, 403, logout, or unified-login redirect.
+4. Keep auth bootstrap thin. Business features must consume the project Make API adapter and auth state, not auth internals.
+5. Verify every Make backend request path uses the shared adapter and that the adapter catches `MakeAppUnauthorizedError` / `MakeAppForbiddenError`.
+6. When changing generated code, add or update tests for the touched auth path: missing token, expired token, 403, logout, unified-login redirect, or business-request 401 handling.
 
 ## Reference Selection
 
