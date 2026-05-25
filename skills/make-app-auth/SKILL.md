@@ -94,7 +94,7 @@ Token mode:
 Unified mode:
 
 - Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page; do not show an App-owned login page.
-- Generated unified-login Apps should pass `apiAuthRedirect: true` so Make API 401/403 responses are handled by the SDK instead of hand-written App wrappers.
+- Generated unified-login Apps should pass `apiAuthRedirect: true` only when the installed SDK version supports it. During SDK development, use the `make-app-auth-sdk` Git branch dependency that contains `apiAuthRedirect`; after release, use the first npm version that documents this option.
 - Do not generate an App-owned login page, login transition page, or signed-out completion page. The only acceptable unauthenticated UI is a neutral loading state while the browser is being redirected.
 - Authenticated App shell must expose a visible logout action, normally in the top header near the current user/avatar.
 - Login and logout must use SDK APIs.

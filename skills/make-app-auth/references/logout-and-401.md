@@ -35,9 +35,9 @@ Behavior:
 
 - Show only a neutral loading state while the browser is being redirected.
 - Use `auth.login({ redirect: true })` to enter the Org login page.
-- If the current App session may be stale or broken, first clear the App session with `auth.logout({ redirect: false })`, then call `auth.login({ redirect: true })`. Ignore logout failures in this recovery path so the browser is not stranded.
+- If the current App session is diagnosed as stale or broken, clear the App session with `auth.logout({ redirect: false })`, then call `auth.login({ redirect: true })`. Do not make logout-before-login the default 401 path.
 - Do not render an App-owned login page, login transition page, or signed-out completion page.
-- Prefer `createMakeAppAuth({ apiAuthRedirect: true })` for generated unified-login Apps so SDK handles API 401/403 redirect checks with built-in loop protection.
+- Prefer `createMakeAppAuth({ apiAuthRedirect: true })` for generated unified-login Apps when the installed SDK version supports it, so SDK handles API 401/403 redirect checks with built-in loop protection.
 - Do not leave business views in a schema/list/create/update/delete error state for 401. Route 401 through the shared expired-session handler.
 - If `auth.init({ redirect: true })` returns `reason="state_expired"` or `reason="challenge_expired"`, show `登录已过期，请重新登录` and wait for the user to click.
 - After the user clicks relogin, call `auth.login({ redirect: true })`. Do not implement multiple automatic retries.
@@ -64,12 +64,9 @@ async function handleMakeRequestError(error) {
       return;
     }
     renderLoading();
-    try {
-      await auth.logout({ redirect: false });
-    } catch {
-      // Recovery must continue to login; logout failure should not strand the user.
+    if (!makeAuthConfig.apiAuthRedirect) {
+      await auth.login({ redirect: true });
     }
-    await auth.login({ redirect: true });
     return;
   }
 
@@ -88,7 +85,7 @@ try {
 }
 ```
 
-When `apiAuthRedirect: true` is enabled, most unified-login API 401/403 cases will redirect before the App can render an error. Keep the catch block for token mode, permission-denied responses without a login challenge, and network/runtime failures.
+When `apiAuthRedirect: true` is enabled, most unified-login API 401/403 cases will redirect before the App can render an error. Keep the catch block for token mode, permission-denied responses without a login challenge, and network/runtime failures. Do not duplicate the SDK redirect with another unconditional `auth.login()` call.
 
 ## Anti-patterns
 

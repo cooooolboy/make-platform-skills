@@ -1,5 +1,12 @@
 # makeui 接入 make-app-auth-sdk 规则更新
 
+## 2026-05-25 收口
+
+- 删除仓库内 `.DS_Store` 并加入 `.gitignore`，避免 macOS 元数据继续进入 skill 包。
+- 明确 `apiAuthRedirect` 依赖支持该选项的 SDK 版本；npm 未发布前使用 SDK 开发分支依赖。
+- 调整 401/403 adapter 示例：SDK 自动跳转优先，adapter 只做集中调用、token 模式提示和不可跳转兜底。
+- 同步 `skills/makeui/references/principles.md` 的 Service-fronted unified login 数据流，避免 reference 仍生成旧直连链路。
+
 ## 2026-05-25
 
 - 补充 Service-fronted unified login 规则：UI 通过 `auth.api("/app/**")` 调 Service，Service 再访问 k8s 内部 make-gateway。

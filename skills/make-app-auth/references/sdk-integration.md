@@ -36,7 +36,7 @@ During the current SDK development/debugging stage, prefer the Git branch depend
 }
 ```
 
-After the SDK contract stabilizes, switch generated Apps back to the npm semver dependency.
+`apiAuthRedirect` is currently a post-`0.1.1` SDK capability on the development branch above. Do not generate this option with the npm `^0.1.1` dependency unless that npm line has already released and documented `apiAuthRedirect`. After the SDK contract stabilizes and is published, switch generated Apps back to the npm semver dependency that includes this option.
 
 ## Startup Shape
 
@@ -91,7 +91,7 @@ For a deployed same-origin unified-login App, prefer the SDK default `/api/make`
 
 Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it and will not attach token-mode `Authorization`.
 
-For unified-login Apps, set `apiAuthRedirect: true`. Then business API 401/403 responses trigger the SDK to reuse `auth.login({ redirect: true })`; the SDK still applies redirect guards so the same return URL cannot loop indefinitely. Token mode must not redirect to Org.
+For unified-login Apps, set `apiAuthRedirect: true` only when the installed SDK version supports it. Then business API 401/403 responses trigger the SDK to reuse `auth.login({ redirect: true })`; the SDK still applies redirect guards so the same return URL cannot loop indefinitely. Token mode must not redirect to Org.
 
 ```js
 const auth = createMakeAppAuth({
@@ -159,16 +159,20 @@ If a list request has no real filters, omit `filter`. Do not send `filter: []`.
 
 Keep the request adapter small and central. Business functions may normalize request and response payloads, but auth failures must go through one shared handler.
 
+When `apiAuthRedirect: true` is available, the SDK owns the normal unified-login 401/403 redirect. The shared adapter still owns three things: preventing scattered `auth.api` calls, token-mode user messages, and fallback UI for errors that cannot redirect.
+
 ```js
 async function handleMakeRequestError(error) {
   if (error instanceof MakeAppUnauthorizedError) {
-    showNeutralLoading();
-    try {
-      await auth.logout({ redirect: false });
-    } catch {
-      // Keep recovery moving; a failed cleanup must not strand the user.
+    if (authMode === 'token') {
+      renderTokenExpired({ message: '当前调试 Token 已失效，请更新 Token 后重试。' });
+      return;
     }
-    await auth.login({ redirect: true });
+
+    showNeutralLoading();
+    if (!makeAuthConfig.apiAuthRedirect) {
+      await auth.login({ redirect: true });
+    }
     return;
   }
 
@@ -190,6 +194,8 @@ export async function listRecords(payload) {
   }
 }
 ```
+
+Do not call `auth.logout({ redirect: false })` as the default 401 path when `apiAuthRedirect` is enabled. Use logout-before-login only for a diagnosed stale or corrupted App session, not as the normal request adapter behavior.
 
 Do not leave some Make requests handled by the adapter and others handled ad hoc in UI components. A missed schema, lookup, file, user, or department request can otherwise strand the user in a business error state instead of entering the unified login flow.
 
