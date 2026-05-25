@@ -70,7 +70,7 @@ Useful for sequence numbers.
 - `enabled: true`
 - optional `formatter(row, index)` for custom numbering
 
-For Make record lists, enable sequence numbers by default.
+Enable sequence numbers by default for every table unless the user explicitly says the table does not need row sequence numbers.
 
 #### `selectable`
 
@@ -96,7 +96,7 @@ Use for compact row-head actions that visually belong beside the sequence number
 - `width`: the reserved suffix width
 - `render({ group, cell, x, y, height, rowData, index })`: add shapes to the provided row-head group
 
-For Make record lists, add an open-detail icon after the sequence number by default. Clicking that icon should open the record detail Drawer or the host project's established detail surface. Read `row-head-action-patterns.md`.
+For every table, add an open-detail icon after the sequence number by default unless the user explicitly says the table does not need a detail entry. The normal row-head state shows the sequence number; row hover or keyboard focus reveals the icon; clicking the icon opens the row detail Drawer or the host project's established detail surface. Read `row-head-action-patterns.md`.
 
 #### `emptyStateOptions`
 

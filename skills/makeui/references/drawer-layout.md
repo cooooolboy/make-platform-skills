@@ -1,5 +1,14 @@
 # Drawer layout
 
+## Contents
+
+- [Default mode](#default-mode)
+- [Header actions](#header-actions)
+- [Create / edit Drawer](#create--edit-drawer)
+- [Detail Drawer](#detail-drawer)
+- [Stacked Drawers](#stacked-drawers)
+- [Drawer scrolling](#drawer-scrolling)
+
 ## Default mode
 
 Create, edit, and detail UIs default to a right-side Drawer.
@@ -48,26 +57,41 @@ Recommended structure:
 Form layout:
 
 - group fields into sections
-- create/edit forms can use a dedicated modifier class or style scope when their visual treatment differs from detail Drawers
-- for schema-driven forms where backend field names may be long or unpredictable, consider vertical labels in a two-column grid before choosing horizontal labels
+- create/edit forms use a dedicated modifier class or style scope when their visual treatment differs from detail Drawers
+- default to vertical labels in a two-column grid for schema-driven forms, because backend field names may be long or unpredictable
 - horizontal label/value alignment remains acceptable when labels are short, stable, or already established by the project
 - use a subtle neutral Drawer body with one lightweight white form panel or section panels; avoid visually heavy cards and nested cards
 - keep form panels compact: moderate padding, 6-8px radius, thin neutral border, and low shadow at most
 - common fields use a two-column grid on desktop
 - long text, descriptions, and rich content span full width
 - collapse to one column on small screens
+- show form-level save errors as a compact `Alert` above the first form panel
+- keep control height and radius consistent, for example 36px controls with 6px radius when using Ant Design
+
+Unless the user or existing project asks otherwise, use the ExpensePoc create/edit Drawer as the default visual baseline:
+
+- `Drawer` on the right, width `60%`, fullscreen toggle can expand to `100%`
+- `layout="vertical"` form, `colon={false}`
+- header badge shows mode such as `新建` or `编辑`; right side contains primary save and final close
+- one white form panel for normal writable fields, and a second section panel for relation/association fields when needed
+- panel padding around `16px`, thin neutral border, 8px radius, low shadow at most
+- grid `repeat(2, minmax(0, 1fr))` with roughly `10px 18px` gaps
+- full-span rows for textarea, long text, URL-rich, attachment, lookup, or otherwise wide controls
+- body scrolls inside the Drawer; the page behind it does not scroll
 
 Schema-driven Make forms:
 
-- read the DSL/schema before generating create/edit Drawer fields
+- load field metadata from the runtime schema API before rendering create/edit Drawer fields
+- do not read `apps/dsl`, `/dsl`, or YAML files from generated UI or Service runtime code
 - derive field labels, editability, and control choice from schema metadata when available
 - use the field component mapping in `component-usage.md`
 - use date pickers for date fields, searchable selectors for user/department fields, select controls for select fields, mode-safe attachment controls for file fields, and read-only/association displays for lookup fields
 - do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
+- user and department selectors load candidates from backend APIs such as `/api/users` and `/api/departments`, with search, loading, empty, error, and retry states
 - create mode must omit `Make.Field.File` upload fields when the upload API requires a saved `recordID`; the new record has no `recordID` yet, so do not render fake upload controls, local-only attachment fields, or include file values in the create payload
 - edit mode may render `Make.Field.File` controls only when a stable persisted record id exists; upload/delete calls stay in the host data-source or Service API adapter
 - detail mode may display file fields as attachments, thumbnails, or file links and may offer explicit follow-up actions when supported
-- if schema or candidate APIs are missing, state the reason and generate an explicit fallback with a later API integration point
+- if schema or candidate APIs are missing, state the reason and ask before generating an explicit fallback with a later API integration point
 
 Action placement:
 

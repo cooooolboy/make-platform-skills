@@ -1,7 +1,6 @@
 ---
 name: make-app-auth
 description: Use when generating, modifying, reviewing, or debugging Make App authentication and authenticated /api/make requests with @qfeius/make-app-auth. Covers local token mode, unified login/OAuth/ngrok mode, 401/403 handling, logout, cookies, sessions, redirect callbacks, and Make App auth troubleshooting.
-version: 0.1.1
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/make-app-auth
 ---

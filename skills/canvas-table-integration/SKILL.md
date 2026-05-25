@@ -22,7 +22,7 @@ This skill has three tracks:
   - basic local table
   - virtual remote table
   - common public props / methods / events
-  - default row sequence numbers and open-detail row-head suffix action
+  - default row sequence numbers and hover-revealed open-detail row-head suffix action
   - optional row selection / drag / summary / empty state
   - row-head suffix actions such as an open-detail icon after the sequence number
   - lightweight `render + TextShape + shape click`
@@ -55,8 +55,9 @@ If the user says display-only, field type display, or schema field rendering, ch
 3. Choose exactly one primary track: Track A display table, Track B editable cells, or Track C Make field display.
 4. Read only the track references from the topic map.
 5. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
-6. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
-7. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
+6. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
+7. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
+8. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
 
 ## Typical requests
 
@@ -66,7 +67,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 - 把现有列表替换成 canvas table
 - 接一个本地数据表格
 - 接后端分页 / 虚拟滚动表格（仅在用户明确要求分页或虚拟加载时）
-- 默认显示行序号和进入详情图标
+- 只要接入表格，默认显示行序号，行 hover 时在行头显示进入详情图标；除非用户明确说不需要详情入口
 - 按需做行选择、汇总、空状态、固定列
 - 在序号列 / 行头后面添加进入详情、展开、快捷操作图标
 - 把单元格渲染成可点击文本 / 链接
@@ -199,8 +200,8 @@ Use Track A for:
 - `virtual remote table`, only when the user explicitly asks for pagination, virtual loading, or paginated backend integration
 - common public `IColumn` / `TableCanvasProps` / instance-method usage
 - stable event-bus wiring
-- default sequence-number row head through `showSN`
-- default open-detail icon through `bodyRowHeadSuffixOptions`
+- default sequence-number row head through `showSN` for every table unless explicitly disabled
+- default hover-revealed open-detail icon through `bodyRowHeadSuffixOptions` for every table unless explicitly disabled
 - optional row selection when the user asks for selection, batch actions, or multi-record operations
 - row drag
 - column drag
