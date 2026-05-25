@@ -3,7 +3,7 @@
 ## 2026-05-25
 
 - 补充 Service-fronted unified login 规则：UI 通过 `auth.api("/app/**")` 调 Service，Service 再访问 k8s 内部 make-gateway。
-- 涉及 `skills/make-app-auth/*`、`skills/makeui/SKILL.md`、`skills/makecli/SKILL.md`、`skills/makedsl/SKILL.md`。
+- 涉及 `skills/make-app-auth/*`、`skills/makeui/SKILL.md`、`skills/makedsl/SKILL.md`。
 - 明确 SDK 生成配置使用 `apiAuthRedirect: true`，由 SDK 统一处理业务 API 401/403 登录跳转。
 - 明确 Service 内部业务路由使用 `/make/meta|data/**`，认证代理使用 `/api/make/auth/**`，`session/complete` 代理不得吞掉 302。
 - 明确发布态 Service 不应依赖硬编码 `/dsl/00-app.yaml`，schema 应从远端 API 或环境配置加载。

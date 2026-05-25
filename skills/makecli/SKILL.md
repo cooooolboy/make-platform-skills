@@ -106,34 +106,6 @@ makecli configure get server-url
 **Profiles:** All commands accept `--profile <name>` (default: "default").
 **Config files:** `~/.make/credentials` and `~/.make/config` (INI format).
 
-## Workflow: Vibe App Build And Deployment
-
-Use this when makecli triggers environment-specific build-service and deployment-service.
-
-Environment model:
-
-- Each environment owns its build-service and deployment-service. Once the user triggers that environment, build and deploy already know the target namespace, gateway, registry, app domain, and runtime config.
-- Frontend published Apps should normally keep `gatewayBaseUrl=/api/make`; do not inject `MAKE_API_TOKEN` or user makecli tokens into browser runtime.
-- Service runtime uses the same environment config and, inside k8s, calls make-gateway by service name. For the dev namespace this is normally `http://make-gateway`.
-- Service-to-gateway business APIs use `/make/meta/**` and `/make/data/**`; auth proxy APIs use `/api/make/auth/**`.
-- Service should listen on port `3000` unless the environment contract says otherwise.
-- Published Service should load schema from Make remote schema APIs or Service config, not from a hard-coded container path such as `/dsl/00-app.yaml`.
-
-Verification after push:
-
-```bash
-kubectl rollout status deploy/<app-service-deploy> -n <namespace>
-kubectl get pod -n <namespace> | rg '<app-service>|<app-ui>'
-kubectl logs -n <namespace> deploy/make-gateway --since=5m | rg '/make/meta|/make/data|/api/make/auth|App Runtime'
-```
-
-For browser validation, confirm:
-
-- App root loads on the published domain.
-- `current-context` either redirects to Org login or returns authenticated context.
-- Business calls go `UI -> /api/make/app/** -> Service -> make-gateway /make/**`.
-- No gateway 404 appears for `/api/make/meta/**` or `/api/make/data/**` from Service.
-
 ## Common Patterns
 
 **From zero to deployed app:**
