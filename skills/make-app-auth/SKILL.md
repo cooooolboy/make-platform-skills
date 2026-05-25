@@ -1,7 +1,6 @@
 ---
 name: make-app-auth
-description: Use when generating, modifying, reviewing, or debugging Make App authentication and authenticated /api/make requests with @qfei/make-app-auth. Covers local token mode, unified login/OAuth/ngrok mode, 401/403 handling, logout, cookies, sessions, redirect callbacks, and Make App auth troubleshooting.
-version: 0.1.1
+description: Use when generating, modifying, reviewing, or debugging Make App authentication and authenticated /api/make requests with @qfeius/make-app-auth. Covers local token mode, unified login/OAuth/ngrok mode, 401/403 handling, logout, cookies, sessions, redirect callbacks, and Make App auth troubleshooting.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/make-app-auth
 ---
@@ -14,7 +13,7 @@ Use this skill for **Make App authentication and authenticated Make API access**
 
 This skill covers:
 
-- `@qfei/make-app-auth` SDK integration
+- `@qfeius/make-app-auth` SDK integration
 - local token mode with unified login disabled
 - unified login, OAuth, SSO, ngrok, cookie, logout, and callback testing
 - `/api/make/**` authenticated requests
@@ -42,10 +41,13 @@ Mode selection:
 
 ## Hard Rules
 
-- Always use `@qfei/make-app-auth`; do not fork a separate auth implementation.
+- Always use `@qfeius/make-app-auth`; do not fork a separate auth implementation.
 - Business requests to Make backend must go through `auth.api` under `/api/make/**`.
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`; token mode must provide tokens through SDK options.
+- `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the `makecli` `server-url` value; do not create a second environment concept for the same URL.
+- `gatewayBaseUrl` is not the unified login or account-center URL. Prefer the SDK default `/api/make` for deployed same-origin Apps.
+- Do not configure or hard-code unified login, Org, or account-center URLs in generated App code; make-gateway returns those URLs.
 - Do not read, write, persist, or delete `zs_session` or `make_app_session` in App code.
 - Do not construct Org OAuth URLs, `redirect_uri`, `state`, `code_challenge`, token exchange, or Org logout URLs in generated App code.
 - Browser code cannot read `~/.make/credentials`.
@@ -81,13 +83,16 @@ Token mode:
 - Missing token renders a token-required state.
 - Expired token renders: `当前调试 Token 已失效，请更新 Token 后重试。`
 - 403 renders: `当前 Token 无权限访问该资源。`
+- `auth.api` may attach `Authorization`, but only to URLs under the configured Make API gateway base; generated business code should pass relative paths such as `/data/v1/record`.
 - Do not redirect to Org and do not call OAuth challenge.
 
 Unified mode:
 
-- Unauthenticated state may show a user-click login action.
+- Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page; do not show an App-owned login page.
+- Do not generate an App-owned login page, login transition page, or signed-out completion page. The only acceptable unauthenticated UI is a neutral loading state while the browser is being redirected.
 - Authenticated App shell must expose a visible logout action, normally in the top header near the current user/avatar.
 - Login and logout must use SDK APIs.
+- Formal unified-login Apps should not pass `accessToken`, `token`, or `tokenProvider`; successful login relies on the App session Cookie written by make-gateway.
 - Logout UI should call `auth.logout()` or the project auth wrapper that delegates directly to `auth.logout()`; do not add App-side Org logout URL fallback logic.
 - Callback testing requires a registered external domain or ngrok plus Org redirect whitelist.
 

@@ -33,9 +33,9 @@ Logout in token mode should only clear local debug state managed by the App or S
 
 Behavior:
 
-- Show login-expired state.
-- Let the user click login.
-- Use `auth.login({ redirect: true })`.
+- Show only a neutral loading state while the browser is being redirected.
+- Use `auth.login({ redirect: true })` to enter the Org login page.
+- Do not render an App-owned login page, login transition page, or signed-out completion page.
 - Do not silently redirect on every API call.
 
 Logout:
@@ -46,7 +46,7 @@ await auth.logout();
 
 Do not construct Org logout URLs in generated App code. make-gateway and Org own global logout behavior.
 
-The SDK owns post-logout redirect compatibility. In unified mode it may clear the App session, fetch the next login challenge, and route the browser through account-center SSO logout before landing on the phone/code login page. Generated App code must not rebuild this flow or consume gateway `orgSsoLogoutUrl` directly.
+The SDK calls make-gateway logout and follows the gateway-provided App `redirectUri`. Generated App code must not rebuild this flow, consume deprecated `orgSsoLogoutUrl` directly, or patch wrong logout URLs in UI code. After the App loads again, `auth.init({ redirect: true })` decides whether the user should enter the Org login page.
 
 ## Error Handling Pattern
 
@@ -59,7 +59,8 @@ try {
       renderTokenExpired({ message: '当前调试 Token 已失效，请更新 Token 后重试。' });
       return;
     }
-    renderLoginExpired({ onLogin: () => auth.login({ redirect: true }) });
+    renderLoading();
+    await auth.login({ redirect: true });
     return;
   }
 
@@ -76,5 +77,6 @@ try {
 
 - Redirecting to Org automatically on every 401 in token mode.
 - Rebuilding Org authorize/logout URLs in App code.
+- Hard-coding Org, unified-login, or account-center environment domains in App code.
 - Clearing `zs_session` or `make_app_session` from App code.
 - Treating 403 as a login-expired state.

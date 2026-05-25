@@ -19,26 +19,30 @@ If these are missing, do not silently fall back to broken OAuth. Use token mode 
 
 ```js
 const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
   unifiedLogin: true
 });
 
-const boot = await auth.init({ redirect: false });
+const boot = await auth.init({ redirect: true });
 
 if (boot.status === 'authenticated') {
   renderApp({ auth, context: boot.context });
+} else if (boot.status === 'redirecting') {
+  renderLoading();
 } else {
-  renderLogin({ onLogin: () => auth.login({ redirect: true }) });
+  await auth.login({ redirect: true });
 }
 ```
 
 ## Rules
 
-- Login must be user-click initiated unless the task explicitly asks for an auto-redirect flow.
+- Published unified-login Apps should use the Org login page directly. Do not render an App-owned login page, login transition page, or signed-out completion page.
+- Keep only a neutral loading state while SDK/browser redirection is in progress.
+- Formal unified-login Apps must not pass `accessToken`, `token`, or `tokenProvider`; after login, browser requests rely on the App session Cookie written by make-gateway.
+- Unified login challenge URLs are returned by make-gateway. Logout returns an App `redirectUri`; App UI code must not configure or hard-code account-center or Org logout URLs.
 - Do not construct Org authorize URLs in App code.
 - Do not handle `code` or `state` in App code unless the SDK contract explicitly requires it.
 - Do not use the App domain directly as an Org logout `redirect_uri`.
-- Do not normalize or rewrite `orgSsoLogoutUrl` in App code. `@qfei/make-app-auth` owns the compatibility flow: clear App session, request the next login challenge, then route through account-center logout when needed.
+- Do not normalize or rewrite `orgSsoLogoutUrl` in App code. `@qfeius/make-app-auth` calls make-gateway logout and follows the gateway-provided App `redirectUri`.
 - Authenticated unified-login pages must include a visible logout button or icon in the App shell header so testers can re-enter the phone/code login flow without editing cookies.
 - Test callback and cookie behavior in a real browser, not only curl.
 - Keep environment-specific domains in configuration or gateway responses, not hard-coded App UI logic.
@@ -57,4 +61,4 @@ ngrok only exposes the frontend. It does not automatically forward `/api/make/**
 - Confirm `/api/make/**` reaches make-gateway.
 - Complete Org login and callback in the same browser.
 - Confirm the next protected `/api/make/**` request succeeds without hand-written `Authorization`.
-- Confirm logout uses the SDK and reaches the account-center phone/code login page. A browser stuck on `dev-make-console.../api/org/public/sso/logout` with `token不能为空` means the App is bypassing the SDK compatibility flow or using an outdated SDK.
+- Confirm logout uses the SDK and follows the make-gateway-provided App `redirectUri`. A browser stuck on a gateway `/api/org/public/sso/logout` or account-center URL means the gateway logout response or route configuration should be fixed, not patched in App UI code.

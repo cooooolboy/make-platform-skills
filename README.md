@@ -63,7 +63,7 @@ npx skills update skills/makeui
 - 不负责认证细节；认证、Token、统一登录、logout 和 `/api/make/**` 请求规则交给 `make-app-auth`
 
 ### make-app-auth
-指导 Make App 前端接入 `@qfei/make-app-auth`，覆盖本地 token 模式、统一登录模式、`/api/make/**` 鉴权请求、401/403、logout、Cookie/Session/redirect 排障。
+指导 Make App 前端接入 `@qfeius/make-app-auth`，覆盖本地 token 模式、统一登录模式、`/api/make/**` 鉴权请求、401/403、logout、Cookie/Session/redirect 排障。
 
 #### 升级 skill
 ```bash

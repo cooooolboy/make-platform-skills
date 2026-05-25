@@ -1,6 +1,6 @@
 # SDK Integration
 
-Use `@qfei/make-app-auth` for Make App authentication and Make backend requests.
+Use `@qfeius/make-app-auth` for Make App authentication and Make backend requests.
 
 ## Responsibility Boundary
 
@@ -10,29 +10,35 @@ App code owns page state, user-facing messages, and business feature logic.
 
 ## Dependency
 
-Prefer the Git dependency until a published package source is already configured:
+Use the public npm package by default:
 
 ```json
 {
   "dependencies": {
-    "@qfei/make-app-auth": "git+ssh://git@git.qtech.cn/make/make-app-auth-sdk.git#main"
+    "@qfeius/make-app-auth": "^0.1.1"
   }
 }
 ```
 
+Install command:
+
+```bash
+pnpm add @qfeius/make-app-auth --registry=https://registry.npmjs.org/
+```
+
 ## Startup Shape
 
-Generated Apps should not auto-redirect to Org on page load by default. Check auth state first and render a mode-appropriate state.
+Generated Apps default to token mode and should not auto-redirect to Org unless unified login is explicitly enabled. In published unified-login mode, direct App entry should go to the Org login page instead of showing an App-owned login page.
 
 ```js
 import {
   createMakeAppAuth,
   MakeAppUnauthorizedError,
   MakeAppForbiddenError
-} from '@qfei/make-app-auth';
+} from '@qfeius/make-app-auth';
 
 const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
+  gatewayBaseUrl: makeAuthConfig.serverUrl || makeAuthConfig.gatewayBaseUrl || '/api/make',
   unifiedLogin: false,
   tokenProvider: async () => debugToken
 });
@@ -55,6 +61,14 @@ if (boot.status === 'authenticated') {
 ## Business Requests
 
 Use `auth.api` for Make backend calls. The SDK handles `/api/make`, cookies, JSON request bodies, unified auth errors, and token-mode `Authorization` headers.
+
+`gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling this value already exists as `makecli` `server-url` (`makecli configure get server-url`, default `https://dev-make.qtech.cn/api/make`). Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
+
+For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. For local token-mode debugging, materialize the same Make backend `server-url` into browser-safe config such as `VITE_MAKE_SERVER_URL` or the existing project config, then pass it as `gatewayBaseUrl`. Browser code must not read `~/.make/config` directly.
+
+`gatewayBaseUrl` is not the unified login, Org, or account-center URL.
+
+Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it and will not attach token-mode `Authorization`.
 
 ```js
 const body = {
@@ -96,7 +110,7 @@ If a list request has no real filters, omit `filter`. Do not send `filter: []`.
 - 403 forbidden response.
 - Unified-login unauthenticated state does not loop redirects.
 - Authenticated unified-login state exposes a visible logout action wired to `auth.logout()`.
-- Logout does not consume or rewrite `orgSsoLogoutUrl` in App code; SDK owns account-center logout compatibility.
+- Logout does not consume or rewrite `orgSsoLogoutUrl` in App code; the SDK calls make-gateway logout and follows gateway `redirectUri`, which should be an App return URL rather than an account-center or Org logout URL.
 
 ## Never Generate
 
@@ -104,6 +118,8 @@ If a list request has no real filters, omit `filter`. Do not send `filter: []`.
 - Reading, writing, or deleting `zs_session` or `make_app_session`.
 - Browser code that tries to read `~/.make/credentials`.
 - Raw `Authorization` header logic outside the SDK.
+- Hard-coded Org, unified-login, or account-center domains in App code.
+- Passing arbitrary absolute URLs to `auth.api`.
 - Constructing Org OAuth URLs, `redirect_uri`, `state`, or `code_challenge`.
 - Constructing Org logout URLs or adding App-side fallback logic for `token不能为空`.
 - Handling Org OAuth `code` in the App.

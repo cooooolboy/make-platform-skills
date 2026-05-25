@@ -28,8 +28,11 @@ For 401:
 
 - Confirm the SDK was created with `unifiedLogin: false`.
 - Confirm token was provided via `accessToken`, `token`, or `tokenProvider`.
+- Confirm `gatewayBaseUrl` matches the intended Make backend API base. It should normally reuse the host Make backend config / `makecli` `server-url`, not a separately invented URL.
+- For local dev, prefer `/api/make` plus dev-server proxy unless explicitly using a direct environment gateway.
 - Confirm browser code is not trying to read `~/.make/credentials`.
 - Confirm `auth.api` is adding `Authorization`; App code should not hand-write it.
+- Confirm business code passes relative paths to `auth.api`; arbitrary absolute URLs are rejected and must not receive `Authorization`.
 - Confirm the token is valid against Org verify endpoint or a known protected Make API.
 
 Expected user-facing result:
@@ -60,6 +63,7 @@ For logout problems:
 
 - Confirm App calls `auth.logout()`, not a hand-built Org URL.
 - Confirm make-gateway returns the SDK-expected logout result.
+- Confirm make-gateway returns the App return URL as `redirectUri`; account-center or Org logout URLs should not be exposed to generated App code.
 - Confirm token-mode logout is not expected to clear Org browser cookies.
 - In unified mode, verify post-logout browser state with a real browser, not curl only.
 
