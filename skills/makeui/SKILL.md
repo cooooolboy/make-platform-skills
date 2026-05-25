@@ -138,7 +138,7 @@ Hard boundary:
 - Use `@qfeius/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
 - All Make backend requests must go through a shared Make API adapter or data-source layer that wraps `auth.api`; do not scatter direct `auth.api` calls across UI components without the shared 401/403 handler.
 - Schema/meta, list, get, create, update, delete, attachment/file, lookup, user, and department candidate requests are all Make backend requests and must follow the same adapter rule.
-- In unified-login mode, generated SDK config should set `apiAuthRedirect: true` when the installed SDK version supports it, unless the project has a deliberate custom error flow.
+- In unified-login mode, generated SDK config should set `apiAuthRedirect: true` with `@qfeius/make-app-auth >= 0.1.2`, unless the project has a deliberate custom error flow.
 - If App code needs to pass SDK `gatewayBaseUrl`, reuse the host Make backend config / `makecli` `server-url` value. Do not create another URL setting for the same Make backend.
 - Do not hand-write `Authorization`.
 - Do not hard-code Org, unified-login, or account-center domains; those URLs must come from make-gateway through `make-app-auth`.

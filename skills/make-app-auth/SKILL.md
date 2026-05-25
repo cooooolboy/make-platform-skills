@@ -1,7 +1,7 @@
 ---
 name: make-app-auth
 description: Use when generating, modifying, reviewing, or debugging Make App authentication and authenticated /api/make requests with @qfeius/make-app-auth. Covers local token mode, unified login/OAuth/ngrok mode, 401/403 handling, logout, cookies, sessions, redirect callbacks, and Make App auth troubleshooting.
-version: 0.1.1
+version: 0.1.2
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/make-app-auth
 ---
@@ -94,7 +94,7 @@ Token mode:
 Unified mode:
 
 - Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page; do not show an App-owned login page.
-- Generated unified-login Apps should pass `apiAuthRedirect: true` only when the installed SDK version supports it. During SDK development, use the `make-app-auth-sdk` Git branch dependency that contains `apiAuthRedirect`; after release, use the first npm version that documents this option.
+- Generated unified-login Apps should pass `apiAuthRedirect: true` with `@qfeius/make-app-auth >= 0.1.2`; earlier SDK versions do not own business API 401/403 redirect handling.
 - Do not generate an App-owned login page, login transition page, or signed-out completion page. The only acceptable unauthenticated UI is a neutral loading state while the browser is being redirected.
 - Authenticated App shell must expose a visible logout action, normally in the top header near the current user/avatar.
 - Login and logout must use SDK APIs.

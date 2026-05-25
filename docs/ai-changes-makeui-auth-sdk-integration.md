@@ -1,5 +1,12 @@
 # makeui 接入 make-app-auth-sdk 规则更新
 
+## 2026-05-25 0.1.2 发布收口
+
+- 将生成规则的 SDK 依赖提升到 `@qfeius/make-app-auth@^0.1.2`。
+- 明确 `apiAuthRedirect` 的最低 SDK 版本为 `>= 0.1.2`，删除“npm 未发布前使用开发分支”的临时口径。
+- 涉及 `skills/make-app-auth/SKILL.md`、`references/sdk-integration.md`、`unified-login-mode.md`、`logout-and-401.md`、`skills/makeui/SKILL.md`。
+- 验证结果：文本扫描确认当前规则已指向 `0.1.2`；`git diff --check` 通过；已同步到本机 Codex skills 目录并校验入口文件一致。
+
 ## 2026-05-25 收口
 
 - 删除仓库内 `.DS_Store` 并加入 `.gitignore`，避免 macOS 元数据继续进入 skill 包。

@@ -15,7 +15,7 @@ Use the public npm package by default when the SDK behavior is stable:
 ```json
 {
   "dependencies": {
-    "@qfeius/make-app-auth": "^0.1.1"
+    "@qfeius/make-app-auth": "^0.1.2"
   }
 }
 ```
@@ -23,20 +23,20 @@ Use the public npm package by default when the SDK behavior is stable:
 Install command:
 
 ```bash
-pnpm add @qfeius/make-app-auth --registry=https://registry.npmjs.org/
+pnpm add @qfeius/make-app-auth@^0.1.2 --registry=https://registry.npmjs.org/
 ```
 
-During the current SDK development/debugging stage, prefer the Git branch dependency so teams can test the latest SDK without publishing a new npm version for every small change:
+Use a Git branch dependency only when intentionally testing unreleased SDK changes:
 
 ```json
 {
   "dependencies": {
-    "@qfeius/make-app-auth": "git+ssh://git@git.qtech.cn:make/make-app-auth-sdk.git#codex/unified-login-logout-redirect"
+    "@qfeius/make-app-auth": "git+ssh://git@git.qtech.cn:make/make-app-auth-sdk.git#<branch>"
   }
 }
 ```
 
-`apiAuthRedirect` is currently a post-`0.1.1` SDK capability on the development branch above. Do not generate this option with the npm `^0.1.1` dependency unless that npm line has already released and documented `apiAuthRedirect`. After the SDK contract stabilizes and is published, switch generated Apps back to the npm semver dependency that includes this option.
+`apiAuthRedirect` requires `@qfeius/make-app-auth >= 0.1.2`. Do not generate this option with older npm dependencies.
 
 ## Startup Shape
 
@@ -91,7 +91,7 @@ For a deployed same-origin unified-login App, prefer the SDK default `/api/make`
 
 Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it and will not attach token-mode `Authorization`.
 
-For unified-login Apps, set `apiAuthRedirect: true` only when the installed SDK version supports it. Then business API 401/403 responses trigger the SDK to reuse `auth.login({ redirect: true })`; the SDK still applies redirect guards so the same return URL cannot loop indefinitely. Token mode must not redirect to Org.
+For unified-login Apps, set `apiAuthRedirect: true` with `@qfeius/make-app-auth >= 0.1.2`. Then business API 401/403 responses trigger the SDK to reuse `auth.login({ redirect: true })`; the SDK still applies redirect guards so the same return URL cannot loop indefinitely. Token mode must not redirect to Org.
 
 ```js
 const auth = createMakeAppAuth({
