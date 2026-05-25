@@ -80,6 +80,7 @@ When generating or reorganizing a Make App project, follow the makecli agent tar
 Preserve the host project's declared data flow:
 
 - If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow. UI code must use the Service API contract, must not hold Make tokens, and must not directly call Make APIs.
+- Service-based unified-login Apps may still use `@qfeius/make-app-auth`: UI calls `auth.api("/app/**")`, App Service owns `/api/make/app/**`, and Service calls make-gateway internally. Do not replace this with UI direct `/data/**` or `/meta/**` calls.
 - If the project is generating a gateway/unified-login Make App frontend, runtime Make data access may use:
 
 ```text
@@ -130,13 +131,14 @@ When generating or modifying Make App frontend authentication, always apply `mak
 
 Default generated UI should use `make-app-auth` token mode for local development. Unified login, OAuth, SSO, cookies, logout, redirect callbacks, and authenticated `/api/make/**` requests are owned by `make-app-auth` and its references.
 
-Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the project uses a gateway/unified-login Make App runtime path, coordinate auth and `/api/make/**` behavior through `make-app-auth`. `apps/service` remains required project structure.
+Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the project uses Service-fronted unified login, use `auth.api` only for same-origin `/api/make/app/**` Service APIs and let Service call make-gateway. If the project uses a gateway/unified-login Make App runtime path, coordinate auth and `/api/make/**` behavior through `make-app-auth`. `apps/service` remains required project structure.
 
 Hard boundary:
 
 - Use `@qfeius/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
 - All Make backend requests must go through a shared Make API adapter or data-source layer that wraps `auth.api`; do not scatter direct `auth.api` calls across UI components without the shared 401/403 handler.
 - Schema/meta, list, get, create, update, delete, attachment/file, lookup, user, and department candidate requests are all Make backend requests and must follow the same adapter rule.
+- In unified-login mode, generated SDK config should set `apiAuthRedirect: true` unless the project has a deliberate custom error flow.
 - If App code needs to pass SDK `gatewayBaseUrl`, reuse the host Make backend config / `makecli` `server-url` value. Do not create another URL setting for the same Make backend.
 - Do not hand-write `Authorization`.
 - Do not hard-code Org, unified-login, or account-center domains; those URLs must come from make-gateway through `make-app-auth`.
@@ -144,6 +146,7 @@ Hard boundary:
 - In unified-login mode, direct unauthenticated App entry should go to the Org login page through `auth.init({ redirect: true })`; do not design an App-owned login page, login transition page, or signed-out completion page.
 - Do not build Org OAuth/logout URLs in App UI code.
 - Do not bypass `/api/make/**` to call meta/data services directly.
+- For Service-based Apps, do not bypass Service by calling `/data/**` or `/meta/**` from UI; use `/app/**` paths through `auth.api` according to the Service API contract.
 - In unified-login authenticated state, render a visible `退出账号` action in the App shell header and wire it to the auth wrapper/SDK `auth.logout()` only.
 - If logout should return users to the phone/code login flow, rely on the SDK and the next `auth.init({ redirect: true })`; do not add UI-side account-center URL rewriting.
 
@@ -175,7 +178,7 @@ Before generating or editing UI:
 
 1. Inspect the project for existing Node runtime requirements, frontend stack, component library, styling solution, routes, layout shell, and page patterns.
 2. Use existing project conventions first.
-3. Identify the host data flow: UI -> Service -> Make API, or auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
+3. Identify the host data flow: UI -> Service -> Make API, Service-fronted unified login (`auth.api("/app/**")` -> Service), or direct auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
 4. If reorganizing into `apps/`, verify the workspace package baseline, `apps/ui/dist` build output, and Service config baseline before editing UI code.
 5. Verify the project Node runtime is compatible with the Make default baseline or the project's stricter requirement.
 6. If the project is being created from scratch and no component library is established, stop before scaffolding component-library-specific UI and require the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it for the user. If the user has not chosen, only produce a component-library-neutral plan or ask the selection question.

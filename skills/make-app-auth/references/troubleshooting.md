@@ -51,6 +51,14 @@ For redirect/callback failures:
 - Confirm every schema/meta/list/create/update/delete/file/user/department request goes through the shared Make API adapter, not scattered unhandled `auth.api` calls or raw fetch.
 - Confirm browser accepts and sends cookies for the App domain.
 - Confirm the page does not auto-loop login on every 401.
+- If the App URL contains `make_auth_error=session_expired`, the expected UI is a "登录已过期，请重新登录" prompt, not another immediate redirect.
+
+For Service-fronted Apps:
+
+- Confirm browser business requests go to `/api/make/app/**`, not directly to `/api/make/meta/**` or `/api/make/data/**`.
+- Confirm `/api/make/auth/**` is transparent proxy traffic from Service to `http://make-gateway/api/make/auth/**`.
+- Confirm Service calls k8s-internal business routes as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`; `/api/make/meta/**` usually indicates the wrong internal gateway path.
+- Confirm Service proxy keeps `session/complete` redirects manual. If Node `fetch` follows the gateway 302 internally, the browser URL can stay on `/api/make/auth/session/complete?...` and cause a login loop.
 
 For cookie problems:
 
@@ -75,6 +83,8 @@ For logout problems:
 - 401 in unified mode with no Cookie: browser cookie/session problem or exchange did not set cookie.
 - 401 in unified mode with Cookie present: make-gateway or Org token verification problem.
 - Repeated redirects after login: callback/exchange/cookie persistence problem, not UI layout.
+- Gateway 404 for `/api/make/meta/**` from Service: internal gateway business path should likely be `/make/meta/**`.
+- Browser stays on `/api/make/auth/session/complete?login_ticket=...`: Service likely swallowed the gateway 302 instead of returning it to the browser.
 
 ## Fast Root-Cause Labels
 
@@ -87,3 +97,7 @@ For logout problems:
 - `cookie_not_set`: exchange/login succeeded but browser has no App session cookie.
 - `cookie_not_sent`: browser stores cookie but request does not include it.
 - `logout_contract_mismatch`: App expects redirect/link but gateway returns a different shape.
+- `state_expired`: user stayed on Org login/callback flow too long; SDK should show relogin prompt.
+- `challenge_expired`: gateway challenge expired before callback completed; SDK should show relogin prompt.
+- `service_followed_complete_redirect`: App Service followed `session/complete` 302 internally; browser did not receive Set-Cookie/Location as intended.
+- `service_internal_gateway_path_mismatch`: Service called `/api/make/meta|data/**` on k8s-internal gateway instead of `/make/meta|data/**`.

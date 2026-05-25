@@ -46,6 +46,7 @@ Mode selection:
 - Business requests to Make backend must go through `auth.api` under `/api/make/**`.
 - All frontend requests to Make backend must go through `auth.api`, including schema/meta, list, get, create, update, delete, attachment/file, lookup, user, and department candidate requests.
 - Generated Apps must centralize Make backend access in a shared API adapter or data-source layer that wraps `auth.api` and handles `MakeAppUnauthorizedError` / `MakeAppForbiddenError`. Do not scatter direct `auth.api` calls across UI components without the shared 401/403 handler.
+- Service-based Apps may expose App-owned business APIs under `/api/make/app/**`; UI still calls them through `auth.api`, and Service calls make-gateway internally.
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`; token mode must provide tokens through SDK options.
 - `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the `makecli` `server-url` value; do not create a second environment concept for the same URL.
@@ -93,12 +94,23 @@ Token mode:
 Unified mode:
 
 - Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page; do not show an App-owned login page.
+- Generated unified-login Apps should pass `apiAuthRedirect: true` so Make API 401/403 responses are handled by the SDK instead of hand-written App wrappers.
 - Do not generate an App-owned login page, login transition page, or signed-out completion page. The only acceptable unauthenticated UI is a neutral loading state while the browser is being redirected.
 - Authenticated App shell must expose a visible logout action, normally in the top header near the current user/avatar.
 - Login and logout must use SDK APIs.
 - Formal unified-login Apps should not pass `accessToken`, `token`, or `tokenProvider`; successful login relies on the App session Cookie written by make-gateway.
+- If `auth.init({ redirect: true })` returns `unauthenticated` with `reason="state_expired"` or `reason="challenge_expired"`, render a simple "登录已过期，请重新登录" prompt and call `auth.login({ redirect: true })` only after the user clicks.
+- Do not automatically retry login in a loop. One explicit user-triggered relogin is the safe fallback for expired state/challenge.
 - Logout UI should call `auth.logout()` or the project auth wrapper that delegates directly to `auth.logout()`; do not add App-side Org logout URL fallback logic.
 - Callback testing requires a registered external domain or ngrok plus Org redirect whitelist.
+
+Service-fronted unified mode:
+
+- Browser calls stay same-origin under `gatewayBaseUrl=/api/make`.
+- UI business code should call Service-owned paths such as `auth.api.get("/app/schema")` or `auth.api.post("/app/records/customer", body)`.
+- Service handles `/api/make/app/**`, derives identity from the App session via make-gateway auth, then calls k8s-internal make-gateway business routes such as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`.
+- Service transparently proxies `/api/make/auth/**` to `http://make-gateway/api/make/auth/**`.
+- When proxying `/api/make/auth/session/complete`, Service must return gateway `302 + Set-Cookie + Location` to the browser; do not let server-side fetch follow that redirect internally.
 
 ## Collaboration With makeui
 

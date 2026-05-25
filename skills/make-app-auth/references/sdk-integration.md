@@ -10,7 +10,7 @@ App code owns page state, user-facing messages, and business feature logic.
 
 ## Dependency
 
-Use the public npm package by default:
+Use the public npm package by default when the SDK behavior is stable:
 
 ```json
 {
@@ -25,6 +25,18 @@ Install command:
 ```bash
 pnpm add @qfeius/make-app-auth --registry=https://registry.npmjs.org/
 ```
+
+During the current SDK development/debugging stage, prefer the Git branch dependency so teams can test the latest SDK without publishing a new npm version for every small change:
+
+```json
+{
+  "dependencies": {
+    "@qfeius/make-app-auth": "git+ssh://git@git.qtech.cn:make/make-app-auth-sdk.git#codex/unified-login-logout-redirect"
+  }
+}
+```
+
+After the SDK contract stabilizes, switch generated Apps back to the npm semver dependency.
 
 ## Startup Shape
 
@@ -51,6 +63,11 @@ if (boot.status === 'authenticated') {
     context: boot.context,
     onLogout: () => auth.logout()
   });
+} else if (boot.reason === 'state_expired' || boot.reason === 'challenge_expired') {
+  renderLoginExpired({
+    message: boot.message || '登录已过期，请重新登录',
+    onRelogin: () => auth.login({ redirect: true })
+  });
 } else if (boot.status === 'forbidden') {
   renderForbidden();
 } else {
@@ -74,6 +91,16 @@ For a deployed same-origin unified-login App, prefer the SDK default `/api/make`
 
 Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it and will not attach token-mode `Authorization`.
 
+For unified-login Apps, set `apiAuthRedirect: true`. Then business API 401/403 responses trigger the SDK to reuse `auth.login({ redirect: true })`; the SDK still applies redirect guards so the same return URL cannot loop indefinitely. Token mode must not redirect to Org.
+
+```js
+const auth = createMakeAppAuth({
+  gatewayBaseUrl: '/api/make',
+  unifiedLogin: true,
+  apiAuthRedirect: true
+});
+```
+
 ```js
 const body = {
   app: 'expense',
@@ -93,6 +120,27 @@ const result = await auth.api.post('/data/v1/record', body, {
   }
 });
 ```
+
+Service-based Apps should keep the browser boundary under `/api/make/**` while letting Service own business orchestration:
+
+```js
+await auth.api.get('/app/schema');
+await auth.api.post('/app/records/customer', payload);
+```
+
+Expected deployed chain:
+
+```text
+UI -> auth.api('/app/**') -> /api/make/app/** -> App Service -> http://make-gateway/make/meta|data/**
+```
+
+Auth endpoints remain transparent proxy traffic:
+
+```text
+UI -> /api/make/auth/** -> App Service -> http://make-gateway/api/make/auth/**
+```
+
+For `/api/make/auth/session/complete`, Service must preserve the gateway response for the browser. In Node Service code, set `redirect: "manual"` or the equivalent so `302 + Set-Cookie + Location` is not consumed inside Service.
 
 Available helpers:
 
@@ -150,9 +198,11 @@ Do not leave some Make requests handled by the adapter and others handled ad hoc
 - Missing token in token mode.
 - Expired or rejected token in token mode.
 - 403 forbidden response.
+- Unified-login API 401/403 with `apiAuthRedirect: true` redirects through SDK login once.
 - Unified-login unauthenticated state does not loop redirects.
 - Business-request 401 from schema/list/create/update/delete enters the shared expired-session handler.
 - Make backend calls are routed through the shared adapter; no raw `window.fetch('/api/make/...')` and no scattered unhandled `auth.api` calls in UI components.
+- Unified-login state/challenge expiration renders a relogin prompt instead of automatically redirecting again.
 - Authenticated unified-login state exposes a visible logout action wired to `auth.logout()`.
 - Logout does not consume or rewrite `orgSsoLogoutUrl` in App code; the SDK calls make-gateway logout and follows gateway `redirectUri`, which should be an App return URL rather than an account-center or Org logout URL.
 

@@ -37,8 +37,10 @@ Behavior:
 - Use `auth.login({ redirect: true })` to enter the Org login page.
 - If the current App session may be stale or broken, first clear the App session with `auth.logout({ redirect: false })`, then call `auth.login({ redirect: true })`. Ignore logout failures in this recovery path so the browser is not stranded.
 - Do not render an App-owned login page, login transition page, or signed-out completion page.
-- Do not silently redirect on every API call.
+- Prefer `createMakeAppAuth({ apiAuthRedirect: true })` for generated unified-login Apps so SDK handles API 401/403 redirect checks with built-in loop protection.
 - Do not leave business views in a schema/list/create/update/delete error state for 401. Route 401 through the shared expired-session handler.
+- If `auth.init({ redirect: true })` returns `reason="state_expired"` or `reason="challenge_expired"`, show `登录已过期，请重新登录` and wait for the user to click.
+- After the user clicks relogin, call `auth.login({ redirect: true })`. Do not implement multiple automatic retries.
 
 Logout:
 
@@ -86,13 +88,17 @@ try {
 }
 ```
 
+When `apiAuthRedirect: true` is enabled, most unified-login API 401/403 cases will redirect before the App can render an error. Keep the catch block for token mode, permission-denied responses without a login challenge, and network/runtime failures.
+
 ## Anti-patterns
 
 - Redirecting to Org automatically on every 401 in token mode.
 - Handling 401 only in App bootstrap while business requests use unhandled `auth.api` calls.
 - Calling `auth.api` directly from scattered UI components without the shared 401/403 handler.
 - Using raw `window.fetch('/api/make/...')` for any Make backend request.
+- Automatically retrying unified login multiple times after state/challenge expiration.
+- Hand-writing per-request 401/403 login wrappers when the SDK option `apiAuthRedirect: true` is available.
 - Rebuilding Org authorize/logout URLs in App code.
 - Hard-coding Org, unified-login, or account-center environment domains in App code.
 - Clearing `zs_session` or `make_app_session` from App code.
-- Treating 403 as a login-expired state.
+- Treating every 403 as a login-expired state after SDK login check confirms the user is already authenticated.
