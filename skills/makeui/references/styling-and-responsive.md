@@ -33,11 +33,14 @@ Prefer:
 - clear alignment
 - restrained spacing
 - section titles for structure
+- compact grouped sidebar navigation when no existing shell style exists; background color follows project theme tokens
+- flat workspace header and direct toolbar-to-table flow for object list pages
 
 Avoid:
 
 - oversized hero sections
 - decorative cards around every group
+- summary/title cards that repeat the current object title above a default list table
 - nested cards inside cards
 - one-off gradients or ornaments
 - page sections that cause unnecessary vertical scrolling

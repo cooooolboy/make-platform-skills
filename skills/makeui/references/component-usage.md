@@ -1,5 +1,14 @@
 # Component usage
 
+## Contents
+
+- [Selection strategy](#selection-strategy)
+- [Default candidate mapping](#default-candidate-mapping)
+- [Make schema-driven field components](#make-schema-driven-field-components)
+- [Table component rule](#table-component-rule)
+- [Action hierarchy](#action-hierarchy)
+- [Optional action policy](#optional-action-policy)
+
 ## Selection strategy
 
 Use this priority:
@@ -41,7 +50,9 @@ Use project-standard icons first. If using Ant Design, prefer `@ant-design/icons
 
 ## Make schema-driven field components
 
-Before generating Make forms or field editors, read the available DSL/schema source. Use existing `apps/dsl`, Service `/api/schema`, or project-local schema/meta types. Do not hand-write static form controls when the schema is available.
+Before generating Make forms or field editors, identify the runtime schema API and candidate APIs. Use Service `/api/schema`, `/api/entities/:entityKey/fields`, or the host project's equivalent schema endpoints. Do not hand-write static form controls when the schema API is available, and do not generate UI or Service runtime code that reads `apps/dsl`, `/dsl`, or YAML schema files.
+
+If no schema API or response sample exists, stop and call out the missing contract instead of falling back to local DSL reads or generated constants.
 
 Use type-appropriate controls:
 
@@ -52,21 +63,31 @@ Use type-appropriate controls:
 | `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values |
 | `Date`, `DateTime`, `DateRange` | date, date-time, or range picker |
 | `SingleSelect`, `MultiSelect` | single or multiple select from schema options |
-| `SingleUser`, `MultiUser` | searchable user selector |
-| `SingleDepartment`, `MultiDepartment` | searchable department selector |
+| `SingleUser`, `MultiUser` | searchable user selector backed by `/api/users` or host equivalent |
+| `SingleDepartment`, `MultiDepartment` | searchable department selector backed by `/api/departments` or host equivalent |
 | `File` | create: omit when upload requires `recordID`; edit: attachment component only with saved record id; detail: attachment display |
 | `Lookup` | read-only lookup display by default; association selector only when schema/API explicitly supports editing |
 
 Do not silently degrade date, user, department, select, file, or lookup fields to a bare `Input`.
 
+If a field type is unknown, prefer a read-only display or an explicit unsupported-field fallback. Do not pretend it is a plain text field unless the user confirms that downgrade.
+
 File fields are mode-sensitive. If the backend upload API requires a persisted `recordID`, create forms must omit `Make.Field.File` controls and create payload values. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
 
-When real user or department candidate APIs are missing, use a searchable selector shell that:
+User and department candidate APIs are required for production selectors. When the real APIs are missing and the user confirms a placeholder, use a searchable selector shell that:
 
 - displays the current value from the record
-- allows an explicit manual-input fallback only when the product needs it
 - leaves a clear integration point for the real candidate API
 - avoids fake global demo candidates in production code
+- shows loading, empty, error, and retry states
+
+For Ant Design, the default form-control mapping is:
+
+- text: `Input`, long text: `Input.TextArea`
+- number/currency/percent: `InputNumber`
+- date/date-time/date-range: `DatePicker` / `DatePicker.RangePicker`
+- select/user/department/lookup candidates: `Select` with `showSearch`, backend search for user/department, and `mode="multiple"` for multi-value fields
+- file: no create upload when `recordID` is required; edit/detail attachment UI after persistence
 
 ## Table component rule
 
@@ -80,7 +101,7 @@ Always use:
 This applies to:
 
 - table display
-- row sequence numbers and row-head detail entry
+- row sequence numbers and row-head detail entry by default for every table unless the user explicitly opts out
 - pagination or virtual loading layout around the table, only when explicitly requested
 - row selection, only when requested
 - cell editing, when requested
