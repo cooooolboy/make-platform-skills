@@ -65,11 +65,13 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 
 - Default object-list layout: left navigation, flat workspace header with title only, local toolbar, then `canvas-table`.
 - Sidebar has a brand area, section labels, single-line object items, and a clear active state. Background color follows the project theme; do not default to dark.
+- Sidebar active item highlight must be centered inside the sidebar content gutter, with consistent left/right inset and no overflow to the sidebar edge.
 - Sidebar items and workspace header titles do not get subtitles, descriptions, helper lines, schema summaries, or overview copy unless the user asks.
 - The local toolbar sits above the table. Put search/filter/refresh on the left and create/new on the right. Do not put refresh in the global header, object title header, table header row, canvas-table header area, or column header area.
 - Do not insert a summary/title card between the workspace header and table for default object lists.
 - Do not add pagination, views, import/export, grouping, sorting, column settings, selection, or Kanban/split views unless requested.
 - Make record tables must use `@qfei-design/canvas-table` via `canvas-table-integration`; do not replace them with UI-library tables.
+- CanvasTable wrapper and host must fill the available content width and remaining height; use a flex height chain or accurate `calc()` fallback instead of fixed table dimensions.
 - CanvasTable defaults to `showSN` sequence numbers and a hover-revealed row-head detail icon through `bodyRowHeadSuffixOptions`, unless the user explicitly says the table does not need it.
 - Create/edit/detail use right-side Drawers by default. Drawer width defaults to `60%`, may become `100%` on small screens, and mask close is enabled.
 - Create/edit forms use type-appropriate controls. Date, select, user, department, file, and lookup fields must not silently degrade to plain text inputs. File upload is omitted in create mode when upload requires an existing `recordID`.

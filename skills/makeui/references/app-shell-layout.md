@@ -74,6 +74,14 @@ For a schema-driven Make App, build navigation from modules or object groups whe
 
 If object descriptions exist in schema or API metadata, do not show them under each sidebar item by default. Use them only when the user asks for richer navigation, and prefer a tooltip or detail surface over making every item two lines.
 
+Sidebar active-item alignment is a layout requirement:
+
+- put nav items inside a padded sidebar content area, then let the item fill that content width
+- keep active highlight left and right inset consistent; do not let the highlight touch one sidebar edge while leaving extra space on the other side
+- avoid negative margins, absolute positioning, or hard-coded left offsets for active backgrounds
+- use `box-sizing: border-box`, `width: 100%`, and `align-items: center` for clickable nav rows
+- keep icon/text, active background, and hit area vertically centered in the same row height
+
 ## Content height chain
 
 Every container between the shell and the working area should preserve height:

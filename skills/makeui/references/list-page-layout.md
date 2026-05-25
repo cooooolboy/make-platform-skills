@@ -128,9 +128,22 @@ If the user asks for cell editing, still use `canvas-table-integration`; do not 
 The table region should have:
 
 - stable height
+- `width: 100%`
+- `height: 100%`
+- `flex: 1`
 - `min-height: 0`
+- `min-width: 0`
 - `overflow: hidden` around the canvas table host
 - internal table scroll instead of page scroll
+
+CanvasTable sizing requirements:
+
+- the list content region, table wrapper, and CanvasTable host all fill the available width; do not leave a right-side blank area because the table was sized only to the sum of column widths
+- do not set fixed table widths, fixed viewport widths, or arbitrary max widths for default object lists
+- if schema-derived columns are narrower than the container, use public canvas-table integration patterns to stretch/distribute remaining width or add an intentional flexible display area; do not let the visible table stop mid-page
+- table height is dynamic: it fills the remaining content height below the workspace header and toolbar
+- prefer a flex height chain; if `calc()` is unavoidable, subtract the actual header, toolbar, padding, and border sizes instead of using a guessed constant
+- when the canvas-table instance needs explicit dimensions, observe the host container resize and update the table through documented public APIs
 
 Default CanvasTable row behavior for every table unless the user explicitly says the table does not need a detail entry:
 

@@ -26,7 +26,7 @@
 - Make record tables and list tables must use `@qfei-design/canvas-table` through `canvas-table-integration`. If cell editing is needed, use `canvas-table-integration` for the editing design too.
 - Do not add product capabilities that were not requested, especially pagination, views, advanced filters, grouping, sorting, column settings, import, or export.
 - Do not force Ant Design or Less when the user or project already has another UI/styling system.
-- Do not silently choose Ant Design, Arco Design, or TDesign for a new project. Component-library selection is blocking until the user chooses.
+- Do not silently choose Ant Design, Arco Design, TDesign, or shadcn/ui for a new project. Component-library selection is blocking until the user chooses.
 - Do not skip the Make App shell for generated object-list UI. Start from the shell unless the project already has one.
 - Do not silently downgrade `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` Make fields to plain text inputs. Explain any missing schema/API and use an explicit fallback.
 - Do not use fake global users, departments, or select candidates in production code. Candidate data must come from schema/options or backend APIs.
@@ -136,7 +136,7 @@ For Service-based local development, Service stays on port `3000`. Preserve the 
 
 If a detail is not requested and not present in the project, choose the simplest useful UI.
 
-For a new project with no established component library, ask the user to choose Ant Design, Arco Design, or TDesign. Recommend Ant Design, but do not choose it automatically. If the user has not chosen, pause component-library-specific implementation and only provide a neutral plan or ask the selection question.
+For a new project with no established component library, ask the user to choose Ant Design, Arco Design, TDesign, or shadcn/ui. Recommend Ant Design, but do not choose it automatically. If the user has not chosen, pause component-library-specific implementation and only provide a neutral plan or ask the selection question. If the user chooses shadcn/ui, follow the official Vite installation path, configure Tailwind and aliases first, and add only the needed shadcn/ui components.
 
 ## Dynamic object routes
 

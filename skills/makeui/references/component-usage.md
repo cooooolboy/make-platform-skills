@@ -15,7 +15,7 @@ Use this priority:
 
 1. User-specified component library.
 2. Existing project component library.
-3. New-project selection among Ant Design, Arco Design, and TDesign when no library exists.
+3. New-project selection among Ant Design, Arco Design, TDesign, and shadcn/ui when no library exists.
 
 Do not add a new component library to an existing project unless the user asks.
 
@@ -26,10 +26,20 @@ For new projects, component-library selection is a blocking decision. Actively a
 - Ant Design
 - Arco Design
 - TDesign
+- shadcn/ui
 
 Recommend Ant Design, but do not select it automatically. Until the user chooses, do not scaffold or edit component-library-specific UI code, imports, theme setup, icons, or package dependencies. If progress is still useful before the answer, produce only a component-library-neutral plan, file map, or pseudocode.
 
-Do not mix Ant Design, Arco Design, and TDesign in the same app unless the existing project already does so and the user asks to keep it.
+Do not mix Ant Design, Arco Design, TDesign, and shadcn/ui in the same app unless the existing project already does so and the user asks to keep it.
+
+When shadcn/ui is selected, treat it as a source-code component system, not a traditional prebuilt UI package. Follow the official Vite path for new or existing Vite projects:
+
+- ensure Tailwind CSS is configured before generating shadcn/ui components
+- ensure the `@/*` alias is configured in TypeScript and Vite
+- run the shadcn CLI from `apps/ui` or pass the correct config path for the workspace
+- add only the components actually needed by the generated UI
+- keep generated shadcn/ui components under the host project's established component path, usually `src/components/ui`
+- use `lucide-react` icons unless the project has another established icon system
 
 ## Default candidate mapping
 
@@ -47,6 +57,19 @@ When Ant Design is the selected component library:
 - avatar and user menu: `Avatar`, `Dropdown`
 
 Use project-standard icons first. If using Ant Design, prefer `@ant-design/icons`.
+
+When shadcn/ui is the selected component system:
+
+- shell: CSS/Tailwind layout with project-local shell components
+- sidebar navigation: project-local sidebar/menu components, or shadcn/ui navigation primitives when already added
+- global and page actions: `Button`
+- search: `Input` with a lucide search icon
+- optional filters: `Popover`, `Sheet`, or compact form controls
+- create/edit/detail: right-side `Sheet` by default
+- route forms: `Form` with type-appropriate field controls
+- read-only details: simple grids or project-local panels; avoid inventing nested card layouts
+- feedback: `Alert`, `Skeleton`, toast/sonner, and explicit empty states when those components are installed
+- avatar and user menu: `Avatar` and `DropdownMenu`
 
 ## Make schema-driven field components
 
