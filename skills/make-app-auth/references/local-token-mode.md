@@ -1,19 +1,19 @@
 # Local Token Mode
 
-Use token mode for ordinary local development and backend API debugging.
+Use token mode only as an explicit local/debug override.
 
-This is the default mode while Make App publishing and registered external domains are not available for every developer.
+Generated and published Make Apps default to unified login. Token mode is acceptable when the user asks for it, when only UI/backend feature debugging is needed, or when the current local environment cannot provide a published App domain, `/api/make/**` routing, and Org callback capability.
 
 ## When To Use
 
 Use `token` mode when:
 
-- The user is building or debugging normal Make App UI/features locally.
-- The App is not deployed.
-- There is no ngrok or registered App domain.
-- The task is not explicitly about OAuth, unified login, cookies, logout, or redirect callbacks.
+- The user explicitly asks for token mode or no-unified-login mode.
+- The task is limited to local UI/backend feature debugging and does not need the real browser login flow.
+- The App is not deployed and there is no ngrok or registered App domain.
+- The task is not about OAuth, unified login, cookies, logout, redirect callbacks, or published App behavior.
 
-Do not require ngrok, Org callback whitelist, or Org login page in this mode.
+Do not require ngrok, Org callback whitelist, or Org login page in this mode, but state clearly that this is not the generated/published App default.
 
 ## Contract
 

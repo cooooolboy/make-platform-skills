@@ -40,7 +40,7 @@ Use a Git branch dependency only when intentionally testing unreleased SDK chang
 
 ## Startup Shape
 
-Generated Apps default to token mode and should not auto-redirect to Org unless unified login is explicitly enabled. In published unified-login mode, direct App entry should go to the Org login page instead of showing an App-owned login page.
+Generated Apps default to unified login. Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page instead of showing an App-owned login page. Token mode is only an explicit local/debug override.
 
 ```js
 import {
@@ -50,12 +50,12 @@ import {
 } from '@qfeius/make-app-auth';
 
 const auth = createMakeAppAuth({
-  gatewayBaseUrl: makeAuthConfig.serverUrl || makeAuthConfig.gatewayBaseUrl || '/api/make',
-  unifiedLogin: false,
-  tokenProvider: async () => debugToken
+  gatewayBaseUrl: '/api/make',
+  unifiedLogin: true,
+  apiAuthRedirect: true
 });
 
-const boot = await auth.init({ redirect: false });
+const boot = await auth.init({ redirect: true });
 
 if (boot.status === 'authenticated') {
   renderApp({
@@ -71,7 +71,7 @@ if (boot.status === 'authenticated') {
 } else if (boot.status === 'forbidden') {
   renderForbidden();
 } else {
-  renderTokenRequired();
+  renderLoading();
 }
 ```
 
@@ -85,7 +85,7 @@ Generated Apps should expose a shared Make API adapter or data-source layer that
 
 `gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling this value already exists as `makecli` `server-url` (`makecli configure get server-url`, default `https://dev-make.qtech.cn/api/make`). Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
 
-For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. For local token-mode debugging, materialize the same Make backend `server-url` into browser-safe config such as `VITE_MAKE_SERVER_URL` or the existing project config, then pass it as `gatewayBaseUrl`. Browser code must not read `~/.make/config` directly.
+For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. For explicit local token-mode debugging, materialize the same Make backend `server-url` into browser-safe config such as `VITE_MAKE_SERVER_URL` or the existing project config, then pass it as `gatewayBaseUrl`. Browser code must not read `~/.make/config` directly.
 
 `gatewayBaseUrl` is not the unified login, Org, or account-center URL.
 

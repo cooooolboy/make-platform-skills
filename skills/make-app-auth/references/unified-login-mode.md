@@ -1,8 +1,8 @@
 # Unified Login Mode
 
-Use unified mode only when the user explicitly asks to test unified login, OAuth, SSO, cookies, logout, ngrok, or redirect callback behavior.
+Use unified mode by default for generated and published Make Apps.
 
-This mode is not the default for ordinary local feature development.
+Token mode is only an explicit local/debug override when the user asks for it or when the current environment cannot complete browser OAuth.
 
 ## Preconditions
 
@@ -13,7 +13,7 @@ Unified mode requires:
 - `/api/make/**` from the external domain routed to make-gateway.
 - Browser testing with real cookies enabled.
 
-If these are missing, do not silently fall back to broken OAuth. Use token mode for ordinary feature debugging.
+If these are missing in local development, do not silently fall back to token mode. State the missing prerequisite and use token mode only after the user confirms the local-only override.
 
 ## SDK Setup
 

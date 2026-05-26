@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.24.
+Current skill revision: 0.3.25.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router. Do not switch frontend frameworks unless the user explicitly asks and the project already supports the alternative.
 
@@ -88,7 +88,7 @@ When generating or modifying Make App frontend authentication, always apply `mak
 
 `makeui` must not implement authentication details itself. Do not generate auth, OAuth, token, cookie, logout, or `/api/make/**` request logic directly from this skill.
 
-Default generated UI should use `make-app-auth` token mode for local development. Unified login, OAuth, SSO, cookies, logout, redirect callbacks, and authenticated `/api/make/**` requests are owned by `make-app-auth` and its references.
+Default generated UI should use `make-app-auth` unified login. Token mode is only an explicit local/debug override. Unified login, OAuth, SSO, cookies, logout, redirect callbacks, and authenticated `/api/make/**` requests are owned by `make-app-auth` and its references.
 
 Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the project uses Service-fronted unified login, use `auth.api` only for same-origin `/api/make/app/**` Service APIs and let Service call make-gateway. If the project uses a gateway/unified-login Make App runtime path, coordinate auth and `/api/make/**` behavior through `make-app-auth`. `apps/service` remains required project structure.
 
@@ -126,7 +126,7 @@ Hard boundary:
 - If the project uses a gateway/unified-login runtime, the data path is `apps/ui -> @qfeius/make-app-auth auth.api -> /api/make/** -> make-gateway -> Make Platform`.
 - Do not silently switch a Service-based project to the gateway/auth-SDK flow, route a gateway/auth-SDK project through `apps/service`, bypass `auth.api`, rely on a Vite token proxy such as `/make-api`, or call meta/data service domains directly.
 - Do not handwrite auth, OAuth, token, cookie, logout, `Authorization`, Org URLs, unified-login URLs, account-center URLs, or `/api/make/**` request logic in `makeui`; these belong to `make-app-auth`.
-- Default generated UI may use `make-app-auth` token mode for local development. Unified login/OAuth/SSO/cookies/logout/callbacks, `auth.init({ redirect: true })`, SDK `gatewayBaseUrl`, `auth.api`, and `auth.logout()` behavior belong to `make-app-auth`.
+- Default generated UI uses `make-app-auth` unified login with `auth.init({ redirect: true })` and `apiAuthRedirect: true`. Token mode is only an explicit local/debug override. Unified login/OAuth/SSO/cookies/logout/callbacks, SDK `gatewayBaseUrl`, `auth.api`, and `auth.logout()` behavior belong to `make-app-auth`.
 - Generated App UI must not read or persist Org tokens, `zs_session`, or `make_app_session`.
 - `apps/dsl` is a modeling artifact, not a runtime dependency. Generated UI and Service runtime code must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` schema files.
 - Objects, fields, table columns, form fields, labels, editability, required state, select options, and lookup metadata come from backend schema APIs such as `/api/schema` and `/api/entities/:entityKey/fields`, or the host equivalent.
@@ -156,7 +156,7 @@ Before generating or editing UI:
 1. Identify the host data flow: UI -> Service -> Make API, Service-fronted unified login (`auth.api("/app/**")` -> Service), or direct auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
 2. If reorganizing into `apps/`, verify the workspace package baseline, `apps/ui/dist` build output, and Service config baseline before editing UI code.
 3. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-4For Make App frontend authentication, login, logout, token mode, unified login, authenticated `/api/make/**`, or business-request 401/403 behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
+4. For Make App frontend authentication, login, logout, token mode, unified login, authenticated `/api/make/**`, or business-request 401/403 behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
 
 ## Out of scope
 

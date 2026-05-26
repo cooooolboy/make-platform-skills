@@ -15,7 +15,8 @@ Use this skill for **Make App authentication and authenticated Make API access**
 This skill covers:
 
 - `@qfeius/make-app-auth` SDK integration
-- local token mode with unified login disabled
+- unified login as the default generated/published Make App auth mode
+- explicit local token mode with unified login disabled
 - unified login, OAuth, SSO, ngrok, cookie, logout, and callback testing
 - `/api/make/**` authenticated requests
 - 401, 403, and logout behavior
@@ -30,14 +31,14 @@ This skill does not cover:
 
 ## Default Behavior
 
-Default Make App local development uses **token mode** with `unifiedLogin: false`.
+Default generated and published Make Apps use **unified login** with `unifiedLogin: true`, `apiAuthRedirect: true`, and `auth.init({ redirect: true })`.
 
-Do not require ngrok, Org callback whitelist, or browser OAuth unless the user explicitly asks to test unified login, OAuth, SSO, cookie behavior, logout, or redirect callback behavior.
+Token mode is an explicit local debugging override only. Use it when the user asks for token mode, offline/local backend debugging, or when the current environment cannot provide a published App domain, `/api/make/**` routing, and Org callback capability.
 
 Mode selection:
 
-- `token`: default for local real-backend development and ordinary feature debugging.
-- `unified`: explicit mode for real Org unified login, OAuth, cookies, logout, and redirects.
+- `unified`: default for generated Make Apps, published Apps, real Org login, OAuth, cookies, logout, and redirects.
+- `token`: explicit local/debug override when the user asks for token mode or the environment cannot complete unified login.
 - `mock`: offline UI preview only; must not call real Make APIs.
 
 ## Hard Rules
@@ -55,18 +56,19 @@ Mode selection:
 - Do not read, write, persist, or delete `zs_session` or `make_app_session` in App code.
 - Do not construct Org OAuth URLs, `redirect_uri`, `state`, `code_challenge`, token exchange, or Org logout URLs in generated App code.
 - Browser code cannot read `~/.make/credentials`.
-- Do not silently switch token mode to unified login because a token is missing or expired.
+- Do not silently downgrade generated Apps from unified login to token mode because local OAuth prerequisites are missing; ask for confirmation or make the local-only override explicit.
+- Do not silently switch explicit token mode to unified login because a token is missing or expired.
 
 ## Pre-flight Workflow
 
 1. Determine auth mode.
-   - If the user asks for normal local development, feature debugging, or backend API integration, use `token`.
-   - If the user explicitly asks for unified login, OAuth, SSO, cookie, logout, ngrok, or redirect callback testing, use `unified`.
+   - For generated or published Make Apps, use `unified`.
+   - If the user explicitly asks for token mode, offline/local debugging, or the current environment cannot complete unified login, use `token` and state that it is a local-only override.
    - If the user asks for pure UI preview, use `mock`.
 2. Read `references/sdk-integration.md` before generating or changing auth code.
 3. Read exactly one mode reference unless troubleshooting requires more.
-   - Token/default local development: `references/local-token-mode.md`
-   - Unified login testing: `references/unified-login-mode.md`
+   - Default unified login: `references/unified-login-mode.md`
+   - Explicit local token override: `references/local-token-mode.md`
    - 401, 403, logout: `references/logout-and-401.md`
    - Incident/debugging: `references/troubleshooting.md`
 4. Keep auth bootstrap thin. Business features must consume the project Make API adapter and auth state, not auth internals.
@@ -76,8 +78,8 @@ Mode selection:
 ## Reference Selection
 
 - SDK contract and request wrapper: `references/sdk-integration.md`
-- Default local token mode: `references/local-token-mode.md`
-- Real unified login mode: `references/unified-login-mode.md`
+- Default unified login mode: `references/unified-login-mode.md`
+- Explicit local token override: `references/local-token-mode.md`
 - 401, 403, and logout behavior: `references/logout-and-401.md`
 - Auth incident diagnosis: `references/troubleshooting.md`
 

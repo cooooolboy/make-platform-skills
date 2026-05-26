@@ -11,7 +11,7 @@ Ask or infer the active mode first.
 - `token`: no Org redirect should happen.
 - `unified`: real browser, external domain/ngrok, Org whitelist, cookies, and callback routing matter.
 
-Most false diagnoses come from applying unified-login assumptions to token-mode local development.
+Most false diagnoses come from mixing unified-login published-App assumptions with an explicit token-mode local override. Confirm the selected mode before debugging.
 
 ## Evidence To Collect First
 
