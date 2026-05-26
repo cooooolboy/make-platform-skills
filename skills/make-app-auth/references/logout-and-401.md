@@ -54,38 +54,7 @@ The SDK calls make-gateway logout and follows the gateway-provided App `redirect
 
 ## Error Handling Pattern
 
-Handle 401/403 in one Make API adapter or data-source layer. Every frontend request to the Make backend, including schema/meta, records, lookup, user, department, and file APIs, must go through that shared handler.
-
-```js
-async function handleMakeRequestError(error) {
-  if (error instanceof MakeAppUnauthorizedError) {
-    if (authMode === 'token') {
-      renderTokenExpired({ message: '当前调试 Token 已失效，请更新 Token 后重试。' });
-      return;
-    }
-    renderLoading();
-    if (!makeAuthConfig.apiAuthRedirect) {
-      await auth.login({ redirect: true });
-    }
-    return;
-  }
-
-  if (error instanceof MakeAppForbiddenError) {
-    renderForbidden();
-    return;
-  }
-
-  throw error;
-}
-
-try {
-  await auth.api.post('/data/v1/record', payload);
-} catch (error) {
-  await handleMakeRequestError(error);
-}
-```
-
-When `apiAuthRedirect: true` is enabled, most unified-login API 401/403 cases will redirect before the App can render an error. Keep the catch block for token mode, permission-denied responses without a login challenge, and network/runtime failures. Do not duplicate the SDK redirect with another unconditional `auth.login()` call.
+Handle 401/403 in one Make API adapter or data-source layer. Every frontend request to the Make backend, including schema/meta, records, lookup, user, department, and file APIs, must go through that shared handler. Read `request-adapter.md` for the implementation pattern.
 
 ## Anti-patterns
 

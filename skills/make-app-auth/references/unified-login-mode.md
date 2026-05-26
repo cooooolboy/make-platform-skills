@@ -67,12 +67,7 @@ ngrok only exposes the frontend. It does not automatically forward `/api/make/**
 
 Service-fronted deployed Apps use this split:
 
-```text
-browser -> /api/make/auth/** -> App Service -> make-gateway /api/make/auth/**
-browser -> /api/make/app/** -> App Service -> make-gateway /make/meta|data/**
-```
-
-Do not make UI call k8s-internal service names. Only Service code running inside the cluster should call `http://make-gateway`.
+Read `service-fronted-mode.md`. Do not duplicate Service proxy details in generated UI code.
 
 ## Validation Checklist
 
@@ -80,5 +75,5 @@ Do not make UI call k8s-internal service names. Only Service code running inside
 - Confirm `/api/make/**` reaches make-gateway.
 - Complete Org login and callback in the same browser.
 - Confirm the next protected `/api/make/**` request succeeds without hand-written `Authorization`.
-- Confirm business-request 401 from schema/meta/list/create/update/delete/file/user/department APIs goes through the shared Make API adapter and redirects into Org login recovery.
+- Confirm business-request 401 from schema/meta/list/create/update/delete/file/user/department APIs follows `request-adapter.md`.
 - Confirm logout uses the SDK and follows the make-gateway-provided App `redirectUri`. A browser stuck on a gateway `/api/org/public/sso/logout` or account-center URL means the gateway logout response or route configuration should be fixed, not patched in App UI code.

@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.26.
+Current skill revision: 0.3.27.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router. Do not switch frontend frameworks unless the user explicitly asks and the project already supports the alternative.
 
@@ -84,13 +84,13 @@ When generating or modifying Make App frontend authentication, always apply `mak
 
 `makeui` must not implement authentication details itself. Do not generate auth, OAuth, token, cookie, logout, or `/api/make/**` request logic directly from this skill.
 
-Default generated UI should follow the auth mode selected by `make-app-auth`. In the current Make App generation baseline, that means unified login by default and token mode only as an explicit local/debug override. Auth SDK options, OAuth, SSO, cookies, logout, redirect callbacks, 401/403 handling, and authenticated `/api/make/**` details are owned by `make-app-auth` and its references.
+Default generated UI should follow the auth mode selected by `make-app-auth`. Auth SDK options, OAuth, SSO, cookies, logout, redirect callbacks, 401/403 handling, and authenticated `/api/make/**` details are owned by `make-app-auth` and its references.
 
 Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, keep that flow and do not replace it with the auth-SDK gateway flow without explicit user confirmation. If the host project is Service-fronted unified login, preserve that contract: UI calls the Service API through the project auth wrapper or `auth.api`, Service owns calls to make-gateway, and UI must not bypass Service by calling `/data/**` or `/meta/**` directly. `apps/service` remains required project structure.
 
 Hard boundary:
 
-- Use `@qfeius/make-app-auth` for auth bootstrap and `auth.api` for `/api/make/**`.
+- Use `make-app-auth` for auth bootstrap and authenticated Make backend requests.
 - Do not hand-write `Authorization`.
 - Do not hard-code Org, unified-login, or account-center domains; those URLs must come from make-gateway through `make-app-auth`.
 - Do not read or persist Org tokens, `zs_session`, or `make_app_session`.
@@ -113,10 +113,10 @@ Hard boundary:
 ### Data, schema, and auth
 
 - Preserve the host data flow. If the project says `apps/ui -> apps/service -> Make Data API`, keep UI calls on the Service contract and do not hold Make tokens in UI.
-- If the project uses a gateway/unified-login runtime, the data path is `apps/ui -> @qfeius/make-app-auth auth.api -> /api/make/** -> make-gateway -> Make Platform`.
-- Do not silently switch a Service-based project to the gateway/auth-SDK flow, route a gateway/auth-SDK project through `apps/service`, bypass `auth.api`, rely on a Vite token proxy such as `/make-api`, or call meta/data service domains directly.
+- If the project uses a gateway/unified-login runtime, apply `make-app-auth` and do not define SDK behavior in `makeui`.
+- Do not silently switch a Service-based project to the gateway/auth-SDK flow, route a gateway/auth-SDK project through `apps/service`, bypass the project auth wrapper, rely on a Vite token proxy such as `/make-api`, or call meta/data service domains directly.
 - Do not handwrite auth, OAuth, token, cookie, logout, `Authorization`, Org URLs, unified-login URLs, account-center URLs, or `/api/make/**` request logic in `makeui`; these belong to `make-app-auth`.
-- Default generated UI follows the auth mode selected by `make-app-auth`; unified-login/OAuth/SSO/cookies/logout/callbacks, SDK `gatewayBaseUrl`, `auth.api`, and `auth.logout()` behavior belong to `make-app-auth`.
+- Default generated UI follows the auth mode selected by `make-app-auth`; unified-login/OAuth/SSO/cookies/logout/callbacks and SDK request behavior belong to `make-app-auth`.
 - Generated App UI must not read or persist Org tokens, `zs_session`, or `make_app_session`.
 - `apps/dsl` is a modeling artifact, not a runtime dependency. Generated UI and Service runtime code must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` schema files.
 - Objects, fields, table columns, form fields, labels, editability, required state, select options, and lookup metadata come from backend schema APIs such as `/api/schema` and `/api/entities/:entityKey/fields`, or the host equivalent.
@@ -143,7 +143,7 @@ Hard boundary:
 
 Before generating or editing UI:
 
-1. Identify the host data flow: UI -> Service -> Make API, Service-fronted unified login (`auth.api("/app/**")` -> Service), or direct auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
+1. Identify the host data flow: UI -> Service -> Make API, Service-fronted unified login, or direct auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
 2. If reorganizing into `apps/`, verify the workspace package baseline, `apps/ui/dist` build output, and Service config baseline before editing UI code.
 3. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
 4. For Make App frontend authentication, login, logout, token mode, unified login, authenticated `/api/make/**`, or business-request 401/403 behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.

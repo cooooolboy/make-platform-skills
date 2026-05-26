@@ -46,8 +46,8 @@ Mode selection:
 - Always use `@qfeius/make-app-auth`; do not fork a separate auth implementation.
 - Business requests to Make backend must go through `auth.api` under `/api/make/**`.
 - All frontend requests to Make backend must go through `auth.api`, including schema/meta, list, get, create, update, delete, attachment/file, lookup, user, and department candidate requests.
-- Generated Apps must centralize Make backend access in a shared API adapter or data-source layer that wraps `auth.api` and handles `MakeAppUnauthorizedError` / `MakeAppForbiddenError`. Do not scatter direct `auth.api` calls across UI components without the shared 401/403 handler.
-- Service-based Apps may expose App-owned business APIs under `/api/make/app/**`; UI still calls them through `auth.api`, and Service calls make-gateway internally.
+- Generated Apps must centralize Make backend access in a shared API adapter or data-source layer that wraps `auth.api`.
+- Service-fronted Apps must preserve the `UI -> Service -> make-gateway` contract; do not let UI bypass Service for meta/data calls.
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`; token mode must provide tokens through SDK options.
 - `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the `makecli` `server-url` value; do not create a second environment concept for the same URL.
@@ -66,53 +66,25 @@ Mode selection:
    - If the user explicitly asks for token mode, offline/local debugging, or the current environment cannot complete unified login, use `token` and state that it is a local-only override.
    - If the user asks for pure UI preview, use `mock`.
 2. Read `references/sdk-integration.md` before generating or changing auth code.
-3. Read exactly one mode reference unless troubleshooting requires more.
+3. Read the relevant mode reference unless troubleshooting requires more.
    - Default unified login: `references/unified-login-mode.md`
    - Explicit local token override: `references/local-token-mode.md`
    - 401, 403, logout: `references/logout-and-401.md`
    - Incident/debugging: `references/troubleshooting.md`
-4. Keep auth bootstrap thin. Business features must consume the project Make API adapter and auth state, not auth internals.
-5. Verify every Make backend request path uses the shared adapter and that the adapter catches `MakeAppUnauthorizedError` / `MakeAppForbiddenError`.
-6. When changing generated code, add or update tests for the touched auth path: missing token, expired token, 403, logout, unified-login redirect, or business-request 401 handling.
+4. Read `references/service-fronted-mode.md` when the App keeps a Service layer between UI and make-gateway.
+5. Read `references/request-adapter.md` whenever generating or reviewing Make backend requests.
+6. Keep auth bootstrap thin. Business features must consume the project Make API adapter and auth state, not auth internals.
+7. When changing generated code, add or update tests for the touched auth path: missing token, expired token, 403, logout, unified-login redirect, or business-request 401 handling.
 
 ## Reference Selection
 
 - SDK contract and request wrapper: `references/sdk-integration.md`
+- Shared request adapter and 401/403 handling: `references/request-adapter.md`
 - Default unified login mode: `references/unified-login-mode.md`
 - Explicit local token override: `references/local-token-mode.md`
+- Service-fronted unified-login mode: `references/service-fronted-mode.md`
 - 401, 403, and logout behavior: `references/logout-and-401.md`
 - Auth incident diagnosis: `references/troubleshooting.md`
-
-## Expected User-Facing Behavior
-
-Token mode:
-
-- Missing token renders a token-required state.
-- Expired token renders: `当前调试 Token 已失效，请更新 Token 后重试。`
-- 403 renders: `当前 Token 无权限访问该资源。`
-- `auth.api` may attach `Authorization`, but only to URLs under the configured Make API gateway base; generated business code should pass relative paths such as `/data/v1/record`.
-- Do not redirect to Org and do not call OAuth challenge.
-
-Unified mode:
-
-- Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page; do not show an App-owned login page.
-- Generated unified-login Apps should pass `apiAuthRedirect: true` with `@qfeius/make-app-auth >= 0.1.2`; earlier SDK versions do not own business API 401/403 redirect handling.
-- Do not generate an App-owned login page, login transition page, or signed-out completion page. The only acceptable unauthenticated UI is a neutral loading state while the browser is being redirected.
-- Authenticated App shell must expose a visible logout action, normally in the top header near the current user/avatar.
-- Login and logout must use SDK APIs.
-- Formal unified-login Apps should not pass `accessToken`, `token`, or `tokenProvider`; successful login relies on the App session Cookie written by make-gateway.
-- If `auth.init({ redirect: true })` returns `unauthenticated` with `reason="state_expired"` or `reason="challenge_expired"`, render a simple "登录已过期，请重新登录" prompt and call `auth.login({ redirect: true })` only after the user clicks.
-- Do not automatically retry login in a loop. One explicit user-triggered relogin is the safe fallback for expired state/challenge.
-- Logout UI should call `auth.logout()` or the project auth wrapper that delegates directly to `auth.logout()`; do not add App-side Org logout URL fallback logic.
-- Callback testing requires a registered external domain or ngrok plus Org redirect whitelist.
-
-Service-fronted unified mode:
-
-- Browser calls stay same-origin under `gatewayBaseUrl=/api/make`.
-- UI business code should call Service-owned paths such as `auth.api.get("/app/schema")` or `auth.api.post("/app/records/customer", body)`.
-- Service handles `/api/make/app/**`, derives identity from the App session via make-gateway auth, then calls k8s-internal make-gateway business routes such as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`.
-- Service transparently proxies `/api/make/auth/**` to `http://make-gateway/api/make/auth/**`.
-- When proxying `/api/make/auth/session/complete`, Service must return gateway `302 + Set-Cookie + Location` to the browser; do not let server-side fetch follow that redirect internally.
 
 ## Collaboration With makeui
 
