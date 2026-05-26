@@ -4,9 +4,30 @@ Use `@qfeius/make-app-auth` for Make App authentication and Make backend request
 
 ## Responsibility Boundary
 
-The SDK owns auth bootstrap, token-mode `Authorization`, unified-login browser state, and `/api/make/**` request helpers.
+The SDK owns auth bootstrap, unified-login browser state, cookies, redirects, logout, and `/api/make/**` request helpers.
 
 App code owns page state, user-facing messages, and business feature logic.
+
+The SDK and this skill diagnose auth only. They should answer whether a request is authenticated, unauthenticated, forbidden, expired, missing a cookie, blocked by callback routing, or failing because the Service auth proxy contract is absent.
+
+The SDK should not diagnose runtime schema shape, object-field normalization, canvas-table rendering, white screens, published asset routing, or business data correctness. When authenticated `/api/make/**` requests succeed but UI rendering fails, hand off to `makeui` and the host app smoke tests.
+
+SDK improvement backlog, not current generated-App contract:
+
+- `unauthenticated`
+- `forbidden`
+- `session_expired`
+- `state_expired`
+- `challenge_expired`
+- `cookie_missing`
+- `cookie_not_sent`
+- `callback_exchange_failed`
+- `auth_proxy_missing`
+- `logout_failed`
+
+These labels describe the desired future diagnostic vocabulary only. Do not generate App code that branches on these labels unless the installed SDK type definitions expose them. Current generated App code should branch on the published SDK contract, such as `MakeAppUnauthorizedError`, `MakeAppForbiddenError`, `status`, and `reason`.
+
+Do not add schema, table, route-rendering, or publish-platform labels to SDK diagnostics.
 
 ## Dependency
 
@@ -40,7 +61,7 @@ Use a Git branch dependency only when intentionally testing unreleased SDK chang
 
 ## Startup Shape
 
-Generated Apps default to unified login. Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page instead of showing an App-owned login page. Token mode is only an explicit local/debug override.
+Generated Apps use unified login. Direct App entry should call `auth.init({ redirect: true })` and go to the Org login page instead of showing an App-owned login page.
 
 ```js
 import {
@@ -75,15 +96,15 @@ if (boot.status === 'authenticated') {
 
 ## Business Requests
 
-Use `auth.api` for Make backend calls. The SDK handles `/api/make`, cookies, JSON request bodies, unified auth errors, and token-mode `Authorization` headers.
+Use `auth.api` for Make backend calls. The SDK handles `/api/make`, cookies, JSON request bodies, and unified auth errors.
 
 `gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling this value already exists as `makecli` `server-url` (`makecli configure get server-url`, default `https://dev-make.qtech.cn/api/make`). Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
 
-For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. For explicit local token-mode debugging, materialize the same Make backend `server-url` into browser-safe config such as `VITE_MAKE_SERVER_URL` or the existing project config, then pass it as `gatewayBaseUrl`. Browser code must not read `~/.make/config` directly.
+For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. Browser code must not read `~/.make/config` directly.
 
 `gatewayBaseUrl` is not the unified login, Org, or account-center URL.
 
-Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it and will not attach token-mode `Authorization`.
+Business code should pass relative paths to `auth.api`, for example `/data/v1/record`. Do not generate absolute business URLs. If an absolute URL is unavoidable, it must be under the same origin and path scope as `gatewayBaseUrl`; otherwise the SDK rejects it.
 
 Available helpers:
 
@@ -100,10 +121,10 @@ For shared adapter, 401/403, request headers, and no-scattered-`auth.api` rules,
 
 For Service-fronted Apps where UI calls App Service and Service calls make-gateway, read `service-fronted-mode.md`.
 
+For published/vibe Apps, auth integration is not complete until the agent or platform has verified the domain entry path, current-context challenge/context path, callback/session completion, and at least one authenticated business request through the generated adapter. Run `scripts/audit-auth-contract.mjs <project-root> --published` when a generated project tree is available. Do not make the user discover these failures by opening DevTools after publish.
+
 ## Tests To Add When Touching Auth
 
-- Missing token in token mode.
-- Expired or rejected token in token mode.
 - 403 forbidden response.
 - Unified-login API 401/403 with `apiAuthRedirect: true` redirects through SDK login once.
 - Unified-login unauthenticated state does not loop redirects.
@@ -112,6 +133,7 @@ For Service-fronted Apps where UI calls App Service and Service calls make-gatew
 - Unified-login state/challenge expiration renders a relogin prompt instead of automatically redirecting again.
 - Authenticated unified-login state exposes a visible logout action wired to `auth.logout()`.
 - Logout does not consume or rewrite `orgSsoLogoutUrl` in App code; the SDK calls make-gateway logout and follows gateway `redirectUri`, which should be an App return URL rather than an account-center or Org logout URL.
+- Service-fronted unified-login Apps proxy `/api/make/auth/current-context`, `/api/make/auth/session/complete`, and logout through Service without swallowing redirect or cookie headers.
 
 ## Never Generate
 
@@ -119,6 +141,8 @@ For Service-fronted Apps where UI calls App Service and Service calls make-gatew
 - Reading, writing, or deleting `zs_session` or `make_app_session`.
 - Browser code that tries to read `~/.make/credentials`.
 - Raw `Authorization` header logic outside the SDK.
+- Token-mode SDK options such as `unifiedLogin: false`, `accessToken`, `token`, or `tokenProvider`.
+- Token-mode environment switches such as `VITE_MAKE_AUTH_MODE=token`.
 - Hard-coded Org, unified-login, or account-center domains in App code.
 - Passing arbitrary absolute URLs to `auth.api`.
 - Constructing Org OAuth URLs, `redirect_uri`, `state`, or `code_challenge`.

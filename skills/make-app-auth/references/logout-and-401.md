@@ -2,33 +2,6 @@
 
 Use this reference when implementing or reviewing user-facing behavior for auth failures and logout.
 
-## Token Mode
-
-401 means the user-provided debug token is missing, expired, malformed, or rejected.
-
-Behavior:
-
-- Show update-token state.
-- Do not redirect to Org.
-- Do not call `/challenge`.
-- Do not build OAuth URLs.
-
-Recommended message:
-
-```text
-当前调试 Token 已失效，请更新 Token 后重试。
-```
-
-403 means the token is valid but lacks permission:
-
-```text
-当前 Token 无权限访问该资源。
-```
-
-Logout in token mode should only clear local debug state managed by the App or SDK. It should not claim to clear Org browser login.
-
-## Unified Mode
-
 401 means browser session is missing or expired.
 
 Behavior:
@@ -58,7 +31,7 @@ Handle 401/403 in one Make API adapter or data-source layer. Every frontend requ
 
 ## Anti-patterns
 
-- Redirecting to Org automatically on every 401 in token mode.
+- Generating token mode, local debug token prompts, or no-login bypasses.
 - Handling 401 only in App bootstrap while business requests use unhandled `auth.api` calls.
 - Calling `auth.api` directly from scattered UI components without the shared 401/403 handler.
 - Using raw `window.fetch('/api/make/...')` for any Make backend request.

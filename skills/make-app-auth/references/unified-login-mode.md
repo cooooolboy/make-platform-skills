@@ -1,8 +1,6 @@
 # Unified Login Mode
 
-Use unified mode by default for generated and published Make Apps.
-
-Token mode is only an explicit local/debug override when the user asks for it or when the current environment cannot complete browser OAuth.
+Use unified mode for generated and published Make Apps.
 
 ## Preconditions
 
@@ -13,7 +11,7 @@ Unified mode requires:
 - `/api/make/**` from the external domain routed to make-gateway.
 - Browser testing with real cookies enabled.
 
-If these are missing in local development, do not silently fall back to token mode. State the missing prerequisite and use token mode only after the user confirms the local-only override.
+If these are missing in local development, report the missing prerequisite as a blocker. Do not fall back to token mode or a no-login bypass.
 
 ## SDK Setup
 
@@ -46,7 +44,7 @@ if (boot.status === 'authenticated') {
 - Keep only a neutral loading state while SDK/browser redirection is in progress.
 - If login callback returns to the App with an expired state/challenge marker, show a simple relogin prompt. Do not immediately redirect again.
 - The relogin button should call `auth.login({ redirect: true })`; the SDK removes the expired-login URL parameters before creating the next challenge.
-- Formal unified-login Apps must not pass `accessToken`, `token`, or `tokenProvider`; after login, browser requests rely on the App session Cookie written by make-gateway.
+- Unified-login Apps must not pass `accessToken`, `token`, or `tokenProvider`; after login, browser requests rely on the App session Cookie written by make-gateway.
 - Set `apiAuthRedirect: true` for generated unified-login Apps with `@qfeius/make-app-auth >= 0.1.2`.
 - Unified login challenge URLs are returned by make-gateway. Logout returns an App `redirectUri`; App UI code must not configure or hard-code account-center or Org logout URLs.
 - Do not construct Org authorize URLs in App code.
@@ -71,6 +69,7 @@ Read `service-fronted-mode.md`. Do not duplicate Service proxy details in genera
 
 ## Validation Checklist
 
+- Run `scripts/audit-auth-contract.mjs <project-root> --published` when a generated project tree is available.
 - Open the App through the registered external domain or ngrok URL.
 - Confirm `/api/make/**` reaches make-gateway.
 - Complete Org login and callback in the same browser.
