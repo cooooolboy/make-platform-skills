@@ -62,8 +62,8 @@ Form layout:
 - horizontal label/value alignment remains acceptable when labels are short, stable, or already established by the project
 - use a subtle neutral Drawer body with one lightweight white form panel or section panels; avoid visually heavy cards and nested cards
 - keep form panels compact: moderate padding, 6-8px radius, thin neutral border, and low shadow at most
-- common fields use a two-column grid on desktop
-- long text, descriptions, and rich content span full width
+- common fields use a two-column grid on desktop; do not render every field as full-width one-column rows unless the user explicitly asks
+- long text, descriptions, URL/link fields, attachments, lookup/relation controls, and rich content span full width
 - collapse to one column on small screens
 - show form-level save errors as a compact `Alert` above the first form panel
 - keep control height and radius consistent, for example 36px controls with 6px radius when using Ant Design
@@ -76,8 +76,18 @@ Unless the user or existing project asks otherwise, use the ExpensePoc create/ed
 - one white form panel for normal writable fields, and a second section panel for relation/association fields when needed
 - panel padding around `16px`, thin neutral border, 8px radius, low shadow at most
 - grid `repeat(2, minmax(0, 1fr))` with roughly `10px 18px` gaps
-- full-span rows for textarea, long text, URL-rich, attachment, lookup, or otherwise wide controls
+- field item margin around `10px`, label padding around `6px`, 36px controls, and textarea min-height around `96px`
+- normal schema fields occupy one grid column by default
+- full-span rows only for wide controls: `Make.Field.TextArea`, URL/link fields, `Make.Field.File`, `Make.Field.Lookup`, relation/association selectors, long text, attachment-heavy values, or otherwise wide controls
 - body scrolls inside the Drawer; the page behind it does not scroll
+
+Default create/edit field span mapping:
+
+| Field type / group | Desktop span |
+| --- | --- |
+| `Text`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment` | one column; two fields per row |
+| `TextArea`, long text, URL/link, `File`, `Lookup`, relation/association selector, rich custom control | full row |
+| `ID`, generated, readonly-only fields | usually omit from create/edit; if shown in edit, one column unless value is long |
 
 Schema-driven Make forms:
 
@@ -121,8 +131,15 @@ Use horizontal label/value alignment by default on desktop:
 - two-column grid for common fields
 - each item has a stable label column and a flexible value column
 - subtle bottom borders are preferred over boxed cards for dense record detail
-- long text, file, lookup, URL-rich, or attachment-heavy values span the full width
+- long text, `TextArea`, file, lookup/relation, URL/link-rich, attachment-heavy, or rich values span the full width
 - labels use subdued color and consistent width; values use stronger text color and wrap safely
+
+Default detail field span mapping:
+
+| Field type / group | Desktop span |
+| --- | --- |
+| `ID`, `Text`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment` | one column; two fields per row |
+| `TextArea`, long text, URL/link-rich values, `File`, `Lookup`, relation/association values, attachment-heavy values, rich custom values | full row |
 
 Detail Drawers should not have a footer unless the user explicitly asks for persistent bottom actions.
 

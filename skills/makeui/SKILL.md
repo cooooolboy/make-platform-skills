@@ -18,9 +18,11 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 1. Inspect the existing project stack, routes, shell, component library, styling, Node runtime, data flow, and `apps/` structure.
 2. Check project baselines: workspace packages, `apps/ui/dist`, Service config entry, Service port `3000`, and Node `>=22.12.0`.
 3. Preserve the host data flow. Use `make-app-auth` for auth/login work and `canvas-table-integration` for Make record tables.
-4. Generate schema-driven UI from runtime schema/API responses. Do not generate UI or Service runtime code that reads local DSL/YAML files.
+4. Normalize runtime schema/API responses before table, form, route, or navigation code consumes them. Do not generate UI or Service runtime code that reads local DSL/YAML files.
 5. Use the dense object-management layout by default: left navigation, flat workspace header, local toolbar directly above the table, and no extra list-title card. Sidebar color follows the project theme.
-6. Read only the needed reference files from the map below.
+6. Wrap schema-driven object routes with controlled loading, empty, error, forbidden, expired-session, and render-error states. Published/vibe Apps must not show a blank white page after auth.
+7. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
+8. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -119,9 +121,11 @@ Hard boundary:
 - Default generated UI follows the auth mode selected by `make-app-auth`; unified-login/OAuth/SSO/cookies/logout/callbacks and SDK request behavior belong to `make-app-auth`.
 - Generated App UI must not read or persist Org tokens, `zs_session`, or `make_app_session`.
 - `apps/dsl` is a modeling artifact, not a runtime dependency. Generated UI and Service runtime code must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` schema files.
+- Generated UI must consume a normalized runtime schema contract, not raw remote schema objects directly. Normalize backend variants such as `entity.properties.fields`, `entity.fields`, or host equivalents before object shell, table, form, detail, and route code sees them.
 - Objects, fields, table columns, form fields, labels, editability, required state, select options, and lookup metadata come from backend schema APIs such as `/api/schema` and `/api/entities/:entityKey/fields`, or the host equivalent.
 - User and department selectors query backend candidate APIs such as `/api/users` and `/api/departments`, or the host equivalent.
 - If schema or candidate APIs are missing, report the API contract gap before generating UI. Do not use local DSL as a fallback field source.
+- Schema, data, route, and render failures must resolve to visible object-shell states: loading, empty, error, forbidden, expired-session, retry, or render-error. Do not let exceptions bubble into a blank page.
 
 ### UI defaults
 
@@ -136,6 +140,9 @@ Hard boundary:
 - CanvasTable wrapper and host must fill the available content width and remaining height; use a flex height chain or accurate `calc()` fallback instead of fixed table dimensions.
 - CanvasTable defaults to `showSN` sequence numbers and a hover-revealed row-head detail icon through `bodyRowHeadSuffixOptions`, unless the user explicitly says the table does not need it.
 - Create/edit/detail use right-side Drawers by default. Drawer width defaults to `60%`, may become `100%` on small screens, and mask close is enabled.
+- Create/edit/detail desktop layouts default to two columns. Do not render all fields as one full-width column on desktop unless the user explicitly asks or the viewport is too narrow.
+- Create/edit fields default to a vertical-label two-column grid. Common fields occupy one column; wide fields such as `TextArea`, `URL`/link, `File`, `Lookup`/relation selectors, long text, and rich controls span the full row. Collapse to one column on small screens.
+- Detail views default to a compact two-column label/value grid. Common fields occupy one column; long text, `TextArea`, `URL`/link-rich values, `File`, `Lookup`/relation values, attachment-heavy values, and rich content span the full row.
 - Create/edit forms use type-appropriate controls. Date, select, user, department, file, and lookup fields must not silently degrade to plain text inputs. File upload is omitted in create mode when upload requires an existing `recordID`.
 - Use dynamic object routes such as `/objects/:objectKey`. Do not generate one hard-coded route component per object.
 
@@ -146,7 +153,13 @@ Before generating or editing UI:
 1. Identify the host data flow: UI -> Service -> Make API, Service-fronted unified login, or direct auth-SDK gateway. Preserve existing project instructions and API contracts unless the user confirms a change.
 2. If reorganizing into `apps/`, verify the workspace package baseline, `apps/ui/dist` build output, and Service config baseline before editing UI code.
 3. Use React Router dynamic params for Make object routes. Do not generate a separate hard-coded route component per object.
-4. For Make App frontend authentication, login, logout, token mode, unified login, authenticated `/api/make/**`, or business-request 401/403 behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
+4. For Make App frontend authentication, login, logout, unified login, authenticated `/api/make/**`, or business-request 401/403 behavior, apply `make-app-auth`. Do not hand-write auth logic in `makeui`.
+
+### Readiness checks
+
+- Before reporting a generated App as ready to publish or ready for user domain access, run a UI smoke against the entry route.
+- The smoke must prove that auth-completed navigation renders the app/object shell and at least one schema-driven object view.
+- Do not rely on the user to discover blank pages with DevTools, k8s logs, or screenshots after publish.
 
 ## Out of scope
 

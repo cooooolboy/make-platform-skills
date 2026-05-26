@@ -27,6 +27,8 @@ First-pass guidance:
 - Use `showEllipsis` for long business text.
 - Use `render` only when built-in text rendering is not enough.
 
+For Make schema-driven tables, read `make-field-display-patterns.md`; complex Make field types such as select, user, department, file, and lookup normally require the Track C renderers instead of plain text columns.
+
 ## 2. Common `TableCanvasProps`
 
 Use these props first:
@@ -149,6 +151,15 @@ Use for:
 - changed columns
 - changed summary config
 - changed table behavior flags
+
+When the host layout is responsive, first measure the host container, then create the table with the measured `canvasWidth` and `canvasHeight`. On subsequent size changes, call both:
+
+```ts
+table.updateProps({ canvasWidth: width, canvasHeight: height, columns })
+table.updateCanvasSize(width, height, true)
+```
+
+Do not let the first table instance initialize with a placeholder size such as `960x480` when a real host size is already available.
 
 #### `destroy()`
 

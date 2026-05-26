@@ -8,13 +8,14 @@ description: >-
   cell-edit architecture, schema-driven Make field editors, `customEdit`,
   `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`,
   `editApplyMode: controlled`, attachment editors, and Make field-display
-  columns with value normalization. Read package AI docs first, choose Track A,
-  B, or C, use documented public APIs, and do not modify the table library itself.
+  columns with value normalization. Only supports `@qfei-design/canvas-table`,
+  never UI-library tables. Read package AI docs first, choose Track A, B, or C,
+  use documented public APIs, and do not modify the table library itself.
 ---
 
 # canvas-table-integration
 
-Use this skill only for **consumer-side integration** of `@qfei-design/canvas-table`.
+Use this skill only for **consumer-side integration** of `@qfei-design/canvas-table`. It does not support Ant Design Table, Arco Table, TDesign Table, native HTML tables, or any other table implementation as the product table.
 
 This skill has three tracks:
 
@@ -47,17 +48,19 @@ This skill has three tracks:
 
 Choose the track first. Do not mix a basic table integration request with a full cell-edit architecture refactor unless the user clearly wants the editing workflow.
 If the user says display-only, field type display, or schema field rendering, choose Track C and leave cell editing out unless explicitly requested.
+For new Make App projects or pages that display Make schema records, choose Track C by default even when the user only says "add a table" or "show a list". Use Track A only for `@qfei-design/canvas-table` pages whose columns are not Make schema-driven.
 
 ## Quick start
 
 1. Confirm this is a consumer-side table integration, not table-library maintenance.
 2. Check package installation and read the package AI docs in the required order below.
-3. Choose exactly one primary track: Track A display table, Track B editable cells, or Track C Make field display.
-4. Read only the track references from the topic map.
-5. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
-6. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
-7. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
-8. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
+3. Choose exactly one primary track: Track A display table, Track B editable cells, or Track C Make field display. If Make schema fields are in scope, Track C is the default.
+4. For Make schema tables, load and normalize schema fields before initializing the table; build `IColumn[]` plus renderers from the normalized field types.
+5. Read only the track references from the topic map.
+6. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
+7. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
+8. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
+9. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
 
 ## Typical requests
 
@@ -87,6 +90,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 ### Track C: Make field-display integration
 
 - 根据 Make 字段类型生成 canvas table 展示列
+- 新 Make 项目中只要是 schema 驱动的业务表格，默认按当前 ExpensePoc 表格展示基线生成；除非用户明确要求不同展示
 - 把 18 种字段类型按展示族分类处理
 - 把后端字段返回值规范化后展示在 canvas 表格中
 - 拆分 `config` / `renderers` / `hooks` / `types` / value adapter
@@ -96,6 +100,7 @@ If the user says display-only, field type display, or schema field rendering, ch
 
 - publishing `@qfei-design/canvas-table`
 - editing the table library itself
+- generating or keeping another product table implementation instead of `@qfei-design/canvas-table`
 - maintaining `package.ai.json`, `recipes.json`, examples, or docs inside the table library repo
 - configuring private npm registries
 - treating grouped-table architecture as the default answer
@@ -115,6 +120,8 @@ Before editing code:
 5. If install fails, stop and report the command and error.
 
 Use `@qfei-design/canvas-table` consistently. If an existing codebase uses a different package name, stop and ask before changing the consumer app dependency.
+
+If an existing Make record list uses another table component, the expected integration target is still `@qfei-design/canvas-table`. Do not preserve a UI-library table as the main record table unless the user explicitly says this page is out of scope for canvas-table.
 
 ## Required read order
 
@@ -234,7 +241,7 @@ This track does **not** require a fixed UI library. Prefer the current project's
 
 ## Track C: Make field-display integration scope
 
-Use Track C when the task is to show Make platform fields correctly in canvas-table. Keep it display-only: normalize backend values into a small display model, then route by display group to focused renderers. The 18 field types are the current backend contract, but implementation names and folder names may adapt to the host project.
+Use Track C when the task is to show Make platform fields correctly in canvas-table. In new Make App projects, this is the default for every Make schema-driven business table unless the user explicitly asks for a different table style. Keep it display-only: normalize backend values into a small display model, then route by display group to focused renderers. The 18 field types are the current backend contract, but implementation names and folder names may adapt to the host project.
 
 Default grouping:
 
@@ -251,12 +258,23 @@ Default grouping:
 Prefer this shape:
 
 - `config/`: schema field -> column config (`width`, `align`, `showEllipsis`, `renderKind`)
-- `renderers/`: canvas shape renderers by display group (`text`, `tag`, `user`, `attachment`)
+- `renderers/`: canvas shape renderers by display group (`text`, `tag`, `user`, `attachment`, `lookup`)
 - `hooks/`: field option data needed for display, such as department candidates; never fetch per cell
 - `types/`: shared table/display contracts when they are used across modules
 - value adapter: pure functions that return `{ group, kind, text, labels, href, attachments, users, empty }`
 
 This is guidance, not a required folder taxonomy. Preserve an existing project structure when it already separates these responsibilities clearly.
+
+Default Make schema table baseline:
+
+- initialize the table only after runtime schema fields are available; missing schema is a blocking loading/error state, not a reason to infer columns from row keys
+- derive columns from normalized runtime schema fields; do not pass raw remote schema objects or hand-maintain static columns for dynamic Make objects
+- each generated column should retain `fieldType`, `fieldSchema`, and `renderKind` or equivalent metadata for renderer dispatch
+- normalize field values once through a pure adapter before canvas rendering
+- route display by field type group, not by business field names, except for explicit business roles such as a primary code link
+- use the ExpensePoc-proven renderer families by default: text/link, tag list, user avatar/name list, attachment list, lookup reference text, and safe generic fallback
+- keep option, user, department, file, and lookup candidate loading outside cell renderers
+- preserve row defaults: `showSN` sequence numbers plus hover-revealed detail entry through `bodyRowHeadSuffixOptions`
 
 ## Safety rules and defaults
 
@@ -266,10 +284,12 @@ Treat these as safety rules:
 - use a real DOM container with explicit width and height
 - use only documented public APIs
 - never import from `src` or `dist`
+- use `@qfei-design/canvas-table` for product tables; do not substitute UI-library tables
 - use `table.tableId` as the namespace key for `globalEventBus.onWithNamespace(...)`
 - destroy the table instance on unmount / cleanup
 - never pass raw meta directly into the table runtime
 - convert meta into `IColumn[]` before creating the table
+- for Make schema tables, do not create the table with generic placeholder columns or row-key-inferred columns while waiting for schema
 - do not put `aria-hidden` or `inert` on the visual canvas-table host, or on any ancestor that can contain the package-created focusable canvas
 - if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
 - pagination is opt-in: do not add visible pagination controls, page-size selectors, page state, page query params, total-count handling, paginated fetch logic, `virtualOptions`, or `data:load` wiring unless the user explicitly asks for pagination, virtual loading, or paginated backend integration
