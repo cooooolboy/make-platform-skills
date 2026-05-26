@@ -1,35 +1,5 @@
 # makeui 接入 make-app-auth-sdk 规则更新
 
-## 2026-05-25 0.1.2 发布收口
-
-- 将生成规则的 SDK 依赖提升到 `@qfeius/make-app-auth@^0.1.2`。
-- 明确 `apiAuthRedirect` 的最低 SDK 版本为 `>= 0.1.2`，删除“npm 未发布前使用开发分支”的临时口径。
-- 涉及 `skills/make-app-auth/SKILL.md`、`references/sdk-integration.md`、`unified-login-mode.md`、`logout-and-401.md`、`skills/makeui/SKILL.md`。
-- 验证结果：文本扫描确认当前规则已指向 `0.1.2`；`git diff --check` 通过；已同步到本机 Codex skills 目录并校验入口文件一致。
-
-## 2026-05-25 收口
-
-- 删除仓库内 `.DS_Store` 并加入 `.gitignore`，避免 macOS 元数据继续进入 skill 包。
-- 明确 `apiAuthRedirect` 依赖支持该选项的 SDK 版本；npm 未发布前使用 SDK 开发分支依赖。
-- 调整 401/403 adapter 示例：SDK 自动跳转优先，adapter 只做集中调用、token 模式提示和不可跳转兜底。
-- 同步 `skills/makeui/references/principles.md` 的 Service-fronted unified login 数据流，避免 reference 仍生成旧直连链路。
-
-## 2026-05-25
-
-- 补充 Service-fronted unified login 规则：UI 通过 `auth.api("/app/**")` 调 Service，Service 再访问 k8s 内部 make-gateway。
-- 涉及 `skills/make-app-auth/*`、`skills/makeui/SKILL.md`、`skills/makedsl/SKILL.md`。
-- 明确 SDK 生成配置使用 `apiAuthRedirect: true`，由 SDK 统一处理业务 API 401/403 登录跳转。
-- 明确 Service 内部业务路由使用 `/make/meta|data/**`，认证代理使用 `/api/make/auth/**`，`session/complete` 代理不得吞掉 302。
-- 明确发布态 Service 不应依赖硬编码 `/dsl/00-app.yaml`，schema 应从远端 API 或环境配置加载。
-
-## 2026-05-22
-
-- 更新本地 Make App Auth skill 的开发期 SDK 依赖和登录过期处理口径。
-- 涉及 `skills/make-app-auth/SKILL.md`、`references/sdk-integration.md`、`unified-login-mode.md`、`logout-and-401.md`、`troubleshooting.md`。
-- 开发调试阶段允许使用 `make-app-auth-sdk` Git 分支依赖，避免每次小改都发布 npm 新版本。
-- 统一登录 state/challenge 过期时展示“登录已过期，请重新登录”，由用户点击后调用 `auth.login({ redirect: true })`，不做自动重试循环。
-- 已同步到 `/Users/apple/.codex/skills/make-app-auth` 并完成目录一致性校验。
-
 ## 2026-05-21
 
 - 明确 `gatewayBaseUrl` 只是 SDK 参数名，实际值应复用 Make 后端 `server-url` 配置（`makecli configure get server-url`），不再为同一个 Make 后端入口另造配置概念。
