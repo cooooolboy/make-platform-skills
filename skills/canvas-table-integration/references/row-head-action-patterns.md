@@ -2,7 +2,7 @@
 
 Use this file when a table needs a compact row-level action in the body row head, such as an open-detail icon beside the sequence number.
 
-For Make record lists, this is the default row detail entry pattern: show sequence numbers and an open-detail icon in the row head. Clicking the icon opens the record detail Drawer or the host project's established detail surface. Row selection is not enabled by default.
+For every consumer-side CanvasTable integration, this is the default row detail entry pattern unless the user explicitly says the table does not need a detail entry: show sequence numbers in the row head, reveal an open-detail icon from the row-head suffix on row hover or keyboard focus, and open the row detail Drawer or the host project's established detail surface when the icon is clicked. Row selection is not enabled by default.
 
 ## 1. Use `bodyRowHeadSuffixOptions`
 
@@ -14,9 +14,16 @@ Good cases:
 - row expand / collapse affordance
 - compact row-level quick action beside selection or drag handles
 
-For default Make record lists, use this pattern for open detail instead of making the entire row the default detail trigger.
+For default tables, use this pattern for open detail instead of making the entire row the default detail trigger.
 
 Avoid creating a fake fixed-left data column only to hold this icon. `bodyRowHeadSuffixOptions` is accounted for by the table's first-header width and fixed-left width calculation.
+
+Default visual behavior:
+
+- normal state: show the sequence number as the primary row-head content
+- row hover or keyboard focus: reveal the open-detail icon beside the sequence number
+- click: open the row detail Drawer or the host project's established detail surface
+- reserve a stable suffix width so the first data column does not shift when the icon appears
 
 ## 2. Basic open-detail icon
 
@@ -112,6 +119,8 @@ Then pass it to the table:
 />
 ```
 
+The code above shows the shape wiring. In product UI, keep the icon hidden or visually quiet until row hover/focus when the package or host row-hover state supports it. If only icon-level hover is available in the current package version, keep the same `bodyRowHeadSuffixOptions` structure and use the closest non-jitter fallback instead of adding a business data column.
+
 ## 3. Layout notes
 
 - `x` is relative to the row-head tool group, not the whole table canvas.
@@ -119,6 +128,7 @@ Then pass it to the table:
 - `width` reserves layout space; keep it close to the hit-area width.
 - The table adds spacing after the suffix width. Do not manually add a hidden column or offset data columns.
 - Keep the hit area at least `18x18` even if the visible icon is smaller.
+- Reserve the suffix width even when the icon is hidden until row hover/focus.
 
 ## 4. Event guidance
 

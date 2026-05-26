@@ -1,5 +1,13 @@
 # makeui 构建产物与 Service 配置基线
 
+## 2026-05-25 Service 端口固定
+
+- 将 `skills/makeui` 修订标识更新为 `0.3.20`。
+- 明确 Service HTTP 端口固定为 `3000`。
+- 生成或重构 `apps/service` 时，Service 启动代码、配置默认值、`.env.example`、文档、健康检查、测试以及 UI Service base URL 示例都必须指向 `3000`。
+- 旧项目 Service 端口不是 `3000` 时，makeui 重构需要迁移到 `3000`，并同步更新 UI Service base URL、CORS、文档和测试。
+- 本地 `3000` 被占用时必须提示冲突，不得静默改用其他 Service 端口。
+
 ## 2026-05-21 结构优化
 
 - 参考 1771 Technologies AI Skills 文档的结构方式，为 `skills/makeui/SKILL.md` 增加 Quick start、Topic reference map 和 Common gotchas。

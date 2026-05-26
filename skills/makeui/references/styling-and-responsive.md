@@ -19,6 +19,8 @@ For app shells and list pages:
 - preserve `flex: 1`
 - use `min-height: 0` and `min-width: 0`
 - put scrolling in the intended region only
+- keep table wrappers and canvas hosts at `width: 100%` and `height: 100%`
+- avoid fixed table widths/heights unless the user explicitly asks for a fixed-size embedded table
 
 For list pages, the table region scrolls. For drawers, the Drawer body scrolls. For route pages, the content region may scroll.
 
@@ -33,14 +35,20 @@ Prefer:
 - clear alignment
 - restrained spacing
 - section titles for structure
+- compact grouped sidebar navigation when no existing shell style exists; background color follows project theme tokens
+- active sidebar items centered within the sidebar content gutter, with equal left/right inset
+- flat workspace header and direct toolbar-to-table flow for object list pages
 
 Avoid:
 
 - oversized hero sections
 - decorative cards around every group
+- summary/title cards that repeat the current object title above a default list table
 - nested cards inside cards
 - one-off gradients or ornaments
 - page sections that cause unnecessary vertical scrolling
+- active navigation backgrounds that use negative margins or off-center hard-coded offsets
+- list tables that render at content width while the page has unused horizontal space
 
 ## Form Drawer polish
 

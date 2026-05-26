@@ -49,6 +49,9 @@ Form layout:
 
 - two-column desktop grid for common fields
 - full-width rows for long text and descriptions
+- derive fields and control types from the runtime schema API, not local DSL files
+- use type-appropriate controls; date, select, user, department, file, and lookup fields must not silently become plain text inputs
+- user and department selectors load candidates from backend APIs such as `/api/users` and `/api/departments`, or the host project's equivalent endpoints
 - create pages must omit attachment upload fields when upload requires a saved `recordID`; edit pages may show attachments only when the persisted record id exists
 - one-column layout on small screens
 - section headings rather than deeply nested cards
