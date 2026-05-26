@@ -60,10 +60,10 @@ npx skills update skills/makeui
 - 设计 App Shell、侧边栏、顶部栏、列表页、创建/编辑/详情抽屉
 - 基于 Make DSL/schema 生成表单和字段展示
 - 需要在 UI 中接入 Make 记录表格时，配合 `canvas-table-integration`
-- 不负责认证细节；认证、Token、统一登录、logout 和 `/api/make/**` 请求规则交给 `make-app-auth`
+- 不负责认证细节；统一登录、logout 和 `/api/make/**` 请求规则交给 `make-app-auth`
 
 ### make-app-auth
-指导 Make App 前端接入 `@qfeius/make-app-auth`，覆盖本地 token 模式、统一登录模式、`/api/make/**` 鉴权请求、401/403、logout、Cookie/Session/redirect 排障。
+指导 Make App 前端接入 `@qfeius/make-app-auth`，只保留统一登录模式，覆盖 `/api/make/**` 鉴权请求、401/403、logout、Cookie/Session/redirect 排障。
 
 #### 升级 skill
 ```bash
@@ -71,12 +71,13 @@ npx skills update make-app-auth
 ```
 
 **使用场景**
-- 生成或审查 Make App 认证启动逻辑
-- 本地开发默认使用 token/no-unified-login 模式，不要求 ngrok 或 Org 回调白名单
-- 专项测试统一登录、OAuth、SSO、Cookie、logout、redirect callback
-- 处理 Token 失效、权限不足、登录态过期和退出链路
+- 生成或审查 Make App 统一登录启动逻辑
+- 发布态、vibe App 和本地联调都只走统一登录；缺少域名、`/api/make/**` 路由或 Org callback 白名单时标记 blocker，不降级为 token/no-login
+- 验证 OAuth、SSO、Cookie、logout、redirect callback
+- 处理权限不足、登录态过期和退出链路
 - 约束所有 Make 后端请求通过共享 API adapter 包装 `auth.api`，统一处理 401/403
-- 约束前端不要手写 `Authorization`、不要操作 `zs_session`、不要自行拼 Org OAuth/logout URL
+- 使用 `scripts/audit-auth-contract.mjs` 做发布前认证合同检查，拦截 token 模式、裸 `/api/make` fetch 和 Service auth proxy 缺失
+- 约束前端不要手写 `Authorization`、不要传 `accessToken`/`tokenProvider`/`unifiedLogin:false`、不要操作 `zs_session`、不要自行拼 Org OAuth/logout URL
 
 ### make-integration
 Make 集成服务, 扩展 make 平台的能力, 目前集成能力有
