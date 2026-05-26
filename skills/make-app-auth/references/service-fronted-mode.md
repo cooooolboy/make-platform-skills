@@ -47,6 +47,43 @@ The Service auth proxy must forward browser auth context:
 
 Do not convert the gateway response into a JSON envelope for auth routes.
 
+## Host Context Helper
+
+Generated Service-fronted Apps must centralize host/proto forwarding in one helper and use it for both auth routes and business routes. Do not rely on the ingress layer to always send `X-Forwarded-Host`; derive it from inbound `Host` when absent.
+
+```ts
+function applyForwardedHostContext(headers: Headers, source: Headers): void {
+  if (!headers.get('x-forwarded-host')) {
+    const host = source.get('host');
+    if (host) {
+      headers.set('x-forwarded-host', firstHeaderValue(host));
+    }
+  }
+  if (!headers.get('x-forwarded-proto')) {
+    headers.set('x-forwarded-proto', isLocalHost(headers.get('x-forwarded-host')) ? 'http' : 'https');
+  }
+}
+
+function firstHeaderValue(value: string): string {
+  const commaIndex = value.indexOf(',');
+  return commaIndex >= 0 ? value.substring(0, commaIndex).trim() : value.trim();
+}
+
+function isLocalHost(host: string | null): boolean {
+  return host === 'localhost' || host === '127.0.0.1';
+}
+```
+
+Apply the helper before every upstream make-gateway request:
+
+```ts
+const authHeaders = pickProxyHeaders(inboundHeaders, ['cookie', 'host', 'x-forwarded-host', 'x-forwarded-proto']);
+applyForwardedHostContext(authHeaders, inboundHeaders);
+
+const businessHeaders = new Headers(init.headers);
+applyForwardedHostContext(businessHeaders, inboundHeaders);
+```
+
 ## Session Complete
 
 When proxying `/api/make/auth/session/complete`, Service must return the gateway response to the browser:
@@ -68,5 +105,6 @@ These checks belong to the agent, generated tests, CI, or publish pipeline. Do n
 - Service calls internal business routes such as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`.
 - Service does not call k8s-internal `/api/make/meta/**` or `/api/make/data/**` unless the gateway explicitly supports those internal paths.
 - Service forwards browser cookies on every auth and business request that depends on App session.
+- Service derives `X-Forwarded-Host` from inbound `Host` when absent and adds `X-Forwarded-Proto`; auth and business requests share this helper.
 - `session/complete` reaches the browser as `302 + Set-Cookie + Location`.
 - At least one authenticated schema/meta request and one record-list request pass through the same Service/auth adapter path before reporting publish success.

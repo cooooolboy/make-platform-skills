@@ -105,5 +105,7 @@ When touching request code, add or update tests for:
 - unified-login API 401/403 with `apiAuthRedirect: true`
 - schema/list/create/update/delete 401 entering the shared expired-session handler
 - schema/meta/list/get/create/update/delete/file/lookup/user/department calls use the shared adapter and the same cookie-capable request init
+- Service-fronted auth and business proxy calls use the same host-context helper, deriving `X-Forwarded-Host` from inbound `Host` when the forwarded host header is absent
+- Service-fronted proxy calls add `X-Forwarded-Proto` before calling make-gateway
 - no raw `window.fetch('/api/make/...')`
 - no scattered unhandled `auth.api` calls in UI components
