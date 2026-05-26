@@ -55,7 +55,7 @@ For new Make App projects or pages that display Make schema records, choose Trac
 1. Confirm this is a consumer-side table integration, not table-library maintenance.
 2. Check package installation and read the package AI docs in the required order below.
 3. Choose exactly one primary track: Track A display table, Track B editable cells, or Track C Make field display. If Make schema fields are in scope, Track C is the default.
-4. For Make schema tables, load schema fields before initializing the table and build `IColumn[]` plus renderers from field types.
+4. For Make schema tables, load and normalize schema fields before initializing the table; build `IColumn[]` plus renderers from the normalized field types.
 5. Read only the track references from the topic map.
 6. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
 7. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
@@ -268,7 +268,7 @@ This is guidance, not a required folder taxonomy. Preserve an existing project s
 Default Make schema table baseline:
 
 - initialize the table only after runtime schema fields are available; missing schema is a blocking loading/error state, not a reason to infer columns from row keys
-- derive columns from runtime schema fields; do not hand-maintain static columns for dynamic Make objects
+- derive columns from normalized runtime schema fields; do not pass raw remote schema objects or hand-maintain static columns for dynamic Make objects
 - each generated column should retain `fieldType`, `fieldSchema`, and `renderKind` or equivalent metadata for renderer dispatch
 - normalize field values once through a pure adapter before canvas rendering
 - route display by field type group, not by business field names, except for explicit business roles such as a primary code link

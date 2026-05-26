@@ -75,6 +75,8 @@ When shadcn/ui is the selected component system:
 
 Before generating Make forms or field editors, identify the runtime schema API and candidate APIs. Use Service `/api/schema`, `/api/entities/:entityKey/fields`, or the host project's equivalent schema endpoints. Do not hand-write static form controls when the schema API is available, and do not generate UI or Service runtime code that reads `apps/dsl`, `/dsl`, or YAML schema files.
 
+Form and field components must consume normalized field metadata, not raw backend schema objects. Normalize backend variants such as `entity.properties.fields`, `entity.fields`, and host-specific equivalents in a schema adapter before choosing controls, required state, editability, options, or lookup behavior.
+
 If no schema API or response sample exists, stop and call out the missing contract instead of falling back to local DSL reads or generated constants.
 
 Use type-appropriate controls:

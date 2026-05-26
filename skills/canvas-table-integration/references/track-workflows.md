@@ -116,14 +116,15 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 1. Check whether the package is installed and read the package docs in the required order.
 2. For new Make App projects, apply the ExpensePoc-derived table display baseline unless the user explicitly asks for another visual style.
 3. Identify the Make field schema shape and the actual backend value formats.
-4. Gate table initialization until schema fields are available; missing schema is a loading/error state, not a reason to infer columns from row data.
-5. Build or reuse a pure display adapter by field type before writing canvas shapes.
-6. Derive column configs from schema fields; avoid hand-maintained static columns for dynamic schemas.
-7. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, lookup reference text, and generic text fallback.
-8. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
-9. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
-10. Add focused tests for value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
-11. Verify at least one table path with representative backend values.
+4. Normalize backend schema variants, such as `entity.properties.fields` or `entity.fields`, before the table layer consumes them.
+5. Gate table initialization until normalized schema fields are available; missing schema is a loading/error state, not a reason to infer columns from row data.
+6. Build or reuse a pure display adapter by field type before writing canvas shapes.
+7. Derive column configs from normalized schema fields; avoid hand-maintained static columns for dynamic schemas.
+8. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, lookup reference text, and generic text fallback.
+9. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
+10. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
+11. Add focused tests for schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
+12. Verify at least one table path with representative backend values.
 
 ## Capability checklists
 
@@ -161,7 +162,8 @@ Track B common capabilities:
 Track C common capabilities:
 
 - `@qfei-design/canvas-table` as the only product table implementation
-- Make schema fields converted to `IColumn[]` at runtime
+- raw Make schema variants normalized before table code sees them
+- normalized Make schema fields converted to `IColumn[]` at runtime
 - initialization waits for schema fields instead of inferring columns from row keys
 - 18 Make field types mapped to display group and kind
 - pure field-display adapter before canvas rendering

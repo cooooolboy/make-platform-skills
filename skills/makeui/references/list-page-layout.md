@@ -118,10 +118,13 @@ Do not use Ant Design Table, Arco Table, TDesign Table, or a hand-written HTML t
 For Make object lists, table columns and headers come from the runtime schema API, not local DSL files:
 
 - prefer `GET /api/schema`, `GET /api/entities/:entityKey/fields`, or the host project's equivalent Service client
-- pass schema-derived fields to `canvas-table-integration` to build columns
+- normalize remote schema variants before list code consumes them; handle shapes such as `entity.properties.fields`, `entity.fields`, or the host documented equivalent behind one schema adapter
+- pass normalized schema-derived fields to `canvas-table-integration` to build columns
 - refresh or invalidate schema when the user expects recently changed fields to appear
 - do not read `apps/dsl`, `/dsl`, or YAML files at runtime
 - do not hard-code static canvas-table columns as the default for schema-driven object lists
+
+If schema loading fails or returns an unexpected shape, keep the object shell visible and show a controlled loading/error/retry state above or around the table container. Do not construct a table from raw row keys as a fallback, and do not let the page fail into a blank white screen.
 
 If the user asks for cell editing, still use `canvas-table-integration`; do not design a separate DOM-table editor system in `makeui`.
 

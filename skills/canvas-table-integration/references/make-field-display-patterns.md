@@ -20,7 +20,8 @@ Default structure:
 
 - use `@qfei-design/canvas-table` as the table implementation; this baseline is not for UI-library tables
 - wait for runtime schema fields before creating or updating the table columns
-- derive `IColumn[]` from runtime schema fields, not from a hand-maintained static column list
+- normalize remote schema variants before the table layer consumes them; handle shapes such as `entity.properties.fields`, `entity.fields`, or the host documented equivalent in a boundary adapter
+- derive `IColumn[]` from normalized runtime schema fields, not from a hand-maintained static column list
 - keep `fieldType`, `fieldSchema`, and `renderKind` or equivalent metadata on each generated column
 - keep business ordering or primary-link roles as a thin config layer; generic rendering still branches by field type
 - normalize each raw cell value once through a pure field-display adapter before rendering
@@ -46,7 +47,7 @@ Default visual rules:
 Before constructing `CanvasTableComponent` or rendering a project wrapper around it for a Make schema table:
 
 1. load the runtime schema fields from the host API
-2. normalize and de-duplicate schema fields by stable field key
+2. normalize backend schema variants and de-duplicate schema fields by stable field key
 3. build `IColumn[]` from schema field type, width, alignment, ellipsis, and renderer kind
 4. prepare a render registry by display group
 5. keep a pure value adapter available to every render callback

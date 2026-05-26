@@ -87,7 +87,14 @@ Provide UI states without defining business logic:
 - loading
 - empty
 - error
+- forbidden / permission denied
+- expired session / unauthenticated
+- route or object not found
+- render-error fallback
 - saving
 - disabled
+- retry
 
 State copy should be generic unless the user provides domain-specific wording.
+
+For schema-driven object pages, states belong around the object shell and content region, not only around individual controls. Published/vibe Apps must keep a visible shell or scoped fallback after auth succeeds; do not let schema, data, route, or render failures become a blank white page.

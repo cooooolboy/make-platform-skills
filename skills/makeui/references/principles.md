@@ -7,7 +7,9 @@
 - [Default Make App pattern](#default-make-app-pattern)
 - [Runtime schema and candidates](#runtime-schema-and-candidates)
 - [Schema identity rules](#schema-identity-rules)
+- [Object-shell runtime states](#object-shell-runtime-states)
 - [Project runtime baseline](#project-runtime-baseline)
+- [Publish readiness](#publish-readiness)
 - [Node runtime](#node-runtime)
 - [Decision order](#decision-order)
 - [Dynamic object routes](#dynamic-object-routes)
@@ -22,6 +24,7 @@
 - Do not invent business fields, field meanings, API shapes, permission rules, approval states, or persistence behavior.
 - Do not generate UI or Service runtime code that reads local DSL files. `apps/dsl` is a source/modeling artifact, not a deployed runtime dependency.
 - Do not generate Make object lists, Drawer forms/details, or route forms/details before identifying the runtime schema and candidate APIs. Prefer the host Service contract such as `/api/schema`, `/api/entities/:entityKey/fields`, `/api/users`, and `/api/departments`.
+- Do not pass raw remote schema objects directly into route, navigation, table, form, or detail components. Normalize schema API variants at the data boundary first.
 - Do not infer that a requested table needs pagination, cell editing, virtual loading, or custom renderers; table implementation belongs to `canvas-table-integration`.
 - Make record tables and list tables must use `@qfei-design/canvas-table` through `canvas-table-integration`. If cell editing is needed, use `canvas-table-integration` for the editing design too.
 - Do not add product capabilities that were not requested, especially pagination, views, advanced filters, grouping, sorting, column settings, import, or export.
@@ -70,6 +73,9 @@ Preserve the host project's declared data flow. If project instructions, `apps/d
 Runtime schema and candidate data must come from backend APIs, not local DSL files.
 
 - The generated app must not use `fs.readFile`, static imports, `import.meta.glob`, YAML parsers, copied schema files, or path-based reads for `apps/dsl/**`, `/dsl/**`, or `*.yaml`.
+- Generated UI consumes a normalized runtime schema contract, not raw remote schema objects. Add or reuse a boundary adapter such as `normalizeRuntimeSchema(...)` before schema reaches navigation, route matching, tables, forms, or detail views.
+- The adapter must tolerate backend variants such as `entity.properties.fields`, `entity.fields`, `schema.entities[].properties.fields`, and the host project's documented equivalent. Components should see stable entity and field arrays.
+- A normalized entity should expose stable `key`, `name`, optional grouping/module metadata, and normalized `fields`. A normalized field should expose stable `key`, `name`, `type`, `properties`, `required`, `editable`, and optional raw metadata for diagnostics.
 - Table columns, form fields, field labels, editability, required state, select options, and lookup relation metadata should be read from the runtime schema contract.
 - Prefer the host project's API docs and Service client. The default Make UI contract is `GET /api/schema` for app schema and `GET /api/entities/:entityKey/fields` for one object's fields.
 - User and department selectors must query backend endpoints such as `GET /api/users` and `GET /api/departments`, or the host project's equivalent endpoints.
@@ -83,6 +89,23 @@ Runtime schema and candidate data must come from backend APIs, not local DSL fil
 - Use `field.name` only for labels, column titles, detail display, and menu text.
 - Lookup relation form logic reads `field.properties.relation` as relation key and `field.properties.targetFieldKey` as target field key.
 - Relation writes use `qfei_relation: [{ entityKey, id }]`.
+
+## Object-shell runtime states
+
+Published/vibe Apps must not render a blank white page after authentication succeeds.
+
+The object shell owns these controlled states:
+
+- loading schema, route object, candidate data, or list data
+- empty schema or empty object list
+- empty records for a valid object
+- schema/data/API error with retry
+- forbidden or permission-denied response
+- expired session or unauthenticated response, delegated to `make-app-auth` when auth is in scope
+- route not found or object key not found
+- render-error fallback through a route or object-shell ErrorBoundary
+
+Keep the app shell visible when possible. A failed object view should render an inline `Alert`/`Result`/retry surface or a scoped error fallback, not unmount the whole page into blank white.
 
 ## Project runtime baseline
 
@@ -102,6 +125,18 @@ Service projects must have one centralized runtime config entry. For new project
 Service HTTP port is fixed to `3000`. Generated or refactored `apps/service` code, config defaults, `.env.example`, docs, health checks, tests, and UI Service base URL examples must point to port `3000`. If a legacy project uses another Service port, migrate it to `3000` during the makeui refactor and update UI Service base URL, CORS, docs, and tests together. If local `3000` is occupied, report the conflict instead of silently choosing another port.
 
 `makeui` does not decide which environment connects to which Make domain, gateway, or API host. Service config may read `MAKE_API_BASE_URL`, `MAKE_SERVER_URL`, or the host project's existing equivalent name, but domain mapping, gateway routing, and secret injection belong to backend, operations, Make tooling, or the deployed Service runtime. Env examples may expose blank config keys, but must not include real tokens or hard-code production, staging, or test Make API domains.
+
+## Publish readiness
+
+Before reporting a generated App as ready to publish or ready for user domain access:
+
+- run the project build that produces `apps/ui/dist`
+- run a UI smoke against the entry route in the same mode being claimed ready when practical: published/user-domain route for publish readiness, or local preview when only local readiness is claimed
+- prove the auth-completed route renders the app shell and at least one schema-driven object view
+- verify a missing/variant schema response shows a controlled loading/error state instead of a blank page
+- verify no uncaught render error blocks first paint of the object shell
+
+Do not mark a generated App ready based only on successful code generation, package install, or backend deploy logs.
 
 ## Node runtime
 
