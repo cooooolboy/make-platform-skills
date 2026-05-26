@@ -20,7 +20,7 @@ Choose one primary path before coding.
 
 ### Track A / `basic local table`
 
-Use when the page already has all rows in client memory.
+Use when the page already has all rows in client memory and is still using `@qfei-design/canvas-table`.
 
 Start from:
 
@@ -29,7 +29,7 @@ Start from:
 
 ### Track A / `virtual remote table`
 
-Use only when the user explicitly asks for pagination, virtual loading, or paginated backend integration. Do not choose this path just because the page contains a table.
+Use only when the user explicitly asks for pagination, virtual loading, or paginated backend integration, and still use `@qfei-design/canvas-table`. Do not choose this path just because the page contains a table.
 
 Start from:
 
@@ -42,6 +42,7 @@ Start from:
 Use when column configuration comes from JSON/meta instead of handwritten `IColumn[]`.
 
 Treat this as a supporting path, not the primary first-pass path, unless the page is clearly meta-driven.
+If the JSON/meta is Make schema field metadata, use Track C as the primary path and treat column conversion as one step inside the Make field-display workflow.
 
 ### Track B / `host cell-edit architecture`
 
@@ -113,13 +114,17 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 ## Track C workflow
 
 1. Check whether the package is installed and read the package docs in the required order.
-2. Identify the Make field schema shape and the actual backend value formats.
-3. Build or reuse a pure display adapter by field type before writing canvas shapes.
-4. Derive column configs from schema fields; avoid hand-maintained static columns for dynamic schemas.
-5. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, and generic text fallback.
-6. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
-7. Add focused tests for value normalization and renderer overflow/empty states.
-8. Verify at least one table path with representative backend values.
+2. For new Make App projects, apply the ExpensePoc-derived table display baseline unless the user explicitly asks for another visual style.
+3. Identify the Make field schema shape and the actual backend value formats.
+4. Normalize backend schema variants, such as `entity.properties.fields` or `entity.fields`, before the table layer consumes them.
+5. Gate table initialization until normalized schema fields are available; missing schema is a loading/error state, not a reason to infer columns from row data.
+6. Build or reuse a pure display adapter by field type before writing canvas shapes.
+7. Derive column configs from normalized schema fields; avoid hand-maintained static columns for dynamic schemas.
+8. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, lookup reference text, and generic text fallback.
+9. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
+10. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
+11. Add focused tests for schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
+12. Verify at least one table path with representative backend values.
 
 ## Capability checklists
 
@@ -153,6 +158,21 @@ Track B common capabilities:
 - `edit:end` as the post-commit event surface
 - attachment field integration using host upload/file components or drag/drop DOM editors plus canvas-table render support
 - backend system identity handling for row keys, dirty keys, detail routes, and attachment preconditions
+
+Track C common capabilities:
+
+- `@qfei-design/canvas-table` as the only product table implementation
+- raw Make schema variants normalized before table code sees them
+- normalized Make schema fields converted to `IColumn[]` at runtime
+- initialization waits for schema fields instead of inferring columns from row keys
+- 18 Make field types mapped to display group and kind
+- pure field-display adapter before canvas rendering
+- text/link renderer with ellipsis, tooltip, empty `-`, and safe click handling
+- tag renderer for select and department values, including `+N` overflow
+- user renderer with avatar image, deterministic fallback avatar, name text, and `+N` overflow
+- attachment renderer with image thumbnails, file-extension blocks, safe open behavior, and `+N` overflow
+- lookup renderer with clickable valid references, muted deleted references, strikethrough, and fallback label extraction
+- row-head defaults: `showSN` and `bodyRowHeadSuffixOptions`
 
 ## What to avoid
 
@@ -188,6 +208,8 @@ Track C:
 - branching by field name for generic display behavior; branch by field type or explicit business role
 - rendering raw objects or JSON wrapper strings when a useful label can be extracted
 - fetching options, users, departments, or files inside a cell renderer
+- creating generic text columns from row object keys when schema fields are unavailable
+- flattening select, user, department, file, or lookup values into plain text when the schema type supports richer default rendering
 - mixing display formatting with submit/edit payload conversion
 - making unknown future field types crash the table; use a safe text fallback
 - forcing exact folder/file names when the host project already has clear ownership boundaries
@@ -235,9 +257,12 @@ For Track B, report:
 For Track C, report:
 
 - which Make field types were covered
+- whether the ExpensePoc-derived default table display baseline was applied or intentionally overridden
+- how table initialization is gated on schema availability
 - where schema-to-column config lives
 - where value normalization lives
 - which renderer groups were added or reused
+- whether `showSN` and `bodyRowHeadSuffixOptions` are enabled
 - how empty values, overflow, URLs, attachments, users, departments, and lookup wrappers are handled
 - what tests or visual checks were run
 - whether any display behavior is still blocked by missing backend value examples

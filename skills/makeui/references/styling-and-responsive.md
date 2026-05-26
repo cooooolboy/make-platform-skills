@@ -55,10 +55,11 @@ Avoid:
 - keep create/edit form Drawer styling scoped away from list and detail views
 - use a subtle neutral Drawer body with lightweight white form panels when grouping helps readability
 - keep panel styling restrained: thin neutral border, 6-8px radius, moderate padding, low shadow at most
-- in percentage-based Drawers, prefer stable grids such as `minmax(0, 1fr)` columns with `min-width: 0` children
+- in percentage-based Drawers, prefer stable two-column grids such as `repeat(2, minmax(0, 1fr))` with `min-width: 0` children
+- keep common fields in two columns on desktop; avoid one full-width row per field unless the user explicitly asks
 - treat fixed minimum column widths as an overflow risk; use them only after checking the target Drawer width and breakpoint behavior
 - align label typography, control height, border radius, and focus ring with existing project tokens or Ant Design defaults before adding custom values
-- let long text, URL, description, and rich controls span full width when it improves readability
+- let `TextArea`, long text, URL/link, file, lookup/relation, description, attachment-heavy, and rich controls span full width when it improves readability
 - omit file upload fields in create mode when upload needs a saved `recordID`; show attachment controls only after a persisted record exists
 - header button density can be slightly more relaxed when a form needs it, but changes should stay scoped away from list and detail action styling
 
@@ -66,7 +67,7 @@ Avoid:
 
 - use compact horizontal label/value rows on desktop
 - use a two-column detail grid for common fields
-- make long text, file, lookup, URL-rich, and attachment-heavy values span full width
+- make `TextArea`, long text, file, lookup/relation, URL/link-rich, and attachment-heavy values span full width
 - prefer subtle row dividers over card-per-field layouts
 - keep labels subdued and values readable with safe wrapping
 - do not render detail content as an unstyled list or a form-like editable layout
@@ -86,7 +87,14 @@ Provide UI states without defining business logic:
 - loading
 - empty
 - error
+- forbidden / permission denied
+- expired session / unauthenticated
+- route or object not found
+- render-error fallback
 - saving
 - disabled
+- retry
 
 State copy should be generic unless the user provides domain-specific wording.
+
+For schema-driven object pages, states belong around the object shell and content region, not only around individual controls. Published/vibe Apps must keep a visible shell or scoped fallback after auth succeeds; do not let schema, data, route, or render failures become a blank white page.
