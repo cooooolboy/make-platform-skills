@@ -48,7 +48,9 @@ The content area may scroll inside the app content region. Global header and sid
 Form layout:
 
 - two-column desktop grid for common fields
-- full-width rows for long text and descriptions
+- do not render every field as full-width one-column rows on desktop unless the user explicitly asks
+- full-width rows for `TextArea`, long text, URL/link fields, `File`, `Lookup`, relation/association selectors, descriptions, and rich controls
+- normal fields such as text, number, date, date-time, date range, select, user, and department occupy one column by default
 - derive fields and control types from the runtime schema API, not local DSL files
 - use type-appropriate controls; date, select, user, department, file, and lookup fields must not silently become plain text inputs
 - user and department selectors load candidates from backend APIs such as `/api/users` and `/api/departments`, or the host project's equivalent endpoints
@@ -67,6 +69,12 @@ Recommended structure:
 Do not add activity, dynamic records, timeline, comments, or operation logs by default. Add them only when the user explicitly asks.
 
 The detail content can scroll inside the content region. Do not introduce a second global shell.
+
+Detail layout:
+
+- use a two-column label/value grid for common fields on desktop
+- make `TextArea`, long text, URL/link-rich values, file/attachment values, lookup/relation values, and rich custom values span the full row
+- collapse to one column on small screens
 
 ## Navigation
 

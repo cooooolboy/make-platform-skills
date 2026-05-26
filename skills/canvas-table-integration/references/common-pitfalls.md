@@ -86,7 +86,22 @@ Fix:
 
 - convert meta into `IColumn[]` before creating the table
 
-## 8. Treating internal source as public API
+## 8. Initializing Make schema tables before schema is ready
+
+Symptom:
+
+- columns come from `Object.keys(row)` or sample data
+- select, user, department, file, lookup, or URL fields render as plain text
+- the table first appears with generic columns and later changes shape after schema arrives
+
+Fix:
+
+- wait for runtime schema fields before building `IColumn[]`
+- build columns from field type and keep `fieldSchema`, `fieldType`, and `renderKind` metadata or equivalents
+- show loading or error UI around the canvas host while schema is unavailable
+- do not infer Make schema columns from row object keys
+
+## 9. Treating internal source as public API
 
 Symptom:
 
@@ -98,7 +113,7 @@ Fix:
 - import only from the package root
 - rely on `PUBLIC_API.md` and documented consumer guides
 
-## 9. Overusing shape rendering
+## 10. Overusing shape rendering
 
 Symptom:
 
@@ -110,7 +125,9 @@ Fix:
 - start with plain text columns
 - add `render + TextShape` only for high-value business interactions
 
-## 10. Hiding the focusable visual canvas host
+For Make schema-driven tables, this pitfall does not mean complex Make field types should be flattened into text. Use the Track C display adapter and focused renderers for select, user, department, file, lookup, and URL fields; keep plain text only for field groups where text is the intended display.
+
+## 11. Hiding the focusable visual canvas host
 
 Symptom:
 
@@ -125,7 +142,7 @@ Fix:
 - keep any screen-reader fallback table as a separate visually-hidden structure
 - give the visual host a non-hidden accessible label, for example `role="group"` plus `aria-label`
 
-## 11. Replacing the canvas host during loading
+## 12. Replacing the canvas host during loading
 
 Symptom:
 

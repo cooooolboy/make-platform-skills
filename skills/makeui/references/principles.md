@@ -41,6 +41,7 @@ Use a focused object-management layout:
 - list page as the main entry
 - object navigation through dynamic React Router params
 - create/edit/detail as right-side Drawer by default
+- create/edit/detail use the ExpensePoc-style desktop two-column field grid by default; only wide fields such as `TextArea`, URL/link, file, lookup/relation, long text, attachments, or rich controls span the full row
 - route pages only on explicit user request
 - table area fills remaining content height
 

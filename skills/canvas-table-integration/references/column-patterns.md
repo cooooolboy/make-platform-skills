@@ -14,7 +14,7 @@ const columns: IColumn[] = [
 ]
 ```
 
-Use this first unless the page clearly needs custom drawing.
+Use this first unless the page clearly needs custom drawing. For Make schema-driven tables, complex field types make custom drawing necessary by default; use Track C and `make-field-display-patterns.md`.
 
 ## 2. Alignment patterns
 
@@ -105,6 +105,8 @@ Use `render` when you need:
 
 Do not use `render` for every column by default.
 
+Exception: for Make schema-driven business tables, use a render registry by display group so select, user, department, file, lookup, URL, and rich empty/overflow states match the default Make field-display baseline. Text, number, and date groups may still share a simple text renderer.
+
 ## 7. Header-level customization
 
 Use these only when the page truly needs them:
@@ -138,3 +140,4 @@ When upstream uses JSON meta:
 - do not pass raw meta into runtime props
 
 Treat meta adaptation as a business/middle-layer responsibility.
+If the meta is Make schema field metadata, use Track C defaults: field type -> display group/kind, width/alignment/ellipsis, pure value adapter, and renderer registry.

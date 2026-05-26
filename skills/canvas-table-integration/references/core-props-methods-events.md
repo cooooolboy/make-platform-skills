@@ -27,6 +27,8 @@ First-pass guidance:
 - Use `showEllipsis` for long business text.
 - Use `render` only when built-in text rendering is not enough.
 
+For Make schema-driven tables, read `make-field-display-patterns.md`; complex Make field types such as select, user, department, file, and lookup normally require the Track C renderers instead of plain text columns.
+
 ## 2. Common `TableCanvasProps`
 
 Use these props first:
