@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.26.
+Current skill revision: 0.3.27.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router. Do not switch frontend frameworks unless the user explicitly asks and the project already supports the alternative.
 
@@ -36,7 +36,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 | Component library choice and schema-driven field controls | `references/component-usage.md` |
 | Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
 | Make record table display or cell editing | Use `canvas-table-integration` |
-| Authentication, login, logout, token mode, unified login, `/api/make/**` | Use `make-app-auth` |
+| Authentication, login, logout, unified login, `/api/make/**` | Use `make-app-auth` |
 
 ## Hard rules
 
@@ -53,10 +53,10 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 ### Data, schema, and auth
 
 - Preserve the host data flow. If the project says `apps/ui -> apps/service -> Make Data API`, keep UI calls on the Service contract and do not hold Make tokens in UI.
-- If the project uses a gateway/unified-login runtime, the data path is `apps/ui -> @qfeius/make-app-auth auth.api -> /api/make/** -> make-gateway -> Make Platform`.
-- Do not silently switch a Service-based project to the gateway/auth-SDK flow, route a gateway/auth-SDK project through `apps/service`, bypass `auth.api`, rely on a Vite token proxy such as `/make-api`, or call meta/data service domains directly.
-- Do not handwrite auth, OAuth, token, cookie, logout, `Authorization`, Org URLs, unified-login URLs, account-center URLs, or `/api/make/**` request logic in `makeui`; these belong to `make-app-auth`.
-- Default generated UI may use `make-app-auth` token mode for local development. Unified login/OAuth/SSO/cookies/logout/callbacks, `auth.init({ redirect: true })`, SDK `gatewayBaseUrl`, `auth.api`, and `auth.logout()` behavior belong to `make-app-auth`.
+- If the project uses a gateway/unified-login runtime, apply `make-app-auth` and do not define SDK behavior in `makeui`.
+- Do not silently switch a Service-based project to the gateway/auth-SDK flow, route a gateway/auth-SDK project through `apps/service`, bypass the project auth wrapper, rely on a Vite token proxy such as `/make-api`, or call meta/data service domains directly.
+- Do not handwrite auth, OAuth, cookie, logout, `Authorization`, Org URLs, unified-login URLs, account-center URLs, or `/api/make/**` request logic in `makeui`; these belong to `make-app-auth`.
+- Default generated UI uses the unified-login flow owned by `make-app-auth`; OAuth/SSO/cookies/logout/callbacks and SDK request behavior belong to `make-app-auth`.
 - Generated App UI must not read or persist Org tokens, `zs_session`, or `make_app_session`.
 - `apps/dsl` is a modeling artifact, not a runtime dependency. Generated UI and Service runtime code must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` schema files.
 - Generated UI must consume a normalized runtime schema contract, not raw remote schema objects directly. Normalize backend variants such as `entity.properties.fields`, `entity.fields`, or host equivalents before object shell, table, form, detail, and route code sees them.
@@ -84,7 +84,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Create/edit forms use type-appropriate controls. Date, select, user, department, file, and lookup fields must not silently degrade to plain text inputs. File upload is omitted in create mode when upload requires an existing `recordID`.
 - Use dynamic object routes such as `/objects/:objectKey`. Do not generate one hard-coded route component per object.
 
-### Readiness checks
+## Readiness checks
 
 - Before reporting a generated App as ready to publish or ready for user domain access, run a UI smoke against the entry route.
 - The smoke must prove that auth-completed navigation renders the app/object shell and at least one schema-driven object view.
