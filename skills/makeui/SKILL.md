@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.18.
+Current skill revision: 0.3.19.
 
 Use this skill for **Make App frontend UI design and generation**.
 
@@ -162,13 +162,18 @@ Use Node.js `>=22.12.0` for Make App frontend projects.
 
 ## Service-based local dev baseline
 
-For Service-based Make App projects, preserve the host project's existing dev port. If changing the UI dev port, update the whole local contract in the same change:
+For Service-based Make App projects, the `apps/service` local service port is fixed to `3000`.
 
-- UI Vite server config and any shared dev-server config helper
-- Service CORS allowlist
+When generating, reorganizing, or changing a Service-based Make App frontend, configure the App Service process to listen on `0.0.0.0:3000` or `localhost:3000` according to the host project's existing server binding style. Do not choose another App Service port and do not preserve an existing non-3000 Service port unless the user explicitly overrides this rule for the current project.
+
+Any frontend Service port change must update the whole local contract in the same change:
+
+- `apps/service` runtime config, listen host, listen port, and any shared server config helper
+- UI Vite proxy or Service base URL config that points to the App Service
+- Service CORS allowlist for the UI origin and equivalent host bindings used by the project
 - `.env.example` or local environment documentation
 - `apps/docs/api.md` when the UI / Service contract mentions local origins
-- focused tests for the UI port config and Service CORS behavior
+- focused tests for the App Service port config, UI proxy/base URL config, and Service CORS behavior
 
 Do not copy the gateway/unified-login `5174` port rule into a Service-based project unless that project explicitly uses the gateway flow.
 

@@ -88,7 +88,7 @@ If the project uses `.nvmrc` or `.node-version`, prefer `24` unless the user or 
 
 If an existing project already declares a stricter Node requirement, keep the stricter project requirement.
 
-For Service-based local development, preserve the host UI port. When the UI port changes, update Vite config, Service CORS, env examples or docs, API docs when they mention local origins, and tests together. Do not apply gateway/unified-login port defaults to a Service-based project unless the project explicitly uses that data flow.
+For Service-based local development, the `apps/service` local service port is fixed to `3000`. When generating, reorganizing, or changing a Service-based Make App frontend, configure the App Service process to listen on `0.0.0.0:3000` or `localhost:3000` according to the host project's existing server binding style. Do not keep an existing non-3000 App Service port unless the user explicitly overrides this rule for the current project. Update `apps/service` runtime config, listen host, listen port, shared server config helpers, UI Vite proxy or Service base URL config, Service CORS allowlist for the UI origin, env examples or docs, API docs when they mention local origins, and tests together. Do not apply gateway/unified-login port defaults to a Service-based project unless the project explicitly uses that data flow.
 
 ## Decision order
 
