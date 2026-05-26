@@ -150,6 +150,15 @@ Use for:
 - changed summary config
 - changed table behavior flags
 
+When the host layout is responsive, first measure the host container, then create the table with the measured `canvasWidth` and `canvasHeight`. On subsequent size changes, call both:
+
+```ts
+table.updateProps({ canvasWidth: width, canvasHeight: height, columns })
+table.updateCanvasSize(width, height, true)
+```
+
+Do not let the first table instance initialize with a placeholder size such as `960x480` when a real host size is already available.
+
 #### `destroy()`
 
 Always call on unmount / cleanup.
