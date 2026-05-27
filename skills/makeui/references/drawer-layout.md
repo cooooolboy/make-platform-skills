@@ -42,6 +42,7 @@ Use a compact header layout:
 - do not place a close icon/button in the left title area
 - do not render duplicate close controls, such as a left `X` plus a right `关闭` button
 - close should be icon-only by default, with accessible name/title `关闭`; avoid visible `关闭` text unless an existing project pattern explicitly requires text buttons
+- title text must be readable within the available header space. Give the title container `min-width: 0` plus a flexible width, and only apply ellipsis after real overflow; keep the full title available through `title`/tooltip. Do not shrink the title slot so short titles become `合...`.
 
 When Ant Design is used, prefer `FullscreenOutlined` and `FullscreenExitOutlined` for fullscreen controls, and the project-standard close control for closing.
 
@@ -58,7 +59,7 @@ Form layout:
 
 - group fields into sections
 - create/edit forms use a dedicated modifier class or style scope when their visual treatment differs from detail Drawers
-- default to vertical labels in a two-column grid for schema-driven forms, because backend field names may be long or unpredictable
+- default to vertical labels in a two-column grid for metadata-driven forms, because field labels may be long or unpredictable
 - horizontal label/value alignment remains acceptable when labels are short, stable, or already established by the project
 - use a subtle neutral Drawer body with one lightweight white form panel or section panels; avoid visually heavy cards and nested cards
 - keep form panels compact: moderate padding, 6-8px radius, thin neutral border, and low shadow at most
@@ -77,7 +78,7 @@ Unless the user or existing project asks otherwise, use the ExpensePoc create/ed
 - panel padding around `16px`, thin neutral border, 8px radius, low shadow at most
 - grid `repeat(2, minmax(0, 1fr))` with roughly `10px 18px` gaps
 - field item margin around `10px`, label padding around `6px`, 36px controls, and textarea min-height around `96px`
-- normal schema fields occupy one grid column by default
+- normal metadata-driven fields occupy one grid column by default
 - full-span rows only for wide controls: `Make.Field.TextArea`, URL/link fields, `Make.Field.File`, `Make.Field.Lookup`, relation/association selectors, long text, attachment-heavy values, or otherwise wide controls
 - body scrolls inside the Drawer; the page behind it does not scroll
 
@@ -89,19 +90,19 @@ Default create/edit field span mapping:
 | `TextArea`, long text, URL/link, `File`, `Lookup`, relation/association selector, rich custom control | full row |
 | `ID`, generated, readonly-only fields | usually omit from create/edit; if shown in edit, one column unless value is long |
 
-Schema-driven Make forms:
+Field-metadata-driven Make forms:
 
-- load field metadata from the runtime schema API before rendering create/edit Drawer fields
-- do not read `apps/dsl`, `/dsl`, or YAML files from generated UI or Service runtime code
-- derive field labels, editability, and control choice from schema metadata when available
+- consume host-provided field metadata before rendering create/edit Drawer fields
+- derive field labels, readonly/editable presentation, and control choice from field metadata when available
 - use the field component mapping in `component-usage.md`
-- use date pickers for date fields, searchable selectors for user/department fields, select controls for select fields, mode-safe attachment controls for file fields, and read-only/association displays for lookup fields
+- use date pickers for date fields, searchable selectors for user/department fields when candidate data is available, select controls for select fields, mode-safe attachment controls for file fields, and read-only/association displays for lookup fields
 - do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
-- user and department selectors load candidates from backend APIs such as `/api/users` and `/api/departments`, with search, loading, empty, error, and retry states
-- create mode must omit `Make.Field.File` upload fields when the upload API requires a saved `recordID`; the new record has no `recordID` yet, so do not render fake upload controls, local-only attachment fields, or include file values in the create payload
-- edit mode may render `Make.Field.File` controls only when a stable persisted record id exists; upload/delete calls stay in the host data-source or Service API adapter
+- user and department selectors show search, loading, empty, error, and retry UI states around the host-provided candidate source. For generated Make App projects, the default candidate contract is `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, unless the host project documents equivalent routes
+- user selector options use `userId` as value and `userName` as label; department selector options use `departmentId` as value and `departmentName` as label; merge current record values into options so detail/edit views display labels before async candidates load
+- create mode must omit `Make.Field.File` upload controls when upload requires a saved record identity
+- edit mode may render `Make.Field.File` controls only when a stable persisted record identity exists
 - detail mode may display file fields as attachments, thumbnails, or file links and may offer explicit follow-up actions when supported
-- if schema or candidate APIs are missing, state the reason and ask before generating an explicit fallback with a later API integration point
+- if field metadata or candidate data is missing, state the UI dependency and render an explicit unsupported/degraded UI state only with user confirmation
 
 Action placement:
 
@@ -129,6 +130,11 @@ Read-only information can use:
 Use horizontal label/value alignment by default on desktop:
 
 - two-column grid for common fields
+- user fields render read-only avatar/name values; department fields render read-only tag/name values
+- detail identity fields should use labels from the record or host candidate source and should not degrade to raw ids or disabled text inputs without an explicit dependency/error state
+- every value is rendered through a field-type display adapter before JSX. Detail components must not display raw arrays, objects, or JSON wrappers directly.
+- date fields display formatted dates; `DateRange` values such as `[begin, end]` or `{ begin, end }` display as `YYYY-MM-DD 至 YYYY-MM-DD`, not as `{"begin":...,"end":...}`.
+- select, user, department, file, and lookup fields use their read-only display renderers from `component-usage.md`; unknown fields fall back to safe text, and empty values display `-`.
 - each item has a stable label column and a flexible value column
 - subtle bottom borders are preferred over boxed cards for dense record detail
 - long text, `TextArea`, file, lookup/relation, URL/link-rich, attachment-heavy, or rich values span the full width
@@ -162,7 +168,7 @@ When a user opens edit from detail, keep the detail Drawer mounted underneath an
 
 When a user opens a related record from a Lookup value, use the same Drawer stack model:
 
-- only make Lookup values clickable when the parsed item has a target entity key and `recordID`, and is not marked deleted
+- only make Lookup values clickable when the display item has a target object key and saved record identity, and is not marked deleted
 - append the related detail Drawer above the source detail Drawer
 - close only the topmost Drawer
 - bind edit/delete/detail actions to the Drawer instance's own entity and record id, not to a shared "current detail" singleton

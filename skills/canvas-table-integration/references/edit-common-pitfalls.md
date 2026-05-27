@@ -52,7 +52,23 @@ Fix:
 
 - update editor position during scroll and respect fixed-column behavior
 
-## 6. Blindly closing on outside click
+## 6. Editing a partially hidden cell without scrolling it into view
+
+Symptom:
+
+- clicking a cell near the left/right/top/bottom viewport edge enters edit mode while part of the active cell is clipped
+- the editor opens partly outside the visible table body
+- dropdowns or date pickers appear detached because the editor anchor was calculated from stale pre-scroll coordinates
+
+Fix:
+
+- before mounting the editor, detect whether the target cell is fully visible in the body viewport
+- use public table scroll APIs such as `scrollTo(...)` to reveal the cell first
+- account for fixed-left columns and row-head width so normal cells are not hidden behind the fixed region
+- after scrolling, recalculate cell geometry or wait for the next frame before focusing/opening the editor
+- do not scroll when the target cell is already fully visible
+
+## 7. Blindly closing on outside click
 
 Symptom:
 
@@ -63,7 +79,7 @@ Fix:
 - outside-click should usually flow through value extraction, validation, save/rollback, and reset
 - popup roots should be declared with `relatedElements()` before adding host-owned global listeners
 
-## 7. No stable editor interface
+## 8. No stable editor interface
 
 Symptom:
 
@@ -73,7 +89,7 @@ Fix:
 
 - normalize around a shared interface such as `focus()` and `updateVal()`
 
-## 8. Letting canvas-table write before the business layer accepts the value
+## 9. Letting canvas-table write before the business layer accepts the value
 
 Symptom:
 
@@ -85,7 +101,7 @@ Fix:
 - use `editApplyMode: "controlled"` when a save/draft layer owns writes
 - call `setCellData(...)` or `setRowData(...)` only after commit acceptance
 
-## 9. Recreating the table on every draft update
+## 10. Recreating the table on every draft update
 
 Symptom:
 
@@ -100,7 +116,7 @@ Fix:
 - update table data with `setData(...)`
 - reapply dirty row colors when recreation is unavoidable
 
-## 10. Using `autoClose: false` for every popup editor by default
+## 11. Using `autoClose: false` for every popup editor by default
 
 Symptom:
 
@@ -113,7 +129,7 @@ Fix:
 - use `relatedElements()` for popup roots
 - use `enter: "ignore"` only for editors whose popup owns Enter
 
-## 11. Attachment support stops at render
+## 12. Attachment support stops at render
 
 Symptom:
 
@@ -123,7 +139,7 @@ Fix:
 
 - explicitly design the host attachment editor workflow and value structure
 
-## 12. Upload logic bypasses the data-source layer
+## 13. Upload logic bypasses the data-source layer
 
 Symptom:
 
@@ -136,7 +152,7 @@ Fix:
 - require a stable backend record id before enabling persisted attachment upload
 - let the editor produce normalized attachment metadata or pending files, then let the save/data layer decide how to persist them
 
-## 13. Dirty checks depend on generated attachment ids
+## 14. Dirty checks depend on generated attachment ids
 
 Symptom:
 
@@ -149,7 +165,7 @@ Fix:
 - ignore generated `uid` fields during dirty comparison
 - compare stable file fields such as `name`, `url`, `filePath`, `size`, and `type`
 
-## 14. Copying a Vue sample directly into React
+## 15. Copying a Vue sample directly into React
 
 Symptom:
 
@@ -159,7 +175,7 @@ Fix:
 
 - convert the pattern into hooks, refs, and imperative handles while preserving the same contract
 
-## 15. Restoring focus to a stale canvas after immediate save
+## 16. Restoring focus to a stale canvas after immediate save
 
 Symptom:
 
@@ -173,7 +189,7 @@ Fix:
 - keep this focus restoration scoped to canvas-table cell editing; skip it if a host modal, drawer, dialog, popover, or form surface is open or opening
 - cancel or guard delayed focus retries when row clicks or actions open host UI
 
-## 16. Initializing the table with a collapsed container height
+## 17. Initializing the table with a collapsed container height
 
 Symptom:
 
@@ -186,7 +202,7 @@ Fix:
 - otherwise use measured container height only when it is usable
 - fall back to a conservative default height
 
-## 17. Assuming date picker OK has already parsed typed text
+## 18. Assuming date picker OK has already parsed typed text
 
 Symptom:
 
@@ -197,7 +213,7 @@ Fix:
 - before OK commits, resolve the current typed input into the editor's selected value/ref
 - keep display value and submit value normalized to the agreed date-time format
 
-## 18. Letting canvas focus steal host form focus
+## 19. Letting canvas focus steal host form focus
 
 Symptom:
 
@@ -212,7 +228,7 @@ Fix:
 - guard delayed canvas-focus retries with an "is host surface open" check
 - only restore canvas focus after canvas-table cell-edit commit/cancel/rollback when the next intended target is the table
 
-## 19. Treating all 18 Make field types as editable
+## 20. Treating all 18 Make field types as editable
 
 Symptom:
 
@@ -224,7 +240,7 @@ Fix:
 - classify `Make.Field.ID` and `Make.Field.Lookup` as read-only by default
 - include them in field coverage documentation, but do not wire save calls unless the backend explicitly supports editing them
 
-## 20. Submitting display strings instead of backend values
+## 21. Submitting display strings instead of backend values
 
 Symptom:
 
@@ -239,7 +255,7 @@ Fix:
 - normalize field values before dirty comparison and API calls
 - keep formatting in render/editor display helpers, not in persisted row data
 
-## 21. Ignoring numeric precision metadata
+## 22. Ignoring numeric precision metadata
 
 Symptom:
 
@@ -252,7 +268,7 @@ Fix:
 - round or validate before commit according to the host backend rule
 - test the normalized submit value, not only the input display
 
-## 22. Using fake identity options in production
+## 23. Using fake identity options in production
 
 Symptom:
 
@@ -265,7 +281,7 @@ Fix:
 - use current cell values only as display/selection fallback, not as a fake global dictionary
 - if the real API returns empty data, keep the candidate list empty unless the product explicitly requests demo mode
 
-## 23. Defaulting complex Make fields to plain text inputs
+## 24. Defaulting complex Make fields to plain text inputs
 
 Symptom:
 
@@ -282,3 +298,80 @@ Fix:
 - keep `Lookup` read-only unless the schema/API explicitly supports association editing
 - if candidate APIs are missing, use a selector shell with current-value display and a documented API integration point instead of fake candidates
 - document any explicit fallback and do not silently generate a bare `Input`
+
+## 25. Popup editors require an extra click after edit mode starts
+
+Symptom:
+
+- double-clicking a date range, select, user, department, lookup, or attachment cell enters edit mode but only shows an inline input
+- the real picker/dropdown/panel appears only after a third click inside the edited cell
+
+Fix:
+
+- make popup editors open on mount through the host component's controlled `open` or equivalent prop
+- render the popup into a dedicated popup root and return that root from `relatedElements()`
+- focus the editor after the framework root has rendered
+- keep `autoClose.enter: "ignore"` for popup editors whose internal keyboard interaction owns Enter
+
+## 26. Editor UI is inset inside the active cell
+
+Symptom:
+
+- edited text, textarea, or number cells show an extra input border, radius, margin, or blank inset
+- select, user, department, date, or date-range triggers show a second blue border inside the canvas-table active-cell outline
+- the component does not fill the active cell height or width
+
+Fix:
+
+- set the editor container and actual editor component to `width: 100%` and `height: 100%`
+- use borderless or visually merged editor variants
+- remove component-level focus border and focus `box-shadow` from the in-cell trigger; keep the popup/dropdown panel styling separate
+- do not wrap cell editors in `Form.Item`, cards, or bordered panels
+- keep only small inner text padding when needed; do not create an extra outer box
+
+## 27. Attachment editor uses form-card chrome
+
+Symptom:
+
+- attachment editing opens a small card with a title header, upload button, inner bordered row, and extra padding
+- the edited cell keeps its blue outline while the attachment editor draws another nested card border
+- existing attachments are shown as plain text rows instead of thumbnail/file cards plus a drop zone
+
+Fix:
+
+- use an ExpensePoc-style attachment panel connected to the edited cell
+- render thumbnails/file cards and one drag/drop/click upload zone inside the same panel
+- keep only one active/panel border and avoid nested form-card chrome
+- keep upload/delete persistence in the host data-source adapter; the cell editor owns only selection, preview, remove, and normalized value extraction
+
+## 28. Current value does not echo when editing starts
+
+Symptom:
+
+- person or department editors open empty even though the cell has a value
+- date range editors show raw JSON, formatted text, or blank state
+- select editors show ids instead of labels, or labels instead of selectable values
+
+Fix:
+
+- resolve initial editor value with `undefined` checks: prefer `options.value`, then `options.oldValue`, then `row[fieldKey]`
+- do not use `??` for this fallback because `null`, `0`, `false`, `""`, and `[]` can be valid current values
+- initialize editors from raw backend values, not canvas display strings
+- include current record values in option/label mapping while remote candidates are loading
+- normalize Make value variants before setting editor state
+
+## 29. Unchanged close still calls the save API
+
+Symptom:
+
+- opening a cell editor and closing it without changes still sends update requests
+- selecting the already-selected option, confirming the same date, or closing a popup without changes still calls the single-field update endpoint
+- `edit:end` fallback commits a render value even though `submitValue` did not change
+- user or department fields appear dirty because returned API shapes differ from record shapes
+
+Fix:
+
+- compare normalized old value with `nextValue.submitValue` before routing the commit
+- run that comparison for every close path, including outside click, picker/dropdown close, same-value selection, Enter, Tab, programmatic `commit(...)`, and `edit:end` fallback
+- skip save API calls, dirty state creation, draft patch enqueueing, business save events, and `setCellData(...)` when unchanged
+- compare numbers as numbers, date ranges by normalized begin/end, select fields by option values, identity fields by stable ids, and files by stable metadata

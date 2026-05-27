@@ -98,6 +98,8 @@ The editor bridge returns an object with these concepts:
 
 A real DOM element used as the host editor container.
 
+For cell editors that appear inside the active cell, this element and the actual input/editor component should fill the edited cell. Avoid nested form items, cards, bordered wrappers, margin, or outer padding that create a smaller input box inside the active cell. Popup editors can still anchor from this full-cell element while their dropdown/panel renders in a separate popup root.
+
 ### `getValue()`
 
 Canvas-table uses this to read the current editor value during commit.
@@ -135,6 +137,8 @@ Common guidance:
 - attachment editors
 
 For popup editors, `enter: "ignore"` often avoids committing while the popup component is handling its own keyboard interaction.
+
+Popup editors must be interactive as soon as edit mode opens. Do not return an editor that requires an additional click inside the active cell before the date picker, select dropdown, people selector, department selector, lookup selector, or attachment panel appears.
 
 ### `relatedElements`
 

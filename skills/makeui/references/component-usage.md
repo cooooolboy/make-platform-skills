@@ -4,7 +4,8 @@
 
 - [Selection strategy](#selection-strategy)
 - [Default candidate mapping](#default-candidate-mapping)
-- [Make schema-driven field components](#make-schema-driven-field-components)
+- [Make field-metadata-driven components](#make-field-metadata-driven-components)
+- [Detail value display](#detail-value-display)
 - [Table component rule](#table-component-rule)
 - [Action hierarchy](#action-hierarchy)
 - [Optional action policy](#optional-action-policy)
@@ -71,13 +72,13 @@ When shadcn/ui is the selected component system:
 - feedback: `Alert`, `Skeleton`, toast/sonner, and explicit empty states when those components are installed
 - avatar and user menu: `Avatar` and `DropdownMenu`
 
-## Make schema-driven field components
+## Make field-metadata-driven components
 
-Before generating Make forms or field editors, identify the runtime schema API and candidate APIs. Use Service `/api/schema`, `/api/entities/:entityKey/fields`, or the host project's equivalent schema endpoints. Do not hand-write static form controls when the schema API is available, and do not generate UI or Service runtime code that reads `apps/dsl`, `/dsl`, or YAML schema files.
+Before generating Make forms or field editors, identify the host-provided object/field metadata shape used by the UI. `makeui` chooses controls and layout from that metadata; it does not define business APIs, Service contracts, local DSL loading, or persistence behavior. User/department candidate endpoints are the narrow exception: this file documents how selector UIs consume the host candidate source.
 
-Form and field components must consume normalized field metadata, not raw backend schema objects. Normalize backend variants such as `entity.properties.fields`, `entity.fields`, and host-specific equivalents in a schema adapter before choosing controls, required state, editability, options, or lookup behavior.
+Form and field components should consume normalized UI field metadata, not raw backend objects. If raw metadata is still leaking into components, call out that another layer must normalize it before `makeui` can safely choose controls, required markers, readonly/disabled state, options, or lookup presentation.
 
-If no schema API or response sample exists, stop and call out the missing contract instead of falling back to local DSL reads or generated constants.
+If no field metadata exists, stop and call out the missing UI dependency instead of inventing static form controls.
 
 Use type-appropriate controls:
 
@@ -88,22 +89,33 @@ Use type-appropriate controls:
 | `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values |
 | `Date`, `DateTime`, `DateRange` | date, date-time, or range picker |
 | `SingleSelect`, `MultiSelect` | single or multiple select from schema options |
-| `SingleUser`, `MultiUser` | searchable user selector backed by `/api/users` or host equivalent |
-| `SingleDepartment`, `MultiDepartment` | searchable department selector backed by `/api/departments` or host equivalent |
-| `File` | create: omit when upload requires `recordID`; edit: attachment component only with saved record id; detail: attachment display |
-| `Lookup` | read-only lookup display by default; association selector only when schema/API explicitly supports editing |
+| `SingleUser`, `MultiUser` | searchable user selector using the host-provided candidate source |
+| `SingleDepartment`, `MultiDepartment` | searchable department selector using the host-provided candidate source |
+| `File` | create: omit when upload requires a saved record identity; edit: attachment component only with saved record identity; detail: attachment display |
+| `Lookup` | read-only lookup display by default; association selector only when field metadata and host UI behavior explicitly support editing |
 
 Do not silently degrade date, user, department, select, file, or lookup fields to a bare `Input`.
 
 If a field type is unknown, prefer a read-only display or an explicit unsupported-field fallback. Do not pretend it is a plain text field unless the user confirms that downgrade.
 
-File fields are mode-sensitive. If the backend upload API requires a persisted `recordID`, create forms must omit `Make.Field.File` controls and create payload values. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
+File fields are mode-sensitive. If upload requires a persisted record identity, create forms must omit `Make.Field.File` controls. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
 
-User and department candidate APIs are required for production selectors. When the real APIs are missing and the user confirms a placeholder, use a searchable selector shell that:
+User and department selectors require a real host-provided candidate source. For generated Make App projects, use the ExpensePoc-proven default candidate contract unless the host project already documents equivalent endpoints:
+
+- users: `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
+- departments: `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
+- user option identity: `userId`; label: `userName`; optional avatar: `avatar`
+- department option identity: `departmentId`; label: `departmentName`; flatten department trees before presenting selector options
+- UI sends `keyword`, `page`, and `size`; do not expose a UI-side sort control for these candidate pickers
+- search uses the candidate endpoint instead of filtering stale local demo data
+
+If the host project uses different route names, keep the same behavior contract and normalize the response at the UI boundary. Do not call Make user/department backend services directly from `makeui` components when the host project requires a Service/API adapter.
+
+When the candidate source is missing and the user confirms a placeholder, use a searchable selector shell that:
 
 - displays the current value from the record
-- leaves a clear integration point for the real candidate API
-- avoids fake global demo candidates in production code
+- leaves a clear integration point for the real candidate source
+- avoids fake global demo candidates
 - shows loading, empty, error, and retry states
 
 For Ant Design, the default form-control mapping is:
@@ -111,8 +123,69 @@ For Ant Design, the default form-control mapping is:
 - text: `Input`, long text: `Input.TextArea`
 - number/currency/percent: `InputNumber`
 - date/date-time/date-range: `DatePicker` / `DatePicker.RangePicker`
-- select/user/department/lookup candidates: `Select` with `showSearch`, backend search for user/department, and `mode="multiple"` for multi-value fields
-- file: no create upload when `recordID` is required; edit/detail attachment UI after persistence
+- select/user/department/lookup candidates: `Select` with `showSearch` and `mode="multiple"` for multi-value fields
+- file: no create upload when a saved record identity is required; edit/detail attachment UI after persistence
+
+ExpensePoc-style selector behavior:
+
+- `SingleUser` / `SingleDepartment`: single `Select`; `MultiUser` / `MultiDepartment`: `Select` with `mode="multiple"`
+- set `showSearch`, `allowClear`, and `optionFilterProp="label"`
+- for user/department fields, use remote search: `filterOption={false}` and call the candidate search function from `onSearch`
+- show loading while candidates load; show an error/disabled state such as `人员候选加载失败` or `部门候选加载失败` when the candidate API fails
+- merge current record values into options before candidate results so existing selections still display readable labels while async options are empty
+- submit user values as `userId`; submit department values as `departmentId`; keep labels only for display
+- do not submit display labels, fake ids, or local demo candidates
+
+Detail display for identity fields:
+
+- `SingleUser` / `MultiUser`: read-only avatar/name display; use avatar when present and deterministic initials/color fallback otherwise
+- `SingleDepartment` / `MultiDepartment`: read-only department tag/name display
+- if the record contains only ids and no labels, resolve labels through normalized current record values or the host candidate source before display; do not show raw ids as the intended final UI unless no label source exists and the UI explicitly marks the dependency gap
+- do not render detail identity fields as disabled text inputs
+
+## Detail value display
+
+Detail Drawer and route detail pages must use a normalized field-display adapter pattern. The adapter receives normalized field metadata plus the record value and returns a small display model such as `kind`, `text`, `labels`, `empty`, `href`, `attachments`, `users`, and `lookupReferences`. Detail components render that model; they do not call `String(value)`, `JSON.stringify(value)`, or read backend wrapper objects directly in JSX.
+
+CanvasTable cell rendering still belongs to `canvas-table-integration`. Keep the detail display adapter compatible with the same field-type semantics, but do not implement canvas renderers in `makeui`.
+
+Default detail display by Make field type:
+
+| Make field type | Stable value shape | Detail display |
+| --- | --- | --- |
+| `Make.Field.ID`, `Make.Field.Text` | primitive or object with display keys | plain read-only text |
+| `Make.Field.TextArea` | long text | full-row text, preserved line breaks, safe wrapping |
+| `Make.Field.URL` | string or `{ href/url/value, label/name }` | safe clickable link when href is valid; otherwise text |
+| `Make.Field.Number` | number or numeric string | formatted number |
+| `Make.Field.Currency` | number or numeric string | formatted currency, defaulting to the field/schema symbol when present |
+| `Make.Field.Percent` | number or numeric string | formatted percent text |
+| `Make.Field.Date` | date-like value | `YYYY-MM-DD` or the host project date format |
+| `Make.Field.DateTime` | date-time-like value | `YYYY-MM-DD HH:mm` or the host project date-time format |
+| `Make.Field.DateRange` | `[begin, end]` or `{ begin, end }`, also accepting `start/from/to` aliases when the host already returns them | `YYYY-MM-DD 至 YYYY-MM-DD`; do not render raw JSON such as `{"begin":...,"end":...}` |
+| `Make.Field.SingleSelect` | raw value or option object | option label from field metadata, displayed as text/tag |
+| `Make.Field.MultiSelect` | array of raw values or option objects | labels/tags joined or wrapped in the project's detail tag style |
+| `Make.Field.SingleUser`, `Make.Field.MultiUser` | user object or array, normally with `userId/userName` or `recordID/name` | read-only avatar/name list |
+| `Make.Field.SingleDepartment`, `Make.Field.MultiDepartment` | department object/id or array, normally with `departmentId/departmentName` or `recordID/name` | read-only department name/tag list |
+| `Make.Field.File` | URL string, file object, JSON string, or array | attachment thumbnails/file chips/links; do not flatten to raw filenames when richer metadata exists |
+| `Make.Field.Lookup` | object/JSON wrapper, often `{ entity, field, data }` | extract labels/references from `data`; openable references are links, deleted references are muted/struck through when status is available |
+
+Value extraction should be tolerant but deterministic:
+
+- empty values display a muted `-`
+- generic object label priority is `label`, `name`, `title`, `displayName`, then `value`
+- select labels come from field metadata options before falling back to raw values
+- user label priority is `name`, `userName`, `displayName`, then `label`; identity uses `recordID`, `userId`, or `id`
+- department label priority is `name`, `departmentName`, `displayName`, then `label`; identity uses `recordID`, `departmentId`, or `id`
+- file name priority is `name`, `fileName`, then filename from URL; file URL priority is string value, `url`, then `fileURL`
+- lookup wrappers with `data` display extracted data labels; an empty `data` array displays `-`
+- JSON-like strings may be parsed only as a compatibility fallback for known structured field types, but raw JSON must not be the intended visual output
+
+Detail layout and overflow:
+
+- common detail values occupy one grid column in the two-column layout
+- `TextArea`, long text, URL/link-rich values, `File`, `Lookup`, relation/association values, attachment-heavy values, and rich custom values span the full row
+- values wrap safely in detail views; do not force single-line ellipsis on every value
+- use ellipsis only in constrained title/action areas or compact chips, and expose the full value through tooltip/title only when actual overflow occurs
 
 ## Table component rule
 

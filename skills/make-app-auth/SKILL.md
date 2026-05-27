@@ -24,6 +24,7 @@ This skill covers:
 This skill does not cover:
 
 - UI layout, component design, or Make App page structure; use `makeui`.
+- Service build output, packaging, image entrypoints, or publish runtime readiness; use `make-app-runtime`.
 - runtime schema normalization, object-field mapping, table rendering, blank-page diagnosis, or business data correctness; use `makeui` and the host app tests.
 - DSL modeling or Make resource definitions; use `makedsl`.
 - makecli command execution; use `makecli`.

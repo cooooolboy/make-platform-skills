@@ -70,9 +70,9 @@ Use the sidebar for app modules or object navigation.
 - If navigation is long, scroll inside the sidebar only.
 - Do not let sidebar overflow force page-level scrolling.
 
-For a schema-driven Make App, build navigation from modules or object groups when available. If no grouping exists, list objects directly. Object entries still use a dynamic route such as `/objects/:objectKey`.
+For a metadata-driven Make App, build navigation from modules or object groups when available. If no grouping exists, list objects directly. Object entries still use a dynamic route such as `/objects/:objectKey`.
 
-If object descriptions exist in schema or API metadata, do not show them under each sidebar item by default. Use them only when the user asks for richer navigation, and prefer a tooltip or detail surface over making every item two lines.
+If object descriptions exist in host-provided metadata, do not show them under each sidebar item by default. Use them only when the user asks for richer navigation, and prefer a tooltip or detail surface over making every item two lines.
 
 Sidebar active-item alignment is a layout requirement:
 

@@ -157,3 +157,26 @@ Fix:
 - use one lifecycle path to create/update/destroy the table: when ready, create if missing, then call `updateProps`, `updateCanvasSize(width, height, true)`, and `setData(rows)`
 - use a separate unmount cleanup to call `destroy()` once; avoid splitting create and update effects so that cleanup from one effect can remove the instance expected by another
 - verify in the browser by comparing wrapper, host, and canvas rectangles; host and canvas CSS size should match, while canvas `width`/`height` attributes may be larger due to DPR scaling
+
+## 13. Carrying scroll position across object switches
+
+Symptom:
+
+- user scrolls object A's table to the far right or down
+- user clicks object B in the left navigation
+- object B renders with the table already scrolled to object A's previous horizontal or vertical position
+
+Cause:
+
+- React reuses the same route component for `/objects/:objectKey`
+- the integration updates columns/data but keeps the same canvas-table instance or same scrollable host state
+- table identity is not tied to the object/entity/schema key
+
+Fix:
+
+- treat object/entity/schema key as table identity, not just data
+- when that identity changes, either remount/recreate the canvas-table instance with a React `key`, or reset the existing instance through documented public APIs when available
+- reset both horizontal and vertical scroll to the top-left before or immediately after applying the new columns/data
+- clear transient state that belongs to the old object: selection, active edit, hover row, header menu, open column menu, pending row patches, and object-scoped event handlers
+- keep data refreshes within the same object separate from object switches; normal refresh may preserve scroll, object switch should not
+- add a smoke check: scroll object A horizontally, switch to object B, verify the table starts at the left edge

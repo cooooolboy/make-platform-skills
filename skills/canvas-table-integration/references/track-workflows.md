@@ -73,12 +73,15 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 7. Keep text, number, select, date, and attachment metadata as reusable editor patterns, not fixed component choices.
 8. Use `editApplyMode: "controlled"` when a business save or draft layer owns writes; after save accepts a commit, backfill with `setCellData(...)` or `setRowData(...)`.
 9. For popup editors, return `relatedElements()`, use `overlayOptions` when overflow is needed, and prefer object `autoClose`.
-10. Keep table initialization stable during draft updates; do not recreate the table just because merged rows or callbacks changed.
-11. Restore focus to the current canvas only inside the canvas edit lifecycle; never steal focus from host modal, drawer, dialog, popover, or form interactions.
-12. Guarantee usable canvas height before initialization; padding-only containers are not enough.
-13. Date editors must resolve typed input before OK commits.
-14. Use stable backend identity for persisted editable rows; keep mutable business codes out of technical row keys.
-15. Attachment editors are host popups with data-source upload boundaries; real upload/delete/download proxy logic belongs to the host data-source or Service API adapter.
+10. Popup editors must open immediately when edit mode starts; do not require a third click after the cell has entered editing.
+11. Before mounting an editor, scroll a partially hidden target cell fully into the visible body viewport and then calculate editor geometry.
+12. Inline editors must fill the active cell and avoid nested bordered wrappers, cards, form items, margin, and outer padding.
+13. Keep table initialization stable during draft updates; do not recreate the table just because merged rows or callbacks changed.
+14. Restore focus to the current canvas only inside the canvas edit lifecycle; never steal focus from host modal, drawer, dialog, popover, or form interactions.
+15. Guarantee usable canvas height before initialization; padding-only containers are not enough.
+16. Date editors must resolve typed input before OK commits.
+17. Use stable backend identity for persisted editable rows; keep mutable business codes out of technical row keys.
+18. Attachment editors are host popups with data-source upload boundaries; real upload/delete/download proxy logic belongs to the host data-source or Service API adapter.
 
 ## Track A workflow
 
@@ -103,13 +106,14 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 6. Read the host Make schema and Drawer form field mapping before coding editors.
 7. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
 8. For date, user, department, select, file, and lookup fields, choose a type-appropriate editor, read-only display, or explicit documented fallback before implementation.
-9. Design or reuse a host edit controller layer before writing field-specific code.
-10. Design or reuse a single editor-container abstraction before writing individual field editors.
-11. Implement or reuse field editors through a common editor interface.
-12. Distinguish submit-style editors from realtime-style editors.
-13. For attachment fields, identify whether upload requires a saved record id and where the data-source / Service API adapter upload/delete/download boundary lives.
-14. Validate positioning, scroll behavior, click-outside close, and rollback behavior.
-15. Verify at least one real editable field flow in the target project.
+9. Apply `make-cell-edit-defaults.md`: popup editors open immediately, inline editors fill the cell, current values echo on entry, and unchanged commits do not call save APIs.
+10. Design or reuse a host edit controller layer before writing field-specific code.
+11. Design or reuse a single editor-container abstraction before writing individual field editors.
+12. Implement or reuse field editors through a common editor interface.
+13. Distinguish submit-style editors from realtime-style editors.
+14. For attachment fields, identify whether upload requires a saved record id and where the data-source / Service API adapter upload/delete/download boundary lives.
+15. Validate positioning, scroll-into-view, scroll-follow behavior, click-outside close, and rollback behavior.
+16. Verify at least one real editable field flow in the target project.
 
 ## Track C workflow
 
@@ -173,6 +177,8 @@ Track C common capabilities:
 - attachment renderer with image thumbnails, file-extension blocks, safe open behavior, and `+N` overflow
 - lookup renderer with clickable valid references, muted deleted references, strikethrough, and fallback label extraction
 - row-head defaults: `showSN` and `bodyRowHeadSuffixOptions`
+- object/entity/schema switch resets table scroll and transient state; same-object data refresh may preserve scroll
+- user/department edit candidates come from host candidate sources; generated Make App defaults are `/api/users` and `/api/departments`, normalized to `userId/userName` and `departmentId/departmentName`
 
 ## What to avoid
 
