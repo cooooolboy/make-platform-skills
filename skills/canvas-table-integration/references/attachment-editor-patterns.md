@@ -186,6 +186,15 @@ Recommended placement behavior:
 - covering the edited cell border is acceptable when it prevents the active cell outline from showing through the popup
 - handle placement with host-side CSS or a host-side positioner before considering canvas-table package changes
 
+Default visual baseline for Make schema table editing:
+
+- use an ExpensePoc-style attachment panel connected to the edited cell
+- render existing image/file thumbnails or cards at the top of the panel
+- render one drag/drop/click upload zone in the same panel
+- use a single active/panel border; do not add a nested card border inside the active cell
+- do not default to a form-card layout with a title header, toolbar upload button, and inner list row
+- keep preview/remove controls on the attachment item or its hover mask
+
 Do not change the canvas-table package just to solve a host popup placement problem until host-side positioning has been tried.
 
 ## 10. Component-library rule

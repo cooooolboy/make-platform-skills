@@ -13,6 +13,8 @@ When editing starts from keyboard input, `keyCode` may matter for the host edito
 
 For popup-style Make field editors, the popup must open during the same edit activation. If the user activates a date range, select, user, department, lookup selector, or attachment cell and only sees a small inline input until they click again, the integration is wrong. The field editor should mount opened and then focus itself.
 
+Before mounting the editor, check whether the target cell is fully visible in the body viewport. If it is partially clipped by scroll position, fixed-left boundaries, headers, or container edges, scroll the table just enough to make the cell visible, then mount and focus the editor using the updated cell geometry.
+
 ## 2. The editor is a DOM overlay
 
 Treat the editor as a DOM overlay above the canvas.
@@ -32,6 +34,8 @@ Editor position typically depends on:
 The editor container should respect the current cell width and height as a starting point.
 
 For inline text, textarea, number, currency, and percent editors, the active-cell editor should fill the cell. The visual result should look like the cell itself became editable, not like a smaller bordered form control was inserted into the cell.
+
+When the host scrolls a partially hidden target cell into view before editing, use the post-scroll cell coordinates for this positioning calculation. Do not compute editor coordinates before `scrollTo(...)` and then reuse stale coordinates after the table moves.
 
 ## 4. Scroll-follow behavior
 

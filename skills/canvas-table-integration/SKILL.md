@@ -252,10 +252,12 @@ This track does **not** require a fixed UI library. Prefer the current project's
 For Make schema-driven editable tables, default to the ExpensePoc-proven edit baseline unless the user explicitly asks for a different interaction:
 
 - popup editors such as date, date range, select, user, department, lookup selector, and attachment panel open during the same cell-edit activation; never require an extra click after edit mode starts
+- before mounting an editor, partially hidden target cells must be scrolled into the visible body viewport so the active cell and editor anchor are not clipped
+- popup editor triggers inside the active cell are borderless and shadowless; the only blue editing border should be the canvas-table active-cell outline or the attachment popup panel itself
 - inline editors such as text, textarea, number, currency, and percent fill the entire active cell with no extra wrapper border, margin, or outer padding
 - every editor must echo the current cell value on entry using normalized backend value shapes, not formatted display strings
 - all edits use a shared value contract with separate `renderValue`, `submitValue`, and optional `displayValue`
-- if normalized old and new values are equal, close the editor without calling the save API or writing table data
+- in single-field cell editing, every close path must compare normalized old/new values first; unchanged values close without calling save APIs, marking dirty state, or writing table data
 
 ## Track C: Make field-display integration scope
 
