@@ -9,5 +9,8 @@ export async function loadSchema(): Promise<unknown> {
 }
 
 export async function listRecords(entityKey: string, payload: unknown): Promise<unknown> {
-  return auth.api.post(`/app/records/${entityKey}`, payload, makeRequestInit);
+  return auth.api.post(`/app/records/${entityKey}`, payload, {
+    ...makeRequestInit,
+    headers: { 'X-Make-Target': 'MakeService.ListResources' }
+  });
 }

@@ -1,11 +1,10 @@
-const MAKE_API_BASE_URL = process.env.MAKE_API_BASE_URL ?? 'http://make-gateway/api/make';
+const MAKE_AUTH_BASE_URL = process.env.MAKE_AUTH_BASE_URL ?? 'http://make-gateway/make';
+const MAKE_BUSINESS_BASE_URL = process.env.MAKE_BUSINESS_BASE_URL ?? 'http://make-gateway/make';
 
 export function applyForwardedHostContext(headers: Headers, source: Headers): void {
-  if (!headers.get('x-forwarded-host')) {
-    const host = source.get('host');
-    if (host) {
-      headers.set('x-forwarded-host', firstHeaderValue(host));
-    }
+  const host = source.get('host');
+  if (host) {
+    headers.set('x-forwarded-host', firstHeaderValue(host));
   }
   if (!headers.get('x-forwarded-proto')) {
     headers.set('x-forwarded-proto', isLocalHost(headers.get('x-forwarded-host')) ? 'http' : 'https');
@@ -18,13 +17,22 @@ function firstHeaderValue(value: string): string {
 }
 
 function isLocalHost(host: string | null): boolean {
-  return host === 'localhost' || host === '127.0.0.1';
+  const hostname = stripPort(host);
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+function stripPort(host: string | null): string | null {
+  if (!host) {
+    return host;
+  }
+  const portIndex = host.indexOf(':');
+  return portIndex >= 0 ? host.substring(0, portIndex) : host;
 }
 
 export async function proxyMakeAuth(request: Request, pathname: string): Promise<Response> {
-  const headers = pickProxyHeaders(request.headers, ['cookie', 'host', 'x-forwarded-host', 'x-forwarded-proto']);
+  const headers = pickProxyHeaders(request.headers, ['cookie']);
   applyForwardedHostContext(headers, request.headers);
-  const upstream = await fetch(`${MAKE_API_BASE_URL}${pathname}`, {
+  const upstream = await fetch(`${MAKE_AUTH_BASE_URL}${pathname}`, {
     method: request.method,
     headers,
     body: request.body,
@@ -37,9 +45,9 @@ export async function proxyMakeAuth(request: Request, pathname: string): Promise
 }
 
 export async function proxyMakeBusiness(request: Request, pathname: string): Promise<Response> {
-  const headers = pickProxyHeaders(request.headers, ['cookie', 'host', 'x-forwarded-host', 'x-forwarded-proto']);
+  const headers = pickProxyHeaders(request.headers, ['cookie']);
   applyForwardedHostContext(headers, request.headers);
-  const upstream = await fetch(`${MAKE_API_BASE_URL}${pathname}`, {
+  const upstream = await fetch(`${MAKE_BUSINESS_BASE_URL}${pathname}`, {
     method: request.method,
     headers,
     body: request.body

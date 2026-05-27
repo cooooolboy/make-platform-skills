@@ -54,7 +54,7 @@ This skill only supports unified login for generated and reviewed Make Apps. Mis
 - Do not silently downgrade generated Apps from unified login because local OAuth prerequisites are missing; report the blocker.
 - Published/vibe Apps must be auth-ready before reporting success: the agent or platform performs the auth checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.
 - For Service-fronted Apps, `/api/make/auth/**` is a required Service proxy contract, not an optional convenience route.
-- For Service-fronted Apps, Service must preserve the App host context for every make-gateway call: derive `X-Forwarded-Host` from inbound `Host` when absent, add `X-Forwarded-Proto`, and share the same helper for auth and business proxy requests.
+- For Service-fronted Apps, Service must preserve the App host context for every make-gateway call: derive `X-Forwarded-Host` from inbound `Host`, do not trust client-supplied `X-Forwarded-Host`, add `X-Forwarded-Proto`, and share the same helper for auth and business proxy requests.
 - Generated Apps must handle recoverable unified-login expiry: when SDK init returns `reason: "state_expired"` or `reason: "challenge_expired"`, show a relogin prompt and call `auth.login({ redirect: true })` from user action.
 
 ## Pre-flight Workflow

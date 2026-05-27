@@ -111,6 +111,12 @@ if (inferredMode === 'service-fronted') {
   if (/session\/complete/.test(serviceText) && !/redirect\s*:\s*[`'"]manual[`'"]/.test(serviceText) && !/maxRedirects\s*:\s*0/.test(serviceText)) {
     failures.push('session_complete_redirect_not_manual: session/complete proxy must preserve gateway 302/Set-Cookie/Location');
   }
+  if (hasInternalGatewayApiPrefix(serviceText)) {
+    failures.push('service_fronted_business_gateway_scope_wrong: Service running inside k8s must call make-gateway without /api prefix, for example http://make-gateway/make/auth|meta|data/**');
+  }
+  if (hasForwardedHostPassthrough(serviceText)) {
+    failures.push('forwarded_host_passthrough_present: Service-fronted proxy must not trust or pass through client supplied X-Forwarded-Host; derive it from inbound Host');
+  }
   if (!hasForwardedHostFallback(serviceText)) {
     failures.push('forwarded_host_context_missing: Service-fronted proxy must derive X-Forwarded-Host from inbound Host when the header is absent');
   }
@@ -236,6 +242,17 @@ function hasRecoverableAuthExpiredHandling(text) {
   return /state_expired/.test(text)
     && /challenge_expired/.test(text)
     && /auth\.login\(\s*\{\s*redirect\s*:\s*true\s*\}\s*\)/.test(text);
+}
+
+function hasInternalGatewayApiPrefix(text) {
+  return /make-gateway\/api\/make\b/i.test(text)
+    || /fetch\(\s*[`'"]\/api\/make\/(?:auth|meta|data)\b/i.test(text);
+}
+
+function hasForwardedHostPassthrough(text) {
+  return /(?:pickProxyHeaders|copyProxyHeaders|proxyHeaders)\s*\([^)]*[`'"]x-forwarded-host[`'"]/is.test(text)
+    || /[`'"]x-forwarded-host[`'"]\s*:\s*(?:req|request|source|inboundHeaders|headers)\.headers?\.get\(\s*[`'"]x-forwarded-host[`'"]\s*\)/i.test(text)
+    || /[`'"]x-forwarded-host[`'"]\s*:\s*(?:req|request|source|inboundHeaders|headers)\.get\(\s*[`'"]x-forwarded-host[`'"]\s*\)/i.test(text);
 }
 
 function hasForwardedHostFallback(text) {
