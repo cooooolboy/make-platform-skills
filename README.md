@@ -10,6 +10,34 @@ make 平台的 skill
   npx skills update  qfeius/make-platform-skills
 ```
 
+## Skill 路由总览
+
+用户问题先按下面的关键词选择 skill。一个任务可以组合多个 skill，但每个 skill 只负责自己的边界。
+
+Codex 判断优先级：
+
+1. 用户明确点名某个 skill 时，优先使用该 skill。
+2. 用户没有点名时，按问题关键词从下表选择最匹配的 skill。
+3. 一个需求跨多个领域时，可以组合多个 skill，但只在主责 skill 中写具体规则，其他 skill 只写“转交/配合”提示。
+4. 不要把登录、打包发布、DSL 建模、Make CLI 操作、CanvasTable 内部规则写进 `makeui`；`makeui` 只负责页面布局、样式和 UI 组件组织。
+
+| 用户问题 / 关键词 | 使用 skill | 边界 |
+| --- | --- | --- |
+| 页面、布局、App Shell、侧边栏、顶部栏、列表页、新建/编辑/详情、Drawer、表单布局、响应式、UI 状态 | `makeui` | 只负责 UI 怎么展示，不负责认证、打包、Service、API、发布 |
+| CanvasTable、表格渲染、字段类型展示、表格编辑、序号列、行头详情图标、`showSN`、`bodyRowHeadSuffixOptions` | `canvas-table-integration` | 只负责 `@qfei-design/canvas-table` 消费侧接入，不负责页面 Shell 和业务 API |
+| 登录、认证、Token、统一登录、OAuth、Cookie、Session、logout、401/403、`/api/make/**` 鉴权请求 | `make-app-auth` | 只负责认证和鉴权请求，不负责 UI 布局和打包发布 |
+| 打包、发布、镜像入口、K8s、Service 启动失败、`apps/ui/dist`、`apps/service/dist/server.js`、Service 端口 `3000`、workspace/package.json、`X-Forwarded-Host` | `make-app-runtime` | 只负责运行态和打包发布契约，不负责 UI、登录、DSL 建模 |
+| App/Entity/Relation/Field 建模、DSL YAML、对象、字段、关系、选项 | `makedsl` | 只负责 DSL 设计和生成，不负责远端 apply |
+| `makecli` 命令、diff、apply、部署、查看应用/实体/关系/记录、配置 token/server-url | `makecli` | 只负责 Make CLI 操作，不负责 UI/认证实现 |
+| 发票、票据、OCR、验真、识别金额/税号/票据内容 | `make-integration` | 只负责 Make 集成服务能力 |
+
+常见组合：
+
+- 做一个对象列表页：`makeui` + `canvas-table-integration`
+- 做一个登录后的页面：`makeui` + `make-app-auth`
+- 打包发布失败或 Service 启动失败：`make-app-runtime`
+- 新增对象字段并部署：`makedsl` + `makecli`
+
 ## 可用 Skill 列表
 
 ### makecli
@@ -47,20 +75,37 @@ npx skills update canvas-table-integration
 - 接普通表格；分页表格、虚拟加载、分组表格仅在用户明确要求时添加
 - 把 JSON meta 转成 `IColumn[]`
 
-### skills/makeui
-指导生成或修改 Make App 前端 UI，覆盖 React + Vite + React Router 页面布局、App Shell、列表页、抽屉表单、详情页和响应式样式。
+### makeui
+指导生成或修改 Make App 前端 UI，覆盖页面布局、App Shell、列表页、抽屉表单、详情页和响应式样式。
 
 #### 升级 skill
 ```bash
-npx skills update skills/makeui
+npx skills update makeui
 ```
 
 **使用场景**
 - 生成或调整 Make App 前端页面
 - 设计 App Shell、侧边栏、顶部栏、列表页、创建/编辑/详情抽屉
-- 基于 Make DSL/schema 生成表单和字段展示
+- 基于宿主项目提供的字段元数据生成表单和字段展示
 - 需要在 UI 中接入 Make 记录表格时，配合 `canvas-table-integration`
 - 不负责认证细节；认证、Token、统一登录、logout 和 `/api/make/**` 请求规则交给 `make-app-auth`
+- 不负责打包发布、Service runtime、镜像入口和构建产物；这些交给 `make-app-runtime`
+
+### make-app-runtime
+指导 Make App 运行态和打包发布契约，覆盖 `apps/` workspace、`apps/ui/dist`、`apps/service` 构建产物、Service 端口、镜像启动入口和发布前契约检查。
+
+#### 升级 skill
+```bash
+npx skills update make-app-runtime
+```
+
+**使用场景**
+- 生成、重构或审查 Make App 的 `apps/` workspace 结构
+- 处理打包、发布、镜像启动、K8s 启动入口相关问题
+- 排查 `Cannot find module '/app/apps/service/dist/server.js'`
+- 约束 `apps/service/src/server.ts` 必须构建出 `apps/service/dist/server.js`
+- 约束 `apps/service/package.json` 的 `build/start` 和 `apps/service/tsconfig.json`
+- 约束 Service 固定端口 `3000`、`apps/service/src/config.ts` 和发布前构建契约测试
 
 ### make-app-auth
 指导 Make App 前端接入 `@qfeius/make-app-auth`，覆盖本地 token 模式、统一登录模式、`/api/make/**` 鉴权请求、401/403、logout、Cookie/Session/redirect 排障。

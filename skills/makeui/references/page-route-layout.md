@@ -51,10 +51,10 @@ Form layout:
 - do not render every field as full-width one-column rows on desktop unless the user explicitly asks
 - full-width rows for `TextArea`, long text, URL/link fields, `File`, `Lookup`, relation/association selectors, descriptions, and rich controls
 - normal fields such as text, number, date, date-time, date range, select, user, and department occupy one column by default
-- derive fields and control types from the runtime schema API, not local DSL files
+- derive fields and control types from host-provided field metadata
 - use type-appropriate controls; date, select, user, department, file, and lookup fields must not silently become plain text inputs
-- user and department selectors load candidates from backend APIs such as `/api/users` and `/api/departments`, or the host project's equivalent endpoints
-- create pages must omit attachment upload fields when upload requires a saved `recordID`; edit pages may show attachments only when the persisted record id exists
+- user and department selectors use the host-provided candidate source and must include search/loading/empty/error UI states
+- create pages must omit attachment upload fields when upload requires a saved record identity; edit pages may show attachments only when the persisted record identity exists
 - one-column layout on small screens
 - section headings rather than deeply nested cards
 

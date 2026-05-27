@@ -4,7 +4,7 @@
 
 - [Selection strategy](#selection-strategy)
 - [Default candidate mapping](#default-candidate-mapping)
-- [Make schema-driven field components](#make-schema-driven-field-components)
+- [Make field-metadata-driven components](#make-field-metadata-driven-components)
 - [Table component rule](#table-component-rule)
 - [Action hierarchy](#action-hierarchy)
 - [Optional action policy](#optional-action-policy)
@@ -71,13 +71,13 @@ When shadcn/ui is the selected component system:
 - feedback: `Alert`, `Skeleton`, toast/sonner, and explicit empty states when those components are installed
 - avatar and user menu: `Avatar` and `DropdownMenu`
 
-## Make schema-driven field components
+## Make field-metadata-driven components
 
-Before generating Make forms or field editors, identify the runtime schema API and candidate APIs. Use Service `/api/schema`, `/api/entities/:entityKey/fields`, or the host project's equivalent schema endpoints. Do not hand-write static form controls when the schema API is available, and do not generate UI or Service runtime code that reads `apps/dsl`, `/dsl`, or YAML schema files.
+Before generating Make forms or field editors, identify the host-provided object/field metadata shape used by the UI. `makeui` chooses controls and layout from that metadata; it does not define API endpoints, Service contracts, local DSL loading, or persistence behavior.
 
-Form and field components must consume normalized field metadata, not raw backend schema objects. Normalize backend variants such as `entity.properties.fields`, `entity.fields`, and host-specific equivalents in a schema adapter before choosing controls, required state, editability, options, or lookup behavior.
+Form and field components should consume normalized UI field metadata, not raw backend objects. If raw metadata is still leaking into components, call out that another layer must normalize it before `makeui` can safely choose controls, required markers, readonly/disabled state, options, or lookup presentation.
 
-If no schema API or response sample exists, stop and call out the missing contract instead of falling back to local DSL reads or generated constants.
+If no field metadata exists, stop and call out the missing UI dependency instead of inventing static form controls.
 
 Use type-appropriate controls:
 
@@ -88,22 +88,22 @@ Use type-appropriate controls:
 | `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values |
 | `Date`, `DateTime`, `DateRange` | date, date-time, or range picker |
 | `SingleSelect`, `MultiSelect` | single or multiple select from schema options |
-| `SingleUser`, `MultiUser` | searchable user selector backed by `/api/users` or host equivalent |
-| `SingleDepartment`, `MultiDepartment` | searchable department selector backed by `/api/departments` or host equivalent |
-| `File` | create: omit when upload requires `recordID`; edit: attachment component only with saved record id; detail: attachment display |
-| `Lookup` | read-only lookup display by default; association selector only when schema/API explicitly supports editing |
+| `SingleUser`, `MultiUser` | searchable user selector using the host-provided candidate source |
+| `SingleDepartment`, `MultiDepartment` | searchable department selector using the host-provided candidate source |
+| `File` | create: omit when upload requires a saved record identity; edit: attachment component only with saved record identity; detail: attachment display |
+| `Lookup` | read-only lookup display by default; association selector only when field metadata and host UI behavior explicitly support editing |
 
 Do not silently degrade date, user, department, select, file, or lookup fields to a bare `Input`.
 
 If a field type is unknown, prefer a read-only display or an explicit unsupported-field fallback. Do not pretend it is a plain text field unless the user confirms that downgrade.
 
-File fields are mode-sensitive. If the backend upload API requires a persisted `recordID`, create forms must omit `Make.Field.File` controls and create payload values. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
+File fields are mode-sensitive. If upload requires a persisted record identity, create forms must omit `Make.Field.File` controls. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
 
-User and department candidate APIs are required for production selectors. When the real APIs are missing and the user confirms a placeholder, use a searchable selector shell that:
+User and department selectors require a real host-provided candidate source. When it is missing and the user confirms a placeholder, use a searchable selector shell that:
 
 - displays the current value from the record
-- leaves a clear integration point for the real candidate API
-- avoids fake global demo candidates in production code
+- leaves a clear integration point for the real candidate source
+- avoids fake global demo candidates
 - shows loading, empty, error, and retry states
 
 For Ant Design, the default form-control mapping is:
@@ -111,8 +111,8 @@ For Ant Design, the default form-control mapping is:
 - text: `Input`, long text: `Input.TextArea`
 - number/currency/percent: `InputNumber`
 - date/date-time/date-range: `DatePicker` / `DatePicker.RangePicker`
-- select/user/department/lookup candidates: `Select` with `showSearch`, backend search for user/department, and `mode="multiple"` for multi-value fields
-- file: no create upload when `recordID` is required; edit/detail attachment UI after persistence
+- select/user/department/lookup candidates: `Select` with `showSearch` and `mode="multiple"` for multi-value fields
+- file: no create upload when a saved record identity is required; edit/detail attachment UI after persistence
 
 ## Table component rule
 

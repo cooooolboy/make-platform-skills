@@ -23,6 +23,7 @@ This skill covers:
 This skill does not cover:
 
 - UI layout, component design, or Make App page structure; use `makeui`.
+- Service build output, packaging, image entrypoints, or publish runtime readiness; use `make-app-runtime`.
 - DSL modeling or Make resource definitions; use `makedsl`.
 - makecli command execution; use `makecli`.
 - make-gateway or Org server implementation changes.

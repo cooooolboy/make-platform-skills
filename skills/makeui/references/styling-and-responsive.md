@@ -60,7 +60,7 @@ Avoid:
 - treat fixed minimum column widths as an overflow risk; use them only after checking the target Drawer width and breakpoint behavior
 - align label typography, control height, border radius, and focus ring with existing project tokens or Ant Design defaults before adding custom values
 - let `TextArea`, long text, URL/link, file, lookup/relation, description, attachment-heavy, and rich controls span full width when it improves readability
-- omit file upload fields in create mode when upload needs a saved `recordID`; show attachment controls only after a persisted record exists
+- omit file upload fields in create mode when upload needs a saved record identity; show attachment controls only after a persisted record exists
 - header button density can be slightly more relaxed when a form needs it, but changes should stay scoped away from list and detail action styling
 
 ## Detail Drawer polish
@@ -97,4 +97,4 @@ Provide UI states without defining business logic:
 
 State copy should be generic unless the user provides domain-specific wording.
 
-For schema-driven object pages, states belong around the object shell and content region, not only around individual controls. Published/vibe Apps must keep a visible shell or scoped fallback after auth succeeds; do not let schema, data, route, or render failures become a blank white page.
+For metadata-driven object pages, states belong around the object shell and content region, not only around individual controls. Keep a visible shell or scoped fallback when metadata, data, route, or render failures occur; do not let the UI become a blank white page.

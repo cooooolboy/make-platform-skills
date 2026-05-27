@@ -4,39 +4,33 @@
 
 - [Role](#role)
 - [Hard boundaries](#hard-boundaries)
-- [Default Make App pattern](#default-make-app-pattern)
-- [Runtime schema and candidates](#runtime-schema-and-candidates)
-- [Schema identity rules](#schema-identity-rules)
-- [Object-shell runtime states](#object-shell-runtime-states)
-- [Project runtime baseline](#project-runtime-baseline)
-- [Publish readiness](#publish-readiness)
-- [Node runtime](#node-runtime)
+- [Default Make App UI pattern](#default-make-app-ui-pattern)
+- [Field metadata and identity](#field-metadata-and-identity)
+- [Object-shell UI states](#object-shell-ui-states)
 - [Decision order](#decision-order)
 - [Dynamic object routes](#dynamic-object-routes)
 - [Do not create views by default](#do-not-create-views-by-default)
 
 ## Role
 
-`makeui` guides UI generation for Make App pages created from natural language. It should make layout and interface decisions, not business decisions.
+`makeui` guides frontend UI generation for Make App pages. It should make layout, presentation, and interaction-placement decisions, not runtime, backend, auth, deployment, or business decisions.
 
 ## Hard boundaries
 
-- Do not invent business fields, field meanings, API shapes, permission rules, approval states, or persistence behavior.
-- Do not generate UI or Service runtime code that reads local DSL files. `apps/dsl` is a source/modeling artifact, not a deployed runtime dependency.
-- Do not generate Make object lists, Drawer forms/details, or route forms/details before identifying the runtime schema and candidate APIs. Prefer the host Service contract such as `/api/schema`, `/api/entities/:entityKey/fields`, `/api/users`, and `/api/departments`.
-- Do not pass raw remote schema objects directly into route, navigation, table, form, or detail components. Normalize schema API variants at the data boundary first.
+- Do not invent business fields, field meanings, API shapes, permission rules, approval states, persistence behavior, deployment rules, or runtime architecture.
+- Do not add or modify authentication, login, logout, token handling, cookies, OAuth, SSO, `/api/make/**`, gateway, domain, or session behavior in `makeui`; route those tasks to `make-app-auth`.
+- Do not add or modify Service structure, Service config, Service port, Service build output, Docker/K8s, frontend build output, package scripts, Node runtime, or publish readiness rules in `makeui`.
+- Do not decide where field metadata comes from. `makeui` consumes the host project's object/field metadata and renders the UI from it.
 - Do not infer that a requested table needs pagination, cell editing, virtual loading, or custom renderers; table implementation belongs to `canvas-table-integration`.
 - Make record tables and list tables must use `@qfei-design/canvas-table` through `canvas-table-integration`. If cell editing is needed, use `canvas-table-integration` for the editing design too.
 - Do not add product capabilities that were not requested, especially pagination, views, advanced filters, grouping, sorting, column settings, import, or export.
 - Do not force Ant Design or Less when the user or project already has another UI/styling system.
 - Do not silently choose Ant Design, Arco Design, TDesign, or shadcn/ui for a new project. Component-library selection is blocking until the user chooses.
 - Do not skip the Make App shell for generated object-list UI. Start from the shell unless the project already has one.
-- Do not silently downgrade `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` Make fields to plain text inputs. Explain any missing schema/API and use an explicit fallback.
-- Do not use fake global users, departments, or select candidates in production code. Candidate data must come from schema/options or backend APIs.
-- Do not show attachment upload fields in create flows when upload requires a saved record identity. New records do not have `recordID`; omit file fields until edit/detail after persistence.
-- Do not treat an `apps/ui` or `apps/service` directory as complete unless its required workspace package manifest exists.
+- Do not silently downgrade `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` Make fields to plain text inputs. Use type-appropriate UI controls or show an explicit unsupported-field UI fallback.
+- Do not show attachment upload controls in create flows when upload requires a saved record identity. New records do not have a persisted id; omit file upload until edit/detail after persistence.
 
-## Default Make App pattern
+## Default Make App UI pattern
 
 Use a focused object-management layout:
 
@@ -52,127 +46,52 @@ For generated object-list UI, the shell structure is:
 
 1. left full-height sidebar for module/object navigation
 2. right fixed header with selected object/module name on the left
-3. current user/avatar and global actions on the header right
+3. current user/avatar and global action slots on the header right, when the host project exposes them
 4. local list toolbar below the header
 5. canvas-table region filling the remaining height
 
 Do not add pagination to generated object-list UI unless the user explicitly asks for it.
 
-Generated Make App projects should follow the makecli agent target structure:
+## Field metadata and identity
 
-- `apps/ui`
-- `apps/service`
-- `apps/dsl`
-- `apps/docs`
-- `apps/packages/ui`, `apps/packages/types`, and `apps/packages/config` when shared packages are useful
+`makeui` may use normalized field metadata already provided by the host project or prepared by another skill. Keep the UI-facing contract small:
 
-Preserve the host project's declared data flow. If project instructions, `apps/docs/api.md`, or existing code require `apps/ui -> apps/service -> Make Data API`, UI code must use the Service API contract and must not directly call Make APIs or hold Make credentials. If the user is generating a gateway/unified-login Make App, authentication and `/api/make/**` access must be handled through `@qfeius/make-app-auth` and the separate `make-app-auth` skill: generated UI calls `auth.api('/api/make/**')`, then reaches make-gateway and Make Platform. UI code must not hold Make credentials, bypass `auth.api`, directly call meta/data service domains, or silently replace a Service-based contract with the gateway/auth-SDK flow. `apps/service` remains part of the required project structure.
+- entity/object key: route and selection identity
+- entity/object name: navigation and page title text
+- field key: UI field identity, table column key, form item key, and detail item key
+- field name: label, column title, detail label, and menu text
+- field type/group: control choice and layout span
+- field UI properties: required marker, readonly/disabled state, placeholder, option labels, relation display metadata, and value display hints when available
 
-## Runtime schema and candidates
+If metadata is missing or inconsistent, report the UI dependency clearly. Do not implement API fetching, local DSL parsing, fake global users/departments, or business fallback data inside `makeui`.
 
-Runtime schema and candidate data must come from backend APIs, not local DSL files.
+## Object-shell UI states
 
-- The generated app must not use `fs.readFile`, static imports, `import.meta.glob`, YAML parsers, copied schema files, or path-based reads for `apps/dsl/**`, `/dsl/**`, or `*.yaml`.
-- Generated UI consumes a normalized runtime schema contract, not raw remote schema objects. Add or reuse a boundary adapter such as `normalizeRuntimeSchema(...)` before schema reaches navigation, route matching, tables, forms, or detail views.
-- The adapter must tolerate backend variants such as `entity.properties.fields`, `entity.fields`, `schema.entities[].properties.fields`, and the host project's documented equivalent. Components should see stable entity and field arrays.
-- A normalized entity should expose stable `key`, `name`, optional grouping/module metadata, and normalized `fields`. A normalized field should expose stable `key`, `name`, `type`, `properties`, `required`, `editable`, and optional raw metadata for diagnostics.
-- Table columns, form fields, field labels, editability, required state, select options, and lookup relation metadata should be read from the runtime schema contract.
-- Prefer the host project's API docs and Service client. The default Make UI contract is `GET /api/schema` for app schema and `GET /api/entities/:entityKey/fields` for one object's fields.
-- User and department selectors must query backend endpoints such as `GET /api/users` and `GET /api/departments`, or the host project's equivalent endpoints.
-- Schema should be reloadable after model changes. Do not freeze dynamic object fields into generated constants when a schema API exists.
-- If schema or candidate endpoints are missing, report the API contract gap and ask for confirmation before generating a degraded placeholder. Do not use local DSL as the fallback field source.
+Generated object pages must not fail into a blank visual surface. `makeui` only defines the UI states and placement, not the auth or data implementation.
 
-## Schema identity rules
+The object shell should have visible states for:
 
-- For Make v0.3.0 schemas, use `entity.key` as the route/API key and `entity.name` as display text. Do not route by Chinese object names.
-- Use `field.key` for record data keys, canvas-table column keys, filters, sort fields, edit commits, and API payloads.
-- Use `field.name` only for labels, column titles, detail display, and menu text.
-- Lookup relation form logic reads `field.properties.relation` as relation key and `field.properties.targetFieldKey` as target field key.
-- Relation writes use `qfei_relation: [{ entityKey, id }]`.
-
-## Object-shell runtime states
-
-Published/vibe Apps must not render a blank white page after authentication succeeds.
-
-The object shell owns these controlled states:
-
-- loading schema, route object, candidate data, or list data
-- empty schema or empty object list
+- loading
+- empty object list
 - empty records for a valid object
-- schema/data/API error with retry
-- forbidden or permission-denied response
-- expired session or unauthenticated response, delegated to `make-app-auth` when auth is in scope
+- field metadata unavailable
+- data error with retry action slot
+- forbidden or permission-denied copy
+- expired session / unauthenticated copy, delegated to `make-app-auth` for behavior
 - route not found or object key not found
 - render-error fallback through a route or object-shell ErrorBoundary
 
-Keep the app shell visible when possible. A failed object view should render an inline `Alert`/`Result`/retry surface or a scoped error fallback, not unmount the whole page into blank white.
-
-## Project runtime baseline
-
-When reorganizing a project into `apps/`, directories alone are not enough. Required workspace files are:
-
-- `apps/package.json`
-- `apps/pnpm-workspace.yaml`
-- `apps/ui/package.json`
-- `apps/service/package.json`
-
-`apps/pnpm-workspace.yaml` must include `ui`, `service`, and `packages/*`. `apps/package.json` scripts such as `app:ui`, `app:service`, and `dev` must use `pnpm --filter` targets that match the actual package names, including scoped names when used. Legacy refactors are incomplete until the required manifests and scripts for the chosen structure exist.
-
-Frontend build output must be `apps/ui/dist`. Generated or updated Vite config should set `build.outDir: "dist"` and `build.emptyOutDir: true`; do not publish or point static asset discovery at a root `dist` or `apps/dist`.
-
-Service projects must have one centralized runtime config entry. For new projects use `apps/service/src/config.ts`; for legacy projects, preserve an existing equivalent config entry if it already centralizes runtime config, otherwise add `apps/service/src/config.ts`.
-
-Service HTTP port is fixed to `3000`. Generated or refactored `apps/service` code, config defaults, `.env.example`, docs, health checks, tests, and UI Service base URL examples must point to port `3000`. If a legacy project uses another Service port, migrate it to `3000` during the makeui refactor and update UI Service base URL, CORS, docs, and tests together. If local `3000` is occupied, report the conflict instead of silently choosing another port.
-
-`makeui` does not decide which environment connects to which Make domain, gateway, or API host. Service config may read `MAKE_API_BASE_URL`, `MAKE_SERVER_URL`, or the host project's existing equivalent name, but domain mapping, gateway routing, and secret injection belong to backend, operations, Make tooling, or the deployed Service runtime. Env examples may expose blank config keys, but must not include real tokens or hard-code production, staging, or test Make API domains.
-
-## Publish readiness
-
-Before reporting a generated App as ready to publish or ready for user domain access:
-
-- run the project build that produces `apps/ui/dist`
-- run a UI smoke against the entry route in the same mode being claimed ready when practical: published/user-domain route for publish readiness, or local preview when only local readiness is claimed
-- prove the auth-completed route renders the app shell and at least one schema-driven object view
-- verify a missing/variant schema response shows a controlled loading/error state instead of a blank page
-- verify no uncaught render error blocks first paint of the object shell
-
-Do not mark a generated App ready based only on successful code generation, package install, or backend deploy logs.
-
-## Node runtime
-
-Make App frontend projects use Vite, so Node runtime compatibility must be checked before scaffolding or changing frontend dependencies.
-
-Default baseline:
-
-- minimum Node.js: `>=22.12.0`
-- recommended for new projects: current active LTS; at the time of this update, Node.js 24 LTS
-- avoid Node.js 20 as the default for new projects
-
-For new projects, add this to `package.json`:
-
-```json
-{
-  "engines": {
-    "node": ">=22.12.0"
-  }
-}
-```
-
-If the project uses `.nvmrc` or `.node-version`, prefer `24` unless the user or project requires another active LTS.
-
-If an existing project already declares a stricter Node requirement, keep the stricter project requirement.
-
-For Service-based local development, Service stays on port `3000`. Preserve the host UI port unless the user asks to change it. When the UI port changes, update Vite config, Service CORS, env examples or docs, API docs when they mention local origins, and tests together. Do not apply gateway/unified-login port defaults to a Service-based project unless the project explicitly uses that data flow.
+Keep the app shell visible when possible. A failed object view should render an inline alert/result/retry surface or a scoped error fallback, not unmount the whole page into blank white.
 
 ## Decision order
 
 1. User's explicit request.
 2. Existing project stack and UI conventions.
-3. Make defaults in this skill.
+3. Make UI defaults in this skill.
 
 If a detail is not requested and not present in the project, choose the simplest useful UI.
 
-For a new project with no established component library, ask the user to choose Ant Design, Arco Design, TDesign, or shadcn/ui. Recommend Ant Design, but do not choose it automatically. If the user has not chosen, pause component-library-specific implementation and only provide a neutral plan or ask the selection question. If the user chooses shadcn/ui, follow the official Vite installation path, configure Tailwind and aliases first, and add only the needed shadcn/ui components.
+For a new project with no established component library, ask the user to choose Ant Design, Arco Design, TDesign, or shadcn/ui. Recommend Ant Design, but do not choose it automatically. If the user has not chosen, pause component-library-specific implementation and only provide a neutral plan or ask the selection question. If the user chooses shadcn/ui, follow the host project's chosen setup path and add only the UI components needed by the generated screens.
 
 ## Dynamic object routes
 
@@ -188,7 +107,7 @@ If the host project already uses another dynamic convention, follow that convent
 
 ## Do not create views by default
 
-Make currently has no confirmed view capability. Do not create:
+Make currently has no confirmed view UI requirement in this skill. Do not create:
 
 - view tabs
 - view dropdowns
