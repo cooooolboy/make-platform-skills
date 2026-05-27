@@ -32,20 +32,74 @@ browser -> /api/make/app/** -> App Service -> http://make-gateway/make/meta|data
 Auth APIs:
 
 ```text
-browser -> /api/make/auth/** -> App Service -> http://make-gateway/api/make/auth/**
+browser -> /api/make/auth/** -> App Service -> http://make-gateway/make/auth/**
 ```
 
-Service code running inside the cluster may call k8s-internal make-gateway routes. UI code must not.
+Service code running inside the cluster must call k8s-internal make-gateway routes without the external `/api` prefix. UI code must not call internal routes directly.
 
 Do not publish a Service-fronted unified-login App without the auth proxy. A missing `/api/make/auth/current-context` route means the browser cannot start or verify unified login, even if business routes such as `/api/make/app/schema` work.
 
 The Service auth proxy must forward browser auth context:
 
 - request `Cookie`
-- request host/proxy headers needed by make-gateway to resolve the published App domain, such as `Host`, `X-Forwarded-Host`, and `X-Forwarded-Proto`
+- request host/proxy headers needed by make-gateway to resolve the published App domain, especially `X-Forwarded-Host` and `X-Forwarded-Proto`
 - gateway `Set-Cookie`, `Location`, and status code back to the browser
 
 Do not convert the gateway response into a JSON envelope for auth routes.
+
+## Host Context Helper
+
+Generated Service-fronted Apps must centralize host/proto forwarding in one helper and use it for both auth routes and business routes. Do not trust or pass through client-supplied `X-Forwarded-Host`; derive it from inbound `Host`.
+
+```ts
+function applyForwardedHostContext(headers: Headers, source: Headers): void {
+  const host = source.get('host');
+  if (host) {
+    headers.set('x-forwarded-host', firstHeaderValue(host));
+  }
+  if (!headers.get('x-forwarded-proto')) {
+    headers.set('x-forwarded-proto', isLocalHost(headers.get('x-forwarded-host')) ? 'http' : 'https');
+  }
+}
+
+function firstHeaderValue(value: string): string {
+  const commaIndex = value.indexOf(',');
+  return commaIndex >= 0 ? value.substring(0, commaIndex).trim() : value.trim();
+}
+
+function isLocalHost(host: string | null): boolean {
+  const hostname = stripPort(host);
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+function stripPort(host: string | null): string | null {
+  if (!host) {
+    return host;
+  }
+  const portIndex = host.indexOf(':');
+  return portIndex >= 0 ? host.substring(0, portIndex) : host;
+}
+```
+
+Apply the helper before every upstream make-gateway request:
+
+```ts
+const authHeaders = pickProxyHeaders(inboundHeaders, ['cookie']);
+applyForwardedHostContext(authHeaders, inboundHeaders);
+
+const businessHeaders = new Headers(init.headers);
+applyForwardedHostContext(businessHeaders, inboundHeaders);
+```
+
+Internal make-gateway URLs must not use the external `/api` prefix:
+
+```ts
+const makeAuthBaseUrl = 'http://make-gateway/make';
+const makeBusinessBaseUrl = 'http://make-gateway/make';
+
+await fetch(`${makeAuthBaseUrl}/auth/current-context`, { headers: authHeaders });
+await fetch(`${makeBusinessBaseUrl}/data/v1/record`, { headers: businessHeaders });
+```
 
 ## Session Complete
 
@@ -66,7 +120,9 @@ These checks belong to the agent, generated tests, CI, or publish pipeline. Do n
 - Browser auth requests go to `/api/make/auth/**`.
 - `/api/make/auth/current-context` is reachable from the published domain and returns a challenge or authenticated context, not a Service 404.
 - Service calls internal business routes such as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`.
-- Service does not call k8s-internal `/api/make/meta/**` or `/api/make/data/**` unless the gateway explicitly supports those internal paths.
+- Service calls internal auth routes such as `http://make-gateway/make/auth/**`.
+- Service does not call k8s-internal `/api/make/auth/**`, `/api/make/meta/**`, or `/api/make/data/**`; `/api` is only for external-domain access.
 - Service forwards browser cookies on every auth and business request that depends on App session.
+- Service derives `X-Forwarded-Host` from inbound `Host`, does not pass through client-supplied `X-Forwarded-Host`, and adds `X-Forwarded-Proto`; auth and business requests share this helper.
 - `session/complete` reaches the browser as `302 + Set-Cookie + Location`.
 - At least one authenticated schema/meta request and one record-list request pass through the same Service/auth adapter path before reporting publish success.

@@ -93,6 +93,9 @@ if (published) {
   if (!/apiAuthRedirect\s*:\s*true/.test(projectText)) {
     warnings.push('published_api_auth_redirect_missing: generated unified-login Apps should set apiAuthRedirect:true with SDK >= 0.1.2');
   }
+  if (!hasRecoverableAuthExpiredHandling(uiText)) {
+    failures.push('recoverable_auth_expired_missing: generated unified-login Apps must handle state_expired/challenge_expired by showing a relogin prompt');
+  }
 }
 
 if (inferredMode === 'service-fronted') {
@@ -108,7 +111,19 @@ if (inferredMode === 'service-fronted') {
   if (/session\/complete/.test(serviceText) && !/redirect\s*:\s*[`'"]manual[`'"]/.test(serviceText) && !/maxRedirects\s*:\s*0/.test(serviceText)) {
     failures.push('session_complete_redirect_not_manual: session/complete proxy must preserve gateway 302/Set-Cookie/Location');
   }
-  if (!/(req\.headers\.cookie|headers\.cookie|cookie\s*:)/i.test(serviceText)) {
+  if (hasInternalGatewayApiPrefix(serviceText)) {
+    failures.push('service_fronted_business_gateway_scope_wrong: Service running inside k8s must call make-gateway without /api prefix, for example http://make-gateway/make/auth|meta|data/**');
+  }
+  if (hasForwardedHostPassthrough(serviceText)) {
+    failures.push('forwarded_host_passthrough_present: Service-fronted proxy must not trust or pass through client supplied X-Forwarded-Host; derive it from inbound Host');
+  }
+  if (!hasForwardedHostFallback(serviceText)) {
+    failures.push('forwarded_host_context_missing: Service-fronted proxy must derive X-Forwarded-Host from inbound Host when the header is absent');
+  }
+  if (!hasForwardedProtoFallback(serviceText)) {
+    failures.push('forwarded_proto_context_missing: Service-fronted proxy must add X-Forwarded-Proto when forwarding to make-gateway');
+  }
+  if (!/(req\.headers\.cookie|headers\.cookie|(?:request|req)\.headers\.get\(\s*[`'"]cookie[`'"]|(?:source|inboundHeaders|headers)\.get\(\s*[`'"]cookie[`'"]|cookie\s*:)/i.test(serviceText)) {
     warnings.push('cookie_forwarding_not_obvious: could not find obvious Cookie forwarding in Service code');
   }
 } else {
@@ -221,6 +236,48 @@ function hasTokenMode(text) {
 
 function hasUiDirectGatewayCalls(text) {
   return /auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/(?:data|meta)\b/.test(text);
+}
+
+function hasRecoverableAuthExpiredHandling(text) {
+  return /state_expired/.test(text)
+    && /challenge_expired/.test(text)
+    && /auth\.login\(\s*\{\s*redirect\s*:\s*true\s*\}\s*\)/.test(text);
+}
+
+function hasInternalGatewayApiPrefix(text) {
+  return /make-gateway\/api\/make\b/i.test(text)
+    || /fetch\(\s*[`'"]\/api\/make\/(?:auth|meta|data)\b/i.test(text);
+}
+
+function hasForwardedHostPassthrough(text) {
+  return /(?:pickProxyHeaders|copyProxyHeaders|proxyHeaders)\s*\([^)]*[`'"]x-forwarded-host[`'"]/is.test(text)
+    || /[`'"]x-forwarded-host[`'"]\s*:\s*(?:req|request|source|inboundHeaders|headers)\.headers?\.get\(\s*[`'"]x-forwarded-host[`'"]\s*\)/i.test(text)
+    || /[`'"]x-forwarded-host[`'"]\s*:\s*(?:req|request|source|inboundHeaders|headers)\.get\(\s*[`'"]x-forwarded-host[`'"]\s*\)/i.test(text);
+}
+
+function hasForwardedHostFallback(text) {
+  const normalized = text.toLowerCase();
+  if (!normalized.includes('x-forwarded-host')) {
+    return false;
+  }
+  return (
+    /(?:source|inboundheaders|inbound|request\.headers|req\.headers|options\.headers|headers)\.get\(\s*[`'"]host[`'"]\s*\)/i.test(text) ||
+    /(?:request|req)\.headers\.host/i.test(text) ||
+    /headers\.set\(\s*[`'"]x-forwarded-host[`'"][\s\S]{0,240}\bhost\b/i.test(text) ||
+    /[`'"]x-forwarded-host[`'"]\s*:\s*[^,\n}]*\bhost\b/i.test(text)
+  );
+}
+
+function hasForwardedProtoFallback(text) {
+  const normalized = text.toLowerCase();
+  if (!normalized.includes('x-forwarded-proto')) {
+    return false;
+  }
+  return (
+    /headers\.set\(\s*[`'"]x-forwarded-proto[`'"]/i.test(text) ||
+    /[`'"]x-forwarded-proto[`'"]\s*:/i.test(text) ||
+    /x-forwarded-proto[\s\S]{0,240}(?:https|http|\$scheme|proto)/i.test(text)
+  );
 }
 
 function relative(file) {
