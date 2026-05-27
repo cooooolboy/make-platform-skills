@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.28.
+Current skill revision: 0.3.29.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
@@ -46,6 +46,13 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Do not define API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`.
 - If the task needs auth/login/logout/session behavior, use `make-app-auth`. If the task needs build output, Service runtime, packaging, or publish-readiness rules, use `make-app-runtime`.
 - `makeui` may consume host-provided object/field metadata for UI rendering, but must not decide how that metadata is fetched, stored, authenticated, or deployed.
+
+### UI metadata and states
+
+- Generated UI consumes normalized, host-provided object/field metadata. Do not pass raw backend schema variants directly into table, form, detail, route, or shell components.
+- `apps/dsl` is a modeling artifact, not a UI runtime dependency. Generated UI must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` files as its field source.
+- If object/field metadata is missing or inconsistent, show a visible UI dependency/error state and report the missing dependency. Do not invent API paths, parse local DSL, or create fake user/department/business fallback data in `makeui`.
+- Schema, data, route, and render failures must resolve to visible object-shell states: loading, empty, error, forbidden, expired-session, retry, not-found, or render-error. Do not let exceptions become a blank page.
 
 ### UI defaults
 
