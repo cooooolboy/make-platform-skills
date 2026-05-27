@@ -25,6 +25,7 @@ Codex 判断优先级：
 | --- | --- | --- |
 | 页面、布局、App Shell、侧边栏、顶部栏、列表页、新建/编辑/详情、Drawer、表单布局、响应式、UI 状态 | `makeui` | 只负责 UI 怎么展示，不负责认证、打包、Service、业务 API 设计和发布 |
 | CanvasTable、表格渲染、字段类型展示、表格编辑、序号列、行头详情图标、`showSN`、`bodyRowHeadSuffixOptions` | `canvas-table-integration` | 只负责 `@qfei-design/canvas-table` 消费侧接入，不负责页面 Shell 和业务 API |
+| 高级筛选、筛选条件组、AND/OR、字段类型操作符、filter expression、筛选值归一化、表头按字段筛选联动 | `make-app-filter` | 只负责筛选模型、筛选控件行为、表头筛选联动和筛选合同，不负责页面 Shell、表格渲染、Service 实现、认证或发布 |
 | Service 接口、`apps/service` API、UI-Service 合同、`apps/docs/api.md`、schema/records/users/departments/lookup/file 代理接口、Make Data API adapter | `make-app-service` | 只负责 Service API 和薄编排，不负责 UI、认证、打包发布、DSL 建模、Make CLI、CanvasTable |
 | 登录、认证、Token、统一登录、OAuth、Cookie、Session、logout、401/403、`/api/make/**` 鉴权请求 | `make-app-auth` | 只负责认证和鉴权请求，不负责 UI 布局和打包发布 |
 | 打包、发布、镜像入口、K8s、Service 启动失败、`apps/ui/dist`、`apps/service/dist/server.js`、Service 端口 `3000`、workspace/package.json、`X-Forwarded-Host` | `make-app-runtime` | 只负责运行态和打包发布契约，不负责 UI、登录、DSL 建模 |
@@ -35,6 +36,8 @@ Codex 判断优先级：
 常见组合：
 
 - 做一个对象列表页：`makeui` + `canvas-table-integration`
+- 做高级筛选或表头按字段筛选：`make-app-filter` + `makeui` + `canvas-table-integration`
+- 做筛选 Service 合同或 filter.expression 透传：`make-app-filter` + `make-app-service`
 - 做 UI 需要的 Service 接口：`make-app-service` + `makeui`
 - 做一个登录后的页面：`makeui` + `make-app-auth`
 - 做 Service-fronted 登录后接口：`make-app-service` + `make-app-auth`
@@ -97,6 +100,24 @@ npx skills update makeui
 - 需要在 UI 中接入 Make 记录表格时，配合 `canvas-table-integration`
 - 不负责认证细节；认证、统一登录、logout 和 `/api/make/**` 请求规则交给 `make-app-auth`
 - 不负责打包发布、Service runtime、镜像入口和构建产物；这些交给 `make-app-runtime`
+
+### make-app-filter
+指导生成、重构或审查 Make App 高级筛选能力，覆盖筛选条件模型、字段类型操作符、筛选值归一化、ExpensePoc 风格高级筛选面板、CanvasTable 表头“按该字段筛选”联动和 `filter.expression` 合同。
+
+#### 升级 skill
+```bash
+npx skills update make-app-filter
+```
+
+**使用场景**
+- 设计或修改高级筛选弹窗、筛选条件组、`且 / 或` 关系和确认提交交互
+- 根据 Make 字段类型生成筛选操作符和值编辑器
+- 把搜索和高级筛选合并为 Service 可消费的 `filter.expression`
+- 做 CanvasTable 表头更多菜单与高级筛选的联动：点击“按该字段筛选”追加草稿条件并打开高级筛选
+- 约束空筛选、未完成条件、unsupported 字段、人员/部门筛选值和测试
+- 不负责页面 Shell 和工具栏整体布局；这些交给 `makeui`
+- 不负责 CanvasTable 渲染和 suffixRender API 细节；这些交给 `canvas-table-integration`
+- 不负责 Service route 实现；这些交给 `make-app-service`
 
 ### make-app-service
 指导生成、重构或审查 Make App 的 `apps/service` API，覆盖 UI-Service 合同、Service 路由、Make Data API adapter、schema/records/users/departments/lookup/file 代理接口和 Service API 测试。
