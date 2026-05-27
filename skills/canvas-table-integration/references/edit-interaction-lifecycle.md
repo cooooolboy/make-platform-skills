@@ -11,6 +11,8 @@ Common entry paths:
 
 When editing starts from keyboard input, `keyCode` may matter for the host editor.
 
+For popup-style Make field editors, the popup must open during the same edit activation. If the user activates a date range, select, user, department, lookup selector, or attachment cell and only sees a small inline input until they click again, the integration is wrong. The field editor should mount opened and then focus itself.
+
 ## 2. The editor is a DOM overlay
 
 Treat the editor as a DOM overlay above the canvas.
@@ -28,6 +30,8 @@ Editor position typically depends on:
 - canvas bounding rect in the viewport
 
 The editor container should respect the current cell width and height as a starting point.
+
+For inline text, textarea, number, currency, and percent editors, the active-cell editor should fill the cell. The visual result should look like the cell itself became editable, not like a smaller bordered form control was inserted into the cell.
 
 ## 4. Scroll-follow behavior
 
@@ -93,8 +97,11 @@ Preferred for first-pass business editors because each close trigger can be conf
 
 Common examples:
 
-- text: outside click commit, Escape cancel, Enter commit, Tab commit and move
+- single-line text: outside click commit, Escape cancel, Enter commit, Tab commit and move
+- textarea / multiline text: outside click commit, Escape cancel, Enter stays inside the editor when multiline input is enabled, Tab commit and move
 - select/date popup: outside click commit, Escape cancel, Enter ignore, Tab commit and move
+
+Popup editor roots must be declared through `relatedElements()`. Without this, clicking inside a date/select/user/department/file popup can look like an outside click and close or commit at the wrong time.
 
 ## 8. Submit-style vs realtime-style editors
 

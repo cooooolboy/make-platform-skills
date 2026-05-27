@@ -37,6 +37,7 @@ This skill has three tracks:
   - host-side edit controller architecture
   - editor-container patterns
   - field-editor mappings
+  - ExpensePoc-derived editable-cell defaults: popup editors open immediately, inline editors fill the active cell, and unchanged values do not call save APIs
   - schema field-type mappings for display value vs submit value
   - draft save layer vs immediate save layer
   - positioning / scroll / popup close handling
@@ -90,6 +91,7 @@ For new Make App projects or pages that display Make schema records, choose Trac
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
 - 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
 - 把现有项目字段编辑器接进 canvas table
+- 修复双击进入编辑后弹窗没有立即打开、编辑器没有铺满单元格、回显缺失、未修改仍调用接口等单元格编辑问题
 
 ### Track C: Make field-display integration
 
@@ -162,6 +164,7 @@ Then choose the track-specific references.
 | Cell-edit contract | `references/edit-contract.md` |
 | Host-side edit architecture | `references/edit-host-architecture.md` |
 | Edit lifecycle, positioning, close/commit/rollback | `references/edit-interaction-lifecycle.md` |
+| ExpensePoc-derived Make editable-cell defaults | `references/make-cell-edit-defaults.md` |
 | Field editor mapping | `references/field-editor-patterns.md` |
 | Host component choice | `references/editor-component-selection.md` |
 | Attachment editor integration | `references/attachment-editor-patterns.md` |
@@ -189,10 +192,11 @@ Read in this order:
 2. `references/edit-contract.md`
 3. `references/edit-host-architecture.md`
 4. `references/edit-interaction-lifecycle.md`
-5. `references/field-editor-patterns.md`
-6. `references/editor-component-selection.md`
-7. `references/attachment-editor-patterns.md` when attachment fields are in scope
-8. `references/edit-common-pitfalls.md` before finalizing changes
+5. `references/make-cell-edit-defaults.md`
+6. `references/field-editor-patterns.md`
+7. `references/editor-component-selection.md`
+8. `references/attachment-editor-patterns.md` when attachment fields are in scope
+9. `references/edit-common-pitfalls.md` before finalizing changes
 
 If any required package file is missing, stop and tell the user exactly which file is missing.
 
@@ -244,6 +248,14 @@ This track covers:
 - attachment-field editor integration
 
 This track does **not** require a fixed UI library. Prefer the current project's existing editor components and component library.
+
+For Make schema-driven editable tables, default to the ExpensePoc-proven edit baseline unless the user explicitly asks for a different interaction:
+
+- popup editors such as date, date range, select, user, department, lookup selector, and attachment panel open during the same cell-edit activation; never require an extra click after edit mode starts
+- inline editors such as text, textarea, number, currency, and percent fill the entire active cell with no extra wrapper border, margin, or outer padding
+- every editor must echo the current cell value on entry using normalized backend value shapes, not formatted display strings
+- all edits use a shared value contract with separate `renderValue`, `submitValue`, and optional `displayValue`
+- if normalized old and new values are equal, close the editor without calling the save API or writing table data
 
 ## Track C: Make field-display integration scope
 

@@ -282,3 +282,60 @@ Fix:
 - keep `Lookup` read-only unless the schema/API explicitly supports association editing
 - if candidate APIs are missing, use a selector shell with current-value display and a documented API integration point instead of fake candidates
 - document any explicit fallback and do not silently generate a bare `Input`
+
+## 24. Popup editors require an extra click after edit mode starts
+
+Symptom:
+
+- double-clicking a date range, select, user, department, lookup, or attachment cell enters edit mode but only shows an inline input
+- the real picker/dropdown/panel appears only after a third click inside the edited cell
+
+Fix:
+
+- make popup editors open on mount through the host component's controlled `open` or equivalent prop
+- render the popup into a dedicated popup root and return that root from `relatedElements()`
+- focus the editor after the framework root has rendered
+- keep `autoClose.enter: "ignore"` for popup editors whose internal keyboard interaction owns Enter
+
+## 25. Editor UI is inset inside the active cell
+
+Symptom:
+
+- edited text, textarea, or number cells show an extra input border, radius, margin, or blank inset
+- the component does not fill the active cell height or width
+
+Fix:
+
+- set the editor container and actual editor component to `width: 100%` and `height: 100%`
+- use borderless or visually merged editor variants
+- do not wrap cell editors in `Form.Item`, cards, or bordered panels
+- keep only small inner text padding when needed; do not create an extra outer box
+
+## 26. Current value does not echo when editing starts
+
+Symptom:
+
+- person or department editors open empty even though the cell has a value
+- date range editors show raw JSON, formatted text, or blank state
+- select editors show ids instead of labels, or labels instead of selectable values
+
+Fix:
+
+- resolve initial editor value with `undefined` checks: prefer `options.value`, then `options.oldValue`, then `row[fieldKey]`
+- do not use `??` for this fallback because `null`, `0`, `false`, `""`, and `[]` can be valid current values
+- initialize editors from raw backend values, not canvas display strings
+- include current record values in option/label mapping while remote candidates are loading
+- normalize Make value variants before setting editor state
+
+## 27. Unchanged close still calls the save API
+
+Symptom:
+
+- opening a cell editor and closing it without changes still sends update requests
+- user or department fields appear dirty because returned API shapes differ from record shapes
+
+Fix:
+
+- compare normalized old value with `nextValue.submitValue` before routing the commit
+- skip save API calls and `setCellData(...)` when unchanged
+- compare numbers as numbers, date ranges by normalized begin/end, select fields by option values, identity fields by stable ids, and files by stable metadata

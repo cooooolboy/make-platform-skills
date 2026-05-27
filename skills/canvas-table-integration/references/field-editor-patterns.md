@@ -49,25 +49,27 @@ Start from field metadata, not column names. A practical mapping is:
 | Field type | Editor group | Default editability | Submit value |
 | --- | --- | --- | --- |
 | `Make.Field.ID` | read-only | read-only unless backend explicitly allows writes | none |
-| `Make.Field.Text` | text | editable | string |
-| `Make.Field.TextArea` | text | editable | string |
-| `Make.Field.URL` | text/url | editable | string |
-| `Make.Field.Number` | number | editable | number |
-| `Make.Field.Currency` | number | editable | number |
-| `Make.Field.Percent` | number | editable | number |
-| `Make.Field.Date` | date | editable | agreed date string |
-| `Make.Field.DateTime` | date-time | editable | agreed date-time string |
-| `Make.Field.DateRange` | date-range | editable | `{ begin, end }` or backend equivalent |
-| `Make.Field.SingleSelect` | select | editable | option value |
-| `Make.Field.MultiSelect` | select | editable | option value array |
-| `Make.Field.SingleUser` | identity/user | editable when candidates or current value can be resolved | user id |
-| `Make.Field.MultiUser` | identity/user | editable when candidates or current values can be resolved | user id array |
-| `Make.Field.SingleDepartment` | identity/department | editable when candidates or current value can be resolved | department id |
-| `Make.Field.MultiDepartment` | identity/department | editable when candidates or current values can be resolved | department id array |
-| `Make.Field.File` | attachment | editable when a saved record identity exists if upload requires it | backend file value or normalized file payload |
+| `Make.Field.Text` | text inline | editable | string |
+| `Make.Field.TextArea` | textarea inline | editable | string |
+| `Make.Field.URL` | text/url inline | editable | string |
+| `Make.Field.Number` | number inline | editable | number |
+| `Make.Field.Currency` | number inline | editable | number |
+| `Make.Field.Percent` | number inline | editable | number |
+| `Make.Field.Date` | date popup | editable | agreed date string |
+| `Make.Field.DateTime` | date-time popup | editable | agreed date-time string |
+| `Make.Field.DateRange` | date-range popup | editable | `{ begin, end }` or backend equivalent |
+| `Make.Field.SingleSelect` | select popup | editable | option value |
+| `Make.Field.MultiSelect` | select popup | editable | option value array |
+| `Make.Field.SingleUser` | identity/user popup | editable when candidates or current value can be resolved | user id |
+| `Make.Field.MultiUser` | identity/user popup | editable when candidates or current values can be resolved | user id array |
+| `Make.Field.SingleDepartment` | identity/department popup | editable when candidates or current value can be resolved | department id |
+| `Make.Field.MultiDepartment` | identity/department popup | editable when candidates or current values can be resolved | department id array |
+| `Make.Field.File` | attachment popup/panel | editable when a saved record identity exists if upload requires it | backend file value or normalized file payload |
 | `Make.Field.Lookup` | read-only | read-only unless backend explicitly allows writes | none |
 
 Do not hard-code these field names as the only possible universe for every project. They are the current Make backend contract; adapt only when the host backend exposes a different but equivalent schema.
+
+For Make schema-driven editable tables, also read `make-cell-edit-defaults.md`. Popup groups open immediately after edit mode starts; inline groups fill the active cell.
 
 ## 3. Text fields
 
@@ -130,6 +132,8 @@ Recommended pattern:
 - date picker editor
 - often realtime-style editing
 - keep date format driven by field metadata
+- open popup immediately when the editor mounts
+- render the picker popup into the editor popup root and include that root in `relatedElements()`
 
 Typical concerns:
 
@@ -140,6 +144,7 @@ Typical concerns:
 For date-time editors with an explicit OK button, resolve the current input text into the selected value before calling the table commit path. Some UI libraries do not emit `onChange` just because the user typed a complete date-time string.
 
 Date range fields should be their own editor group when the backend uses a structured value such as `{ begin, end }`. Do not flatten the range into a display string before submit.
+Date range editors must echo current structured values and submit a structured range. A range cell that shows raw JSON or saves `"begin 至 end"` is using the wrong boundary value.
 
 ## 6. Select fields
 
@@ -169,6 +174,7 @@ Typical concerns:
 - responsive tag overflow for narrow cells
 
 For Make-style select fields, prefer schema options such as `{ label, value }`. Submit the raw value or value array; keep tag labels in `displayValue` or render mapping.
+Select editors should open the dropdown immediately when the edit session begins. Single-select may commit after a selection change; multi-select usually remains open while the user manages tags and commits on close/Tab/outside-click according to the host policy.
 
 ## 7. Person fields
 
@@ -194,6 +200,7 @@ For generated Make App projects, the default people candidate source is:
 For Make identity values, tolerate both record-style values and current identity-service values. Read ids from `recordID`, `userId`, or `id`, and labels from `name`, `userName`, `displayName`, or `label`. For multi-user fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 
 Do not fabricate mock user candidates in production just to make a dropdown look populated. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
+The people editor must echo the current record value even while remote candidates are loading. Normalize ids from `recordID`, `userId`, or `id`; normalize labels from `name`, `userName`, `displayName`, or `label`.
 
 ## 8. Department fields
 
@@ -219,6 +226,7 @@ For generated Make App projects, the default department candidate source is:
 For Make department values, tolerate both record-style values and current department-service values. Read ids from `recordID`, `departmentId`, or `id`, and labels from `name`, `departmentName`, `displayName`, or `label`. For multi-department fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 
 Do not replace an empty real department API result with local fallback data unless the product explicitly asks for demo/mock mode. Submitting a fake department id usually creates backend validation failures.
+The department editor must echo the current record value even while remote candidates are loading. Normalize ids from `recordID`, `departmentId`, or `id`; normalize labels from `name`, `departmentName`, `displayName`, or `label`.
 
 ## 9. Attachment fields
 
