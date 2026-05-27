@@ -47,16 +47,6 @@ Install command:
 pnpm add @qfeius/make-app-auth@^0.1.2 --registry=https://registry.npmjs.org/
 ```
 
-Use a Git branch dependency only when intentionally testing unreleased SDK changes:
-
-```json
-{
-  "dependencies": {
-    "@qfeius/make-app-auth": "git+ssh://git@git.qtech.cn:make/make-app-auth-sdk.git#<branch>"
-  }
-}
-```
-
 `apiAuthRedirect` requires `@qfeius/make-app-auth >= 0.1.2`. Do not generate this option with older npm dependencies.
 
 ## Startup Shape

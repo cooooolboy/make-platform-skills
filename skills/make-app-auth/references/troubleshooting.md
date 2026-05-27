@@ -38,7 +38,7 @@ For redirect/callback failures:
 For Service-fronted Apps:
 
 - Confirm browser business requests go to `/api/make/app/**`, not directly to `/api/make/meta/**` or `/api/make/data/**`.
-- Confirm `/api/make/auth/**` is transparent proxy traffic from Service to `http://make-gateway/api/make/auth/**`.
+- Confirm `/api/make/auth/**` is transparent proxy traffic from Service to `http://make-gateway/make/auth/**`.
 - Confirm `/api/make/auth/current-context` exists on the published domain. A Service 404 for this route is an auth proxy contract bug, not a user login problem.
 - Confirm Service calls k8s-internal business routes as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`; `/api/make/meta/**` usually indicates the wrong internal gateway path.
 - Confirm Service proxy keeps `session/complete` redirects manual. If Node `fetch` follows the gateway 302 internally, the browser URL can stay on `/api/make/auth/session/complete?...` and cause a login loop.
