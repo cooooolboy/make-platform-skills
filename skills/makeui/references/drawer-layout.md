@@ -42,6 +42,7 @@ Use a compact header layout:
 - do not place a close icon/button in the left title area
 - do not render duplicate close controls, such as a left `X` plus a right `关闭` button
 - close should be icon-only by default, with accessible name/title `关闭`; avoid visible `关闭` text unless an existing project pattern explicitly requires text buttons
+- title text must be readable within the available header space. Give the title container `min-width: 0` plus a flexible width, and only apply ellipsis after real overflow; keep the full title available through `title`/tooltip. Do not shrink the title slot so short titles become `合...`.
 
 When Ant Design is used, prefer `FullscreenOutlined` and `FullscreenExitOutlined` for fullscreen controls, and the project-standard close control for closing.
 
@@ -96,7 +97,8 @@ Field-metadata-driven Make forms:
 - use the field component mapping in `component-usage.md`
 - use date pickers for date fields, searchable selectors for user/department fields when candidate data is available, select controls for select fields, mode-safe attachment controls for file fields, and read-only/association displays for lookup fields
 - do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
-- user and department selectors show search, loading, empty, error, and retry UI states around the host-provided candidate source; `makeui` does not define that source
+- user and department selectors show search, loading, empty, error, and retry UI states around the host-provided candidate source. For generated Make App projects, the default candidate contract is `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, unless the host project documents equivalent routes
+- user selector options use `userId` as value and `userName` as label; department selector options use `departmentId` as value and `departmentName` as label; merge current record values into options so detail/edit views display labels before async candidates load
 - create mode must omit `Make.Field.File` upload controls when upload requires a saved record identity
 - edit mode may render `Make.Field.File` controls only when a stable persisted record identity exists
 - detail mode may display file fields as attachments, thumbnails, or file links and may offer explicit follow-up actions when supported
@@ -128,6 +130,11 @@ Read-only information can use:
 Use horizontal label/value alignment by default on desktop:
 
 - two-column grid for common fields
+- user fields render read-only avatar/name values; department fields render read-only tag/name values
+- detail identity fields should use labels from the record or host candidate source and should not degrade to raw ids or disabled text inputs without an explicit dependency/error state
+- every value is rendered through a field-type display adapter before JSX. Detail components must not display raw arrays, objects, or JSON wrappers directly.
+- date fields display formatted dates; `DateRange` values such as `[begin, end]` or `{ begin, end }` display as `YYYY-MM-DD 至 YYYY-MM-DD`, not as `{"begin":...,"end":...}`.
+- select, user, department, file, and lookup fields use their read-only display renderers from `component-usage.md`; unknown fields fall back to safe text, and empty values display `-`.
 - each item has a stable label column and a flexible value column
 - subtle bottom borders are preferred over boxed cards for dense record detail
 - long text, `TextArea`, file, lookup/relation, URL/link-rich, attachment-heavy, or rich values span the full width

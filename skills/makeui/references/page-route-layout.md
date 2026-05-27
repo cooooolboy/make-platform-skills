@@ -53,7 +53,7 @@ Form layout:
 - normal fields such as text, number, date, date-time, date range, select, user, and department occupy one column by default
 - derive fields and control types from host-provided field metadata
 - use type-appropriate controls; date, select, user, department, file, and lookup fields must not silently become plain text inputs
-- user and department selectors use the host-provided candidate source and must include search/loading/empty/error UI states
+- user and department selectors use the host-provided candidate source and must include search/loading/empty/error UI states. Generated Make App defaults use `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, then normalize to `{ label, value }` options with `userId/userName` and `departmentId/departmentName`
 - create pages must omit attachment upload fields when upload requires a saved record identity; edit pages may show attachments only when the persisted record identity exists
 - one-column layout on small screens
 - section headings rather than deeply nested cards
@@ -74,6 +74,10 @@ Detail layout:
 
 - use a two-column label/value grid for common fields on desktop
 - make `TextArea`, long text, URL/link-rich values, file/attachment values, lookup/relation values, and rich custom values span the full row
+- render values through the same field-type display adapter used by Detail Drawers. Do not display raw objects, arrays, or JSON wrapper strings in route detail pages.
+- `Date`, `DateTime`, and `DateRange` values must use formatted display text. `DateRange` values such as `[begin, end]` or `{ begin, end }` display as `YYYY-MM-DD 至 YYYY-MM-DD`.
+- select, user, department, file, and lookup values use their type-specific read-only display renderers; empty values display `-`.
+- route detail titles use the record/object title with real overflow handling only. Do not allocate a tiny title slot that truncates short names.
 - collapse to one column on small screens
 
 ## Navigation

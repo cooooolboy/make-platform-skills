@@ -184,6 +184,13 @@ Typical concerns:
 - auxiliary render mapping data for avatars/names
 - candidate source: existing row values, host user API, or existing people picker data source
 
+For generated Make App projects, the default people candidate source is:
+
+- `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
+- option value: `userId`
+- option label: `userName`
+- optional avatar: `avatar`
+
 For Make identity values, tolerate both record-style values and current identity-service values. Read ids from `recordID`, `userId`, or `id`, and labels from `name`, `userName`, `displayName`, or `label`. For multi-user fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 
 Do not fabricate mock user candidates in production just to make a dropdown look populated. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
@@ -201,6 +208,13 @@ Typical concerns:
 - display list vs submit ids
 - extra mapped render data for downstream cell rendering
 - candidate source: real department API, host department selector data, or current cell value fallback
+
+For generated Make App projects, the default department candidate source is:
+
+- `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
+- option value: `departmentId`
+- option label: `departmentName`
+- flatten nested department trees before showing selector options
 
 For Make department values, tolerate both record-style values and current department-service values. Read ids from `recordID`, `departmentId`, or `id`, and labels from `name`, `departmentName`, `displayName`, or `label`. For multi-department fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 

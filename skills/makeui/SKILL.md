@@ -1,27 +1,28 @@
 ---
 name: makeui
-description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, APIs, permissions, data persistence, business modeling, or canvas-table internals.
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, or canvas-table internals.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
 
 # makeui
 
-Current skill revision: 0.3.29.
+Current skill revision: 0.3.30.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
-`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, component-library usage, field-control presentation, create/edit/detail layout, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, API/data contracts, permissions, persistence, business modeling, domain mapping, or `canvas-table` internals.
+`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permissions, persistence, business modeling, domain mapping, or `canvas-table` internals.
 
 ## Quick start
 
 1. Inspect the existing UI stack, routes, shell, component library, styling system, and page layout conventions.
-2. Preserve the host project's data and auth behavior. Do not design login, tokens, API routes, Service orchestration, deployment, or build output in this skill.
+2. Preserve the host project's data and auth behavior. Do not design login, tokens, business API routes, Service orchestration, deployment, or build output in this skill.
 3. Use host-provided object/field metadata to render UI. Do not invent business fields or API contracts.
 4. Use the dense object-management layout by default: left navigation, flat workspace header, local toolbar directly above the table, and no extra list-title card. Sidebar color follows the project theme.
 5. Wrap object routes with visible UI states: loading, empty, error, forbidden, expired-session, not-found, retry, and render-error fallback.
 6. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
-7. Read only the needed reference files from the map below.
+7. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
+8. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -32,7 +33,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 | Object list page, toolbar placement, default actions | `references/list-page-layout.md` |
 | Create/edit/detail Drawer, stacked Drawers, mask close, header actions | `references/drawer-layout.md` |
 | Route-based create/edit/detail pages or URL-addressable state | `references/page-route-layout.md` |
-| Component library choice and field-type UI controls | `references/component-usage.md` |
+| Component library choice, field-type UI controls, detail value display | `references/component-usage.md` |
 | Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
 | Make record table display or cell editing | Use `canvas-table-integration` |
 | Authentication, login, logout, token, session behavior | Use `make-app-auth`; `makeui` only owns visual slot placement |
@@ -43,7 +44,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 ### Scope boundary
 
 - Do not add or modify authentication/login, token, OAuth, cookie, logout, `/api/make/**`, domain, gateway, deployment, Docker/K8s, Node runtime, package-manager, build-output, or Service runtime rules in `makeui`.
-- Do not define API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`.
+- Do not define business API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source contract for UI selectors, and it must yield to host project docs when present.
 - If the task needs auth/login/logout/session behavior, use `make-app-auth`. If the task needs build output, Service runtime, packaging, or publish-readiness rules, use `make-app-runtime`.
 - `makeui` may consume host-provided object/field metadata for UI rendering, but must not decide how that metadata is fetched, stored, authenticated, or deployed.
 
@@ -51,7 +52,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 
 - Generated UI consumes normalized, host-provided object/field metadata. Do not pass raw backend schema variants directly into table, form, detail, route, or shell components.
 - `apps/dsl` is a modeling artifact, not a UI runtime dependency. Generated UI must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` files as its field source.
-- If object/field metadata is missing or inconsistent, show a visible UI dependency/error state and report the missing dependency. Do not invent API paths, parse local DSL, or create fake user/department/business fallback data in `makeui`.
+- If object/field metadata is missing or inconsistent, show a visible UI dependency/error state and report the missing dependency. Do not invent business API paths, parse local DSL, or create fake user/department/business fallback data in `makeui`.
 - Schema, data, route, and render failures must resolve to visible object-shell states: loading, empty, error, forbidden, expired-session, retry, not-found, or render-error. Do not let exceptions become a blank page.
 
 ### UI defaults
@@ -70,7 +71,10 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Create/edit/detail desktop layouts default to two columns. Do not render all fields as one full-width column on desktop unless the user explicitly asks or the viewport is too narrow.
 - Create/edit fields default to a vertical-label two-column grid. Common fields occupy one column; wide fields such as `TextArea`, `URL`/link, `File`, `Lookup`/relation selectors, long text, and rich controls span the full row. Collapse to one column on small screens.
 - Detail views default to a compact two-column label/value grid. Common fields occupy one column; long text, `TextArea`, `URL`/link-rich values, `File`, `Lookup`/relation values, attachment-heavy values, and rich content span the full row.
+- Detail values must be normalized by Make field type before rendering. Date range objects such as `{ begin, end }` or arrays such as `[begin, end]` display as a formatted range, not raw JSON; select/user/department/file/lookup values use their type-specific read-only renderers. Empty values display a muted `-`.
+- Detail Drawer/page titles must have enough flexible width for the selected object or record title. Use ellipsis only for real overflow and keep the full title available through a tooltip or accessible title; do not create a tiny title slot that truncates short names such as `合同台账` to `合...`.
 - Create/edit forms use type-appropriate controls. Date, select, user, department, file, and lookup fields must not silently degrade to plain text inputs. File upload is omitted in create mode when upload requires an existing record identity.
+- User and department form/detail fields use searchable candidate sources. Generated Make App defaults are `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to selector options with `userId/userName` and `departmentId/departmentName`, unless the host project documents equivalent routes.
 - Use dynamic object routes such as `/objects/:objectKey`. Do not generate one hard-coded route component per object.
 
 ## Out of scope

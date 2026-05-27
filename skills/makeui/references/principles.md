@@ -63,6 +63,8 @@ Do not add pagination to generated object-list UI unless the user explicitly ask
 - field type/group: control choice and layout span
 - field UI properties: required marker, readonly/disabled state, placeholder, option labels, relation display metadata, and value display hints when available
 
+Detail UI must consume the same normalized field metadata and a field-type display adapter. Do not render raw field values directly when the Make field type has a structured return shape, such as `DateRange`, user, department, file, or lookup.
+
 If metadata is missing or inconsistent, report the UI dependency clearly. Do not implement API fetching, local DSL parsing, fake global users/departments, or business fallback data inside `makeui`.
 
 ## Object-shell UI states

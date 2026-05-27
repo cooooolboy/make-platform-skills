@@ -23,7 +23,7 @@ Codex 判断优先级：
 
 | 用户问题 / 关键词 | 使用 skill | 边界 |
 | --- | --- | --- |
-| 页面、布局、App Shell、侧边栏、顶部栏、列表页、新建/编辑/详情、Drawer、表单布局、响应式、UI 状态 | `makeui` | 只负责 UI 怎么展示，不负责认证、打包、Service、API、发布 |
+| 页面、布局、App Shell、侧边栏、顶部栏、列表页、新建/编辑/详情、Drawer、表单布局、响应式、UI 状态 | `makeui` | 只负责 UI 怎么展示，不负责认证、打包、Service、业务 API 设计和发布 |
 | CanvasTable、表格渲染、字段类型展示、表格编辑、序号列、行头详情图标、`showSN`、`bodyRowHeadSuffixOptions` | `canvas-table-integration` | 只负责 `@qfei-design/canvas-table` 消费侧接入，不负责页面 Shell 和业务 API |
 | 登录、认证、Token、统一登录、OAuth、Cookie、Session、logout、401/403、`/api/make/**` 鉴权请求 | `make-app-auth` | 只负责认证和鉴权请求，不负责 UI 布局和打包发布 |
 | 打包、发布、镜像入口、K8s、Service 启动失败、`apps/ui/dist`、`apps/service/dist/server.js`、Service 端口 `3000`、workspace/package.json、`X-Forwarded-Host` | `make-app-runtime` | 只负责运行态和打包发布契约，不负责 UI、登录、DSL 建模 |
@@ -74,6 +74,8 @@ npx skills update canvas-table-integration
 - 在页面里接入 `@qfei-design/canvas-table`
 - 接普通表格；分页表格、虚拟加载、分组表格仅在用户明确要求时添加
 - 把 JSON meta 转成 `IColumn[]`
+- Make schema 表格默认按字段类型使用 ExpensePoc 风格渲染，包含附件、lookup、下拉标签、人员、部门，以及内容溢出时显示省略号并展示 tooltip
+- 切换左侧对象或动态路由时，canvas-table 默认重置滚动位置和对象级临时状态
 
 ### makeui
 指导生成或修改 Make App 前端 UI，覆盖页面布局、App Shell、列表页、抽屉表单、详情页和响应式样式。
@@ -87,6 +89,8 @@ npx skills update makeui
 - 生成或调整 Make App 前端页面
 - 设计 App Shell、侧边栏、顶部栏、列表页、创建/编辑/详情抽屉
 - 基于宿主项目提供的字段元数据生成表单和字段展示
+- 详情页/详情抽屉按字段类型和返回结构展示值，日期范围、下拉、人员、部门、附件、lookup 等不能直接展示原始 JSON
+- 表单/详情中的人员、部门字段默认使用候选接口源；Make App 默认候选接口为 `/api/users` 和 `/api/departments`
 - 需要在 UI 中接入 Make 记录表格时，配合 `canvas-table-integration`
 - 不负责认证细节；认证、统一登录、logout 和 `/api/make/**` 请求规则交给 `make-app-auth`
 - 不负责打包发布、Service runtime、镜像入口和构建产物；这些交给 `make-app-runtime`

@@ -8,7 +8,8 @@ description: >-
   cell-edit architecture, schema-driven Make field editors, `customEdit`,
   `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`,
   `editApplyMode: controlled`, attachment editors, and Make field-display
-  columns with value normalization. Only supports `@qfei-design/canvas-table`,
+  columns with value normalization, ExpensePoc-derived field renderers, and
+  overflow-only tooltip behavior. Only supports `@qfei-design/canvas-table`,
   never UI-library tables. Read package AI docs first, choose Track A, B, or C,
   use documented public APIs, and do not modify the table library itself.
 ---
@@ -44,6 +45,7 @@ This skill has three tracks:
   - schema-driven columns for supported Make field types
   - pure value normalization before canvas rendering
   - text / URL / number / date / tag / user / department / attachment / lookup renderers
+  - default overflow-only tooltip behavior for text, tags, users, files, and lookup values
   - folder separation for `config`, `renderers`, `hooks`, `types`, and value adapters
 
 Choose the track first. Do not mix a basic table integration request with a full cell-edit architecture refactor unless the user clearly wants the editing workflow.
@@ -59,8 +61,10 @@ For new Make App projects or pages that display Make schema records, choose Trac
 5. Read only the track references from the topic map.
 6. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
 7. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
-8. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
-9. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
+8. For Make schema tables, apply the ExpensePoc-derived field renderer defaults. Text-bearing overflow must show ellipsis, and tooltip is enabled by default only for ellipsized overflow or hidden `+N` content; do not require the user to ask for it.
+9. When the object/entity/schema key changes, reset table interaction state and scroll position. Do not carry the previous object's horizontal or vertical scroll into the next object.
+10. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
+11. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
 
 ## Typical requests
 
@@ -92,6 +96,8 @@ For new Make App projects or pages that display Make schema records, choose Trac
 - 根据 Make 字段类型生成 canvas table 展示列
 - 新 Make 项目中只要是 schema 驱动的业务表格，默认按当前 ExpensePoc 表格展示基线生成；除非用户明确要求不同展示
 - 把 18 种字段类型按展示族分类处理
+- 默认处理列宽溢出：文本内容超出时显示省略号并展示 tooltip，未超出不展示 tooltip；多值被折叠为 `+N` 时，`+N` tooltip 展示完整列表
+- 按 ExpensePoc 表格默认渲染附件、lookup、下拉标签、人员、部门、日期、金额等字段
 - 把后端字段返回值规范化后展示在 canvas 表格中
 - 拆分 `config` / `renderers` / `hooks` / `types` / value adapter
 - 只处理展示，不做单元格编辑
@@ -273,7 +279,9 @@ Default Make schema table baseline:
 - normalize field values once through a pure adapter before canvas rendering
 - route display by field type group, not by business field names, except for explicit business roles such as a primary code link
 - use the ExpensePoc-proven renderer families by default: text/link, tag list, user avatar/name list, attachment list, lookup reference text, and safe generic fallback
-- keep option, user, department, file, and lookup candidate loading outside cell renderers
+- apply ellipsis plus overflow-only tooltip by default: visible text/tag/user/lookup labels must show ellipsis when truncated and get tooltip only when ellipsized; attachment/tag/user/lookup `+N` badges get a tooltip with the full hidden value list
+- keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same default candidate contract as forms: `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to `userId/userName` and `departmentId/departmentName`
+- treat object/entity/schema key as table identity. On identity change, rebuild or reset the table so scrollLeft/scrollTop, active edit state, selection, hover/suffix state, and header popups do not leak from the previous object
 - preserve row defaults: `showSN` sequence numbers plus hover-revealed detail entry through `bodyRowHeadSuffixOptions`
 
 ## Safety rules and defaults
@@ -287,6 +295,7 @@ Treat these as safety rules:
 - use `@qfei-design/canvas-table` for product tables; do not substitute UI-library tables
 - use `table.tableId` as the namespace key for `globalEventBus.onWithNamespace(...)`
 - destroy the table instance on unmount / cleanup
+- reset scroll and transient table state when switching object/entity/schema routes. Reusing the same React component for `/objects/:objectKey` is fine only if the table is keyed by that identity or the integration explicitly resets the canvas-table instance/state on identity change
 - never pass raw meta directly into the table runtime
 - convert meta into `IColumn[]` before creating the table
 - for Make schema tables, do not create the table with generic placeholder columns or row-key-inferred columns while waiting for schema

@@ -27,20 +27,25 @@ Default structure:
 - normalize each raw cell value once through a pure field-display adapter before rendering
 - route normalized display groups to focused canvas renderers: `text`, `tag`, `user`, `attachment`, `lookup`, and generic fallback
 - keep option, user, department, file, and lookup candidate loading in hooks/data sources; never fetch from a cell renderer
+- for generated Make App table editing/search selectors, use the host candidate source. The ExpensePoc default contract is `GET /api/users?keyword=&page=&size=` -> `{ users, total }` and `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`; normalize those results before passing options to table editors
 - keep `showSN` sequence numbers and the hover-revealed row detail entry through `bodyRowHeadSuffixOptions`
+- treat object/entity/schema key as table identity. Switching to another object must reset scroll to the top-left and clear old table interaction state; data refresh within the same object may preserve scroll
 
 Default visual rules:
 
-- text/link cells use 14px sans-serif text, 8px horizontal padding, `#1f2937`, ellipsis, and tooltip on overflow
+- ellipsis is the default text overflow behavior. Text-bearing content that exceeds its available width must visibly show ellipsis or a shortened tag/user/lookup label before exposing a tooltip
+- tooltip is a default renderer behavior, not an opt-in feature. Show tooltip only when content is ellipsized, clipped by a non-text custom shape, or hidden behind `+N`; do not show tooltip when the visible content fully fits the column
+- text/link cells use 14px sans-serif text, 8px horizontal padding, `#1f2937`, ellipsis, and overflow-only tooltip
 - empty values render muted `-` with `#9ca3af`
 - clickable text, safe URLs, and openable lookup references use `#1677ff`
-- number, currency, and percent cells are right-aligned
-- tags are 22px tall, 4px radius, 12px text, 8px horizontal text padding, and use `+N` overflow when space runs out
-- select tags use `#eef4ff` background and `#1677ff` text
-- department tags use `#f2f4f7` background and `#344054` text
-- user values render a 22px avatar, fallback deterministic color circle with the last two name characters, name text, and `+N` overflow
-- file values render 22px image thumbnails for images, otherwise a 22px file-extension block, and `+N` overflow
-- lookup references render blue clickable text only when entity + `recordID` exist and the reference is not deleted; deleted references render muted with strikethrough
+- number, currency, and percent cells are right-aligned, ellipsized when too narrow, and use the same overflow-only text tooltip
+- date and date-range cells render formatted text, ellipsize when clipped, and use the same overflow-only tooltip
+- tags are 22px tall, 4px radius, 12px text, 8px horizontal text padding, and use `+N` overflow when space runs out. A visible tag's tooltip appears only when that tag label is ellipsized; a `+N` tag's tooltip contains the full label list joined with `、`
+- select tags use `#eef4ff` background and `#1677ff` text, with option labels resolved from field properties before falling back to raw values
+- department tags use `#f2f4f7` background and `#344054` text, with the same tag overflow and tooltip behavior as select fields
+- user values render a 22px avatar, fallback deterministic color circle with the last two name characters, name text, and `+N` overflow. Visible user names get tooltip only when ellipsized; `+N` gets a tooltip with all names
+- file values render 22px image thumbnails for images, otherwise a 22px file-extension block, and `+N` overflow when width cannot fit all attachments. Do not flatten attachments into plain filenames; `+N` tooltip should expose the full attachment name list when names are available
+- lookup references render blue clickable text only when entity + `recordID` exist and the reference is not deleted; deleted references render muted with strikethrough. Multiple lookup references render inline with gaps, collapse to `+N` when width runs out, and use overflow-only tooltip for ellipsized labels or collapsed lists
 
 ## Initialization Contract
 
@@ -52,6 +57,7 @@ Before constructing `CanvasTableComponent` or rendering a project wrapper around
 4. prepare a render registry by display group
 5. keep a pure value adapter available to every render callback
 6. pass `showSN` and `bodyRowHeadSuffixOptions` unless explicitly disabled
+7. on object/entity/schema identity change, reset or recreate the canvas-table instance before presenting the new object's table
 
 Do not initialize a Make schema table from `Object.keys(row)` or temporary generic text columns while schema is loading. Show loading/error/empty chrome around the canvas host until schema is ready.
 
@@ -93,24 +99,24 @@ The current backend supports these 18 field types. Treat this list as the curren
 
 | Field type | Group | Expected value formats | Display behavior |
 | --- | --- | --- | --- |
-| `Make.Field.ID` | text | primitive, object fallback | text with ellipsis |
-| `Make.Field.Text` | text | string/number/boolean/object | text with ellipsis |
-| `Make.Field.TextArea` | text | string/object | wider text column, ellipsis + tooltip |
+| `Make.Field.ID` | text | primitive, object fallback | text with ellipsis + overflow-only tooltip |
+| `Make.Field.Text` | text | string/number/boolean/object | text with ellipsis + overflow-only tooltip |
+| `Make.Field.TextArea` | text | string/object | wider text column, ellipsis + overflow-only tooltip |
 | `Make.Field.URL` | url | string or `{ href/url/value, label/name }` | clickable text only for safe hrefs |
-| `Make.Field.Number` | number | number or numeric string | right-aligned number text |
-| `Make.Field.Currency` | number | number or numeric string | currency text, default symbol can be host-defined |
-| `Make.Field.Percent` | number | number or numeric string | percent text |
-| `Make.Field.Date` | date | parseable date string/value | `YYYY-MM-DD` or host date format |
-| `Make.Field.DateTime` | date | parseable date-time string/value | `YYYY-MM-DD HH:mm` or host date-time format |
-| `Make.Field.DateRange` | date | `[begin,end]` or `{ begin/end/start/from/to }` | join non-empty endpoints |
-| `Make.Field.SingleSelect` | select | raw value, option object, one-item array | tag label from `properties.options`, fallback raw value |
-| `Make.Field.MultiSelect` | select | array of raw values/option objects | tag list with `+N` overflow |
-| `Make.Field.SingleUser` | user | object or backend one-item array | avatar/name renderer |
-| `Make.Field.MultiUser` | user | array of user objects | avatar/name list with `+N` overflow |
-| `Make.Field.SingleDepartment` | department | object or id/string | department tag |
-| `Make.Field.MultiDepartment` | department | array of objects/ids | department tag list with `+N` overflow |
-| `Make.Field.File` | file | URL string, JSON string, object, or array | thumbnail/file icon list with overflow count |
-| `Make.Field.Lookup` | lookup | object/JSON, often `{ entity, field, data }` | extract labels from `data`, then tag/text fallback |
+| `Make.Field.Number` | number | number or numeric string | right-aligned ellipsized number text, overflow-only tooltip |
+| `Make.Field.Currency` | number | number or numeric string | ellipsized currency text with host/default symbol, right-aligned, overflow-only tooltip |
+| `Make.Field.Percent` | number | number or numeric string | ellipsized percent text, right-aligned, overflow-only tooltip |
+| `Make.Field.Date` | date | parseable date string/value | ellipsized `YYYY-MM-DD` or host date format, overflow-only tooltip |
+| `Make.Field.DateTime` | date | parseable date-time string/value | ellipsized `YYYY-MM-DD HH:mm` or host date-time format, overflow-only tooltip |
+| `Make.Field.DateRange` | date | `[begin,end]` or `{ begin/end/start/from/to }` | format as `YYYY-MM-DD 至 YYYY-MM-DD` or host date-range text; apply ellipsis only when the column clips the rendered text, with overflow-only tooltip |
+| `Make.Field.SingleSelect` | select | raw value, option object, one-item array | one select tag; ellipsized tag tooltip only |
+| `Make.Field.MultiSelect` | select | array of raw values/option objects | select tag list with `+N`; `+N` tooltip contains full label list |
+| `Make.Field.SingleUser` | user | object or backend one-item array | avatar/name renderer; name tooltip only when ellipsized |
+| `Make.Field.MultiUser` | user | array of user objects | avatar/name list with `+N`; `+N` tooltip contains full name list |
+| `Make.Field.SingleDepartment` | department | object or id/string | department tag; ellipsized tag tooltip only |
+| `Make.Field.MultiDepartment` | department | array of objects/ids | department tag list with `+N`; `+N` tooltip contains full department list |
+| `Make.Field.File` | file | URL string, JSON string, object, or array | thumbnail/file-extension list with overflow count; `+N` tooltip contains full attachment names |
+| `Make.Field.Lookup` | lookup | object/JSON, often `{ entity, field, data }` | extract references from `data`; openable references are blue links, deleted references are muted strikethrough, overflow uses `+N` plus tooltip |
 
 ## Value Extraction Rules
 
@@ -118,9 +124,11 @@ Use tolerant extraction. Do not fail the cell because one key is absent.
 
 - generic object label priority: `label`, `name`, `title`, `displayName`, `value`
 - select labels: `field.properties.options[]` with `{ value, label }`, fallback to raw value
+- user candidate API results: value/id is `userId`, label is `userName`, optional avatar is `avatar`
 - user label priority: `name`, `userName`, `displayName`, `label`, `userId`, `id`, `recordID`
 - user identity priority: `recordID`, `userId`, `id`; fallback to name for display-only avatar color
 - user avatar priority: `avatar`, `avatarM`, `avatarL`, `avatarS`, `avatarOrigin`, `userAvatar`
+- department candidate API results: value/id is `departmentId`, label is `departmentName`; flatten trees before option display
 - department label priority: `name`, `departmentName`, `displayName`, `label`, `departmentId`, `id`, `recordID`
 - URL href priority: `href`, `url`, `value`; text priority: `label`, `name`, href
 - attachment URL priority: string value, `url`, `fileURL`; allow `http(s)`, absolute app paths, protocol-relative URLs, `data:`, and `blob:` for local previews
@@ -133,12 +141,13 @@ Use tolerant extraction. Do not fail the cell because one key is absent.
 
 Keep renderers focused and canvas-only:
 
-- `text` / `number` / `date` / unknown: `TextShape`, ellipsis, tooltip on overflow, muted `-` for empty
-- `url`: validate href; render clickable text only for safe `http(s)`, protocol-relative, or absolute app paths
-- `select` and `department`: tag renderer; reserve room for `+N`; tooltip can contain full label list
-- `user`: avatar image if present, otherwise deterministic color circle plus short name; render name with ellipsis; use `+N` for hidden users
-- `file`: image attachments use `ImgShape`; other files use a file icon/extension block; bind click to open safe URL; show `+N` only when width cannot fit all visible items
-- `lookup`: after normalization, usually reuse tag or text rendering
+- Every text-bearing shape should calculate whether it actually overflows, render ellipsis when it does, and only then set `tooltip`. Do not assign a tooltip just because a value exists.
+- `text` / `number` / `date` / unknown: `TextShape`, ellipsis, overflow-only tooltip, muted `-` for empty
+- `url`: validate href; render clickable text only for safe `http(s)`, protocol-relative, or absolute app paths; use overflow-only tooltip
+- `select` and `department`: tag renderer; reserve room for `+N`; visible tag tooltip only when its label is ellipsized; `+N` tooltip contains the complete label list
+- `user`: avatar image if present, otherwise deterministic color circle plus short name; render name with ellipsis and overflow-only tooltip; use `+N` with full-name tooltip for hidden users
+- `file`: image attachments use `ImgShape`; other files use a file icon/extension block; bind click to open safe URL; show `+N` only when width cannot fit all visible items; use the `+N` tooltip for full attachment names instead of flattening the cell to text
+- `lookup`: normalize to explicit reference items when possible; render openable references as blue clickable text, deleted references muted with strikethrough, collapsed references as `+N` with full-label tooltip
 - clickable lookup text should use shape-level click handlers only for valid reference items; missing `recordID` or deleted references render as plain text
 
 Use package text utilities such as `textEllipsis` and `getTextWidth` when available. Add an estimate fallback so unit tests and non-browser environments do not break.
@@ -164,13 +173,15 @@ Add focused tests before or with implementation:
 - field type -> display group/kind mapping covers all 18 supported types
 - table initialization waits for schema fields and never infers Make columns from row keys
 - Make schema table defaults include `showSN` and `bodyRowHeadSuffixOptions` unless explicitly disabled
+- object switch resets horizontal and vertical scroll instead of reusing the previous object's scrollLeft/scrollTop
+- overflow tooltips are default behavior, but only appear when text/tag/user/attachment/lookup content is ellipsized, clipped, or hidden behind `+N`; text-bearing overflow must visibly show ellipsis before tooltip
 - backend variants: primitive, object, array, JSON string, empty value
 - select option label fallback
 - user backend shapes with `name`, `userName`, `recordID`, `userId`, and avatar keys
 - department backend shapes with `name`, `departmentName`, `recordID`, and tree/candidate data when relevant
 - file URL/object/JSON normalization and image vs file rendering
 - lookup `{ entity, field, data }` object and JSON-string wrappers
-- renderer overflow: tags, users, attachments, and lookup references keep a visible `+N`
+- renderer overflow: tags, users, attachments, and lookup references keep a visible `+N` and expose the complete hidden list via tooltip
 - empty values render `-` without throwing
 
 Mock canvas-table shapes in unit tests when the host test environment cannot draw real canvas.
@@ -180,9 +191,12 @@ Mock canvas-table shapes in unit tests when the host test environment cannot dra
 - Do not parse backend values inside every column render callback. Normalize once through the display adapter.
 - Do not initialize Make schema tables before schema fields are available.
 - Do not infer Make columns from returned row object keys.
+- Do not carry scroll position or object-scoped interaction state across different object/entity/schema keys.
 - Do not branch generic display behavior by business field name. Field names are only for explicit business roles, such as a claim number link.
 - Do not let custom renderers fetch data per cell.
+- Do not call user or department candidate APIs inside canvas renderers. Load candidates at the page/table-controller layer and pass normalized options into editors or display adapters.
 - Do not flatten select, user, department, file, or lookup values into plain text when the schema type supports richer default rendering.
+- Do not show tooltip for every cell unconditionally. Tooltip is for visible ellipsis, unavoidable non-text clipping, or `+N` hidden values.
 - Do not render raw JSON wrapper text when a label can be extracted.
 - Do not make this display adapter responsible for edit/submit payload conversion.
 - Do not crash on unknown field types. Use safe generic text fallback and log only at a boundary if needed.

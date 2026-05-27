@@ -173,6 +173,8 @@ Track C common capabilities:
 - attachment renderer with image thumbnails, file-extension blocks, safe open behavior, and `+N` overflow
 - lookup renderer with clickable valid references, muted deleted references, strikethrough, and fallback label extraction
 - row-head defaults: `showSN` and `bodyRowHeadSuffixOptions`
+- object/entity/schema switch resets table scroll and transient state; same-object data refresh may preserve scroll
+- user/department edit candidates come from host candidate sources; generated Make App defaults are `/api/users` and `/api/departments`, normalized to `userId/userName` and `departmentId/departmentName`
 
 ## What to avoid
 
