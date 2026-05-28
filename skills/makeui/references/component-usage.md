@@ -66,7 +66,7 @@ When shadcn/ui is the selected component system:
 - global and page actions: `Button`
 - search: `Input` with a lucide search icon
 - optional filters: `Popover`, `Sheet`, or compact form controls
-- create/edit/detail: right-side `Sheet` by default
+- create/edit/detail: right-side `Sheet` with `side="right"` by default; do not use bottom Sheet for Make object CRUD unless explicitly requested
 - route forms: `Form` with type-appropriate field controls
 - read-only details: simple grids or project-local panels; avoid inventing nested card layouts
 - feedback: `Alert`, `Skeleton`, toast/sonner, and explicit empty states when those components are installed

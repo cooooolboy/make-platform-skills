@@ -106,7 +106,7 @@ A panel that contains a title, toolbar button, inner bordered list row, and card
 | ID | read-only | none |
 | Text / URL | inline text input, select current value on focus | string |
 | TextArea | inline textarea that fills the cell; commit on outside click or explicit key path | string |
-| Number / Currency / Percent | inline numeric input, right-aligned display, no extra stepper box by default | number |
+| Number / Currency / Percent | inline numeric input, right-aligned display, no extra stepper box by default; parser failures must not commit or backfill `NaN` | finite number |
 | Date | popup date picker opens immediately | `YYYY-MM-DD` or host agreed date string |
 | DateTime | popup date-time picker opens immediately; resolve typed input before OK commit | `YYYY-MM-DD HH:mm:ss` or host agreed date-time string |
 | DateRange | popup range picker opens immediately | `{ begin, end }` or host equivalent |
@@ -205,7 +205,7 @@ On commit:
 
 The equality check must understand field types. Examples:
 
-- number-like fields compare numeric values after parsing and precision normalization
+- number-like fields compare finite numeric values after parsing and precision normalization; invalid parser results fail validation or cancel according to the host flow, never commit `NaN`
 - date range fields compare normalized `begin` and `end`
 - select fields compare option values, not labels
 - user and department fields compare stable ids

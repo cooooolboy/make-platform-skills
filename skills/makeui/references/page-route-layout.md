@@ -31,7 +31,7 @@ When create/edit/detail must be URL-addressable, use dynamic child routes:
 /objects/:objectKey/:recordId/edit
 ```
 
-Presentation is still Drawer by default for create/edit/detail. Only render these child routes as full pages when the user explicitly asks for page-route mode.
+Presentation is still right-side Drawer by default for create/edit/detail. URL-addressable Drawer state does not change placement; keep `placement="right"` or `side="right"`. Only render these child routes as full pages when the user explicitly asks for page-route mode.
 
 Do not generate a separate hard-coded route per object such as `/customers`, `/orders`, and `/opportunities` unless the host project already uses that convention or the user explicitly requests it.
 

@@ -75,7 +75,7 @@ Avoid:
 ## Responsive defaults
 
 - sidebar may collapse or become an overlay on small screens
-- Drawer width may become `100%` on small screens
+- Drawer width may become `100%` on small screens, but create/edit/detail surfaces still open from the right rather than becoming bottom sheets
 - form grids collapse from two columns to one column
 - toolbar actions may wrap, but create/new should remain easy to find
 - table horizontal overflow belongs inside the table container

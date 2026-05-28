@@ -293,6 +293,7 @@ Default Make schema table baseline:
 - normalize field values once through a pure adapter before canvas rendering
 - route display by field type group, not by business field names, except for explicit business roles such as a primary code link
 - use the ExpensePoc-proven renderer families by default: text/link, tag list, user avatar/name list, attachment list, lookup reference text, and safe generic fallback
+- number, currency, and percent renderers must only format finite parsed numbers; blank, invalid, `NaN`, `Infinity`, or unparseable values render the empty placeholder `-` and must never display `NaN`
 - apply ellipsis plus overflow-only tooltip by default: visible text/tag/user/lookup labels must show ellipsis when truncated and get tooltip only when ellipsized; attachment/tag/user/lookup `+N` badges get a tooltip with the full hidden value list
 - keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same default candidate contract as forms: `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to `userId/userName` and `departmentId/departmentName`
 - treat object/entity/schema key as table identity. On identity change, rebuild or reset the table so scrollLeft/scrollTop, active edit state, selection, hover/suffix state, and header popups do not leak from the previous object
@@ -313,6 +314,7 @@ Treat these as safety rules:
 - never pass raw meta directly into the table runtime
 - convert meta into `IColumn[]` before creating the table
 - for Make schema tables, do not create the table with generic placeholder columns or row-key-inferred columns while waiting for schema
+- never render numeric parser failures as `NaN`, `Infinity`, or exception text; normalize them to an empty display value before canvas rendering
 - do not put `aria-hidden` or `inert` on the visual canvas-table host, or on any ancestor that can contain the package-created focusable canvas
 - if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
 - pagination is opt-in: do not add visible pagination controls, page-size selectors, page state, page query params, total-count handling, paginated fetch logic, `virtualOptions`, or `data:load` wiring unless the user explicitly asks for pagination, virtual loading, or paginated backend integration

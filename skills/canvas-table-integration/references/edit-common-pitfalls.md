@@ -261,11 +261,14 @@ Symptom:
 
 - entering three decimal places looks valid in the editor but the save API rejects the value
 - the cell briefly displays a value that the backend cannot persist
+- invalid numeric input or an unparsable backend value displays `NaN`
 
 Fix:
 
 - read precision metadata such as `precision` or `decimalPlaces`
 - round or validate before commit according to the host backend rule
+- require `Number.isFinite` before formatting, committing, or backfilling numeric values
+- render invalid display values as the empty placeholder instead of `NaN`
 - test the normalized submit value, not only the input display
 
 ## 23. Using fake identity options in production

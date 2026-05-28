@@ -6,6 +6,7 @@
 - 明确新建流程中如果附件上传依赖已保存记录的 `recordID`，不得渲染 `Make.Field.File` 上传控件，也不得把文件字段写入新建 payload。
 - 明确附件字段的模式差异：新建时省略，编辑时仅在存在稳定记录 ID 后展示上传/删除控件，详情中展示已有附件。
 - 强化新建/编辑 Drawer 样式规范：右侧 60% Drawer、顶部操作区、无默认 footer、浅色 Drawer body、轻量白色 form panel、两列 grid、长文本跨整行。
+- 补充硬规则：新建、编辑、详情必须从右侧弹出；小屏可 `100%` 宽，但仍从右侧进入，不默认使用底部 Drawer/Sheet 或居中 Modal/Dialog。
 - 强化详情 Drawer 样式规范：紧凑横向 label/value、两列详情 grid、长文本/附件/Lookup 跨整行、弱化标签、值区域安全换行，禁止未样式化列表。
 - 同步 route-based create/edit 页面规则，避免独立新建页也误放附件上传。
 

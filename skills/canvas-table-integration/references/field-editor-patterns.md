@@ -109,6 +109,7 @@ Recommended pattern:
 - put currency, percent, thousands separators, and unit display in the editor formatter or table render layer
 - parse formatted input back to a number before commit
 - round or clamp to backend precision before submit when metadata such as `precision` or `decimalPlaces` is present
+- parser failures are invalid editor state. Do not commit, backfill, display, or submit `NaN`/`Infinity`; show validation or close/cancel according to the host edit flow.
 
 Typical concerns:
 

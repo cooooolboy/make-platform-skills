@@ -11,19 +11,21 @@
 
 ## Default mode
 
-Create, edit, and detail UIs default to a right-side Drawer.
+Create, edit, and detail UIs use a right-side Drawer by default. For generated Make App object create/edit/detail, this is a hard layout rule unless the user explicitly requests a different surface.
 
-- placement: right
+- placement: right; use `placement="right"` for Drawer components and `side="right"` for shadcn/ui Sheet
 - default width: `60%`
-- small screens: may use `100%`
+- small screens: may use `100%`, but the surface still enters from the right
 - mask closable: enabled by default; clicking the mask or blank area closes the current Drawer
 - header action area contains close and primary/secondary actions
 - no fixed footer by default
 - body scrolls inside the Drawer shell
 
+Do not use bottom Drawer/Sheet, mobile bottom sheet, centered Modal/Dialog, or page-level replacement for object create/edit/detail unless the user explicitly requests that different presentation.
+
 Mask click uses the same close path as the header close control. If a form has an explicit unsaved-change guard, apply that same guard to mask close instead of silently ignoring the mask click.
 
-Treat these as Make UI defaults. User requirements and established project patterns may override them.
+Treat these as Make UI defaults. For Make object create/edit/detail, right-side placement is not overridden by a generic existing bottom-sheet pattern; use a different surface only when the user explicitly asks for it or the task is not an object CRUD Drawer.
 
 Use route pages only when the user explicitly asks for an independent page, route, navigation, page jump, or standalone screen.
 
