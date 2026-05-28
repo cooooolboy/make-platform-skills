@@ -77,7 +77,7 @@ Detail layout:
 - render values through the same field-type display adapter used by Detail Drawers. Do not display raw objects, arrays, or JSON wrapper strings in route detail pages.
 - `Date`, `DateTime`, and `DateRange` values must use formatted display text. `DateRange` values such as `[begin, end]` or `{ begin, end }` display as `YYYY-MM-DD 至 YYYY-MM-DD`.
 - select, user, department, file, and lookup values use their type-specific read-only display renderers; empty values display `-`.
-- route detail titles use the record/object title with real overflow handling only. Do not allocate a tiny title slot that truncates short names.
+- route detail titles use the record/object title with real overflow handling only. Do not allocate a tiny title slot that truncates otherwise displayable titles.
 - collapse to one column on small screens
 
 ## Navigation

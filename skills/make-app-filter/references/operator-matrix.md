@@ -71,9 +71,9 @@ Default value rules:
 
 ## Candidate sources
 
-User and department selector controls must use remote candidate sources when available:
+User and department selector controls must use remote candidate sources:
 
 - users: `GET /api/users?keyword=&page=&size=` or host equivalent
 - departments: `GET /api/departments?keyword=&page=&size=` or host equivalent
 
-Use remote search; do not filter stale local demo arrays for production filters.
+Use remote search; do not filter stale local demo arrays, field schema options, current table rows, or hardcoded fixtures for production filters. Current applied values may be merged only to keep selected labels visible while remote candidates load.

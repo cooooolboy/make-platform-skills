@@ -61,7 +61,8 @@ It does not own general page layout (`makeui`), CanvasTable rendering internals 
 - Field keys used in CEL must be valid identifiers: `/^[A-Za-z_][A-Za-z0-9_]*$/`. Skip or reject invalid field keys instead of emitting unsafe expressions.
 - Do not expose unsupported fields in advanced filter or table header "按该字段筛选". ExpensePoc defaults treat `Make.Field.File`, `Make.Field.DateRange`, `Make.Field.Lookup`, and unknown types as unsupported until the host backend documents safe semantics.
 - Single select, single user, and single department fields expose only equality operators by default. Multi select, multi user, and multi department fields expose collection operators and empty/not-empty.
-- User and department values are identities, not display names. Use candidate APIs such as `/api/users` and `/api/departments` or host equivalents for labels and search.
+- User and department values are identities, not display names. Advanced filter user/department value editors must use the same host candidate APIs as forms and table cell editors: `/api/users` and `/api/departments` or host equivalents. Normalize users as `userId/userName` and departments as `departmentId/departmentName`.
+- Do not source advanced filter user/department options from field schema `options`, local demo arrays, current table rows, hardcoded fixtures, or display labels. Current applied values may be merged only to keep selected labels visible while the real candidate API is loading or temporarily empty.
 - Header menu filtering must append a condition to the advanced filter draft and open the same popover. It must not submit immediately or trigger record reload before `确认`.
 - CanvasTable record-list headers should expose a more menu with `按该字段筛选` for supported fields when advanced filter is in scope, unless explicitly disabled.
 - Table scrolling, object switching, outside click, or unmount must close any header menu and restore the header suffix icon to hover-only state.

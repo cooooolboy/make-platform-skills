@@ -66,7 +66,10 @@ Relation display:
 Default nesting:
 
 - root can add a condition group
-- nested group add is disabled by default
+- a condition group created from the root footer starts with one default condition row
+- nested group header shows `删除组` on the right, using danger/red text styling
+- nested groups can add conditions locally through `+ 添加条件`
+- nested groups cannot add child condition groups by default
 - maximum depth defaults to `2`
 
 ## Control styling

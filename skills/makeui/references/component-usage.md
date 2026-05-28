@@ -109,6 +109,15 @@ User and department selectors require a real host-provided candidate source. For
 - UI sends `keyword`, `page`, and `size`; do not expose a UI-side sort control for these candidate pickers
 - search uses the candidate endpoint instead of filtering stale local demo data
 
+This candidate-source rule applies to every user or department selector UI. For surfaces owned by another skill, keep the same candidate-source contract and let that skill own the surface behavior:
+
+- create/edit Drawer forms and route forms
+- table cell editors and any canvas-table popup selector
+- advanced filter value editors and table-header "filter by this field" flows
+- reusable business selectors embedded in custom panels
+
+Do not read user/department candidates from field schema `options`, `meta.options`, current table rows, static fixtures, or hardcoded demo data. Those sources may not represent the current org. Current record values may be merged into the selector options only so existing selections keep readable labels while `/api/users` or `/api/departments` is loading or returns no matching page.
+
 If the host project uses different route names, keep the same behavior contract and normalize the response at the UI boundary. Do not call Make user/department backend services directly from `makeui` components when the host project requires a Service/API adapter.
 
 When the candidate source is missing and the user confirms a placeholder, use a searchable selector shell that:

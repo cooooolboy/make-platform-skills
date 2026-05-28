@@ -112,8 +112,8 @@ A panel that contains a title, toolbar button, inner bordered list row, and card
 | DateRange | popup range picker opens immediately | `{ begin, end }` or host equivalent |
 | SingleSelect | popup select opens immediately; single selection may request commit after change | option value |
 | MultiSelect | popup multi-select opens immediately; keep responsive tags and `+N` overflow | option value array |
-| SingleUser / MultiUser | searchable user selector opens immediately; include current value and real API candidates | user id or user id array |
-| SingleDepartment / MultiDepartment | searchable department selector opens immediately; include current value and real API candidates | department id or department id array |
+| SingleUser / MultiUser | searchable user selector opens immediately; include current value and candidates from `/api/users` or host equivalent | user id or user id array |
+| SingleDepartment / MultiDepartment | searchable department selector opens immediately; include current value and candidates from `/api/departments` or host equivalent | department id or department id array |
 | File | attachment panel/editor opens as host popup; upload/delete goes through host data-source boundary | normalized file payload |
 | Lookup | read-only by default; if editable, use a relation/lookup selector popup, not plain text | backend relation payload |
 
@@ -145,6 +145,7 @@ Normalize current backend value shapes before rendering editor state:
 - file values normalize to the host attachment display/payload structure
 
 If remote user or department candidates are still loading, the current cell value must still echo from the record value. Do not show an empty select just because the candidate API has not returned yet.
+User and department candidate lists must use the same host candidate adapters as Drawer forms and advanced filters. Do not source cell-editor candidates from field schema options, static fixtures, current table rows, or hardcoded demo lists; current values are only an echo fallback.
 
 ## 8. Value contract
 
