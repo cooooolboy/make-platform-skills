@@ -177,6 +177,8 @@ Typical concerns:
 For Make-style select fields, prefer schema options such as `{ label, value }`. Submit the raw value or value array; keep tag labels in `displayValue` or render mapping.
 Select editors should open the dropdown immediately when the edit session begins. Single-select may commit after a selection change; multi-select usually remains open while the user manages tags and commits on close/Tab/outside-click according to the host policy.
 
+Do not synthesize a `-` option for empty values. Empty display uses the table renderer's muted placeholder, but editor options must contain only real schema/candidate options unless the backend itself defines an option whose value is `-`. For empty single-select state, use `undefined`/clear state plus placeholder text; for empty multi-select state, use `[]`. The current record value may be merged into options only when it has a real value/id that is not yet present in loaded options.
+
 ## 7. Person fields
 
 Recommended pattern:

@@ -37,6 +37,8 @@ For inline text, textarea, number, currency, and percent editors, the active-cel
 
 When the host scrolls a partially hidden target cell into view before editing, use the post-scroll cell coordinates for this positioning calculation. Do not compute editor coordinates before `scrollTo(...)` and then reuse stale coordinates after the table moves.
 
+Popup/dropdown panels must not be clipped by the active cell, canvas host, table scroll container, or page viewport edge. Render select/date/user/department/lookup dropdowns into a popup root outside the canvas host, usually appended to `document.body`, include that root in `relatedElements()`, and use `overlayOptions: { overflow: "visible" }`. Attachment panels may render as an absolute panel connected to the full-cell editor element or into a popup root, but either way the panel root must be included in `relatedElements()` and allowed to overflow the edited cell. If the panel would be cut off at the right or bottom edge, flip or shift placement before showing it. A dropdown that loses its lower-right border, bottom options, calendar footer, or attachment controls is positioned incorrectly.
+
 ## 4. Scroll-follow behavior
 
 While editing is active:

@@ -8,6 +8,8 @@ These defaults are derived from the current ExpensePoc table-editing implementat
 
 Use `editType: "custom"` plus a host `customEdit(options)` bridge for business fields.
 
+For generated Make App editable tables, the ExpensePoc-style cell editor is the default and only baseline unless the user explicitly asks for another interaction model. Do not invent a second cell-edit style for new POC projects.
+
 For Make App editable tables, prefer:
 
 - `editApplyMode: "controlled"`
@@ -18,6 +20,16 @@ For Make App editable tables, prefer:
 - `destroy()` that unmounts the framework root, removes popup roots, and releases editor-local resources
 
 Do not let each field editor call backend APIs directly. Field editors extract values; the save or draft layer decides persistence, backfill, and rollback.
+
+Canonical flow:
+
+1. Resolve the editable field config from schema field type, not from column title text.
+2. Before mounting the editor, scroll the target cell fully into the visible table body if it is clipped horizontally, vertically, by fixed-left boundaries, or by the container edge.
+3. Create a full-cell editor element for the active cell and a separate popup root appended outside the canvas host.
+4. Mount the field editor with the normalized current value, then focus it. Popup fields must open immediately.
+5. Return `element`, `getValue()`, object `autoClose`, `relatedElements()`, `overlayOptions`, and `destroy()` from `customEdit`.
+6. On any commit-style close path, call `updateVal()`, compare `oldValue` with `nextValue.submitValue` by field type, and skip all save/backfill work when unchanged.
+7. If changed, pass the normalized commit to the host draft or immediate-save layer. With `editApplyMode: "controlled"`, call `setCellData(...)` or `setRowData(...)` only after the host layer accepts the commit. On failure, rollback to the old value.
 
 ## 2. Activation and popup rule
 
@@ -52,6 +64,15 @@ Default popup-style fields:
 
 For React and Ant Design style components, this usually means controlled `open` or equivalent on mount, `getPopupContainer={() => popupRoot}`, and `focus()` in the editor handle after the editor root has rendered.
 
+Popup visibility requirements:
+
+- dropdowns, date panels, identity selectors, and lookup selectors render into the popup root, not inside the clipped canvas/table container
+- attachment panels may render as an absolute panel connected to the full-cell editor element or into the popup root; in both cases the panel root must not be clipped
+- popup/panel roots are returned by `relatedElements()` so clicks inside them are not outside clicks
+- `overlayOptions: { overflow: "visible" }` is enabled for any editor that can extend outside the cell
+- select/user/department dropdown min width is at least the active cell width, and panel placement must avoid cutting off the lower/right edges
+- if the active cell or popup would be clipped, scroll/flip/shift before the user sees it; do not accept a dropdown whose bottom border, right border, or last options are hidden
+
 ## 3. No double-border rule
 
 The edited cell already has a canvas-table active outline. Field editor controls inside that cell must not draw a second focus border or focus shadow.
@@ -65,6 +86,12 @@ Default visual requirements:
 - The only visible blue border during normal editing is the canvas-table active cell outline. Attachment panels may draw one panel border that covers or replaces the active-cell outline.
 
 If a screenshot shows a blue cell outline plus another blue rectangle around the Select/Input/Pick trigger, the editor is wrong.
+
+Default ExpensePoc sizing:
+
+- editor root, popup editor wrapper, select trigger, date picker, and number input are `width: 100%` and `height: 100%`
+- the input/trigger can keep small horizontal text padding, but must not introduce an inset bordered rectangle
+- select/date/number components use borderless style; number steppers are hidden by default
 
 ## 4. Inline editor visual rule
 
@@ -91,8 +118,11 @@ Default attachment editor shape:
 
 - open a single attachment panel directly from the edited cell; do not render a form card inside the cell
 - the panel may be wider/taller than the cell and should visually connect to the active cell
+- default panel width is about `450px`, with viewport max protection; do not make the panel a narrow one-cell popup
+- panel border is the only blue editing border for attachments: `2px` blue border, `border-radius: 0`, flat background, no shadow/card chrome by default
 - use one blue panel/active outline, not a blue cell border plus a nested card border
-- show existing image/file thumbnails or file cards first
+- show existing image/file thumbnails or file cards first, using compact square cards around `64px` by `64px`
+- when there are no attachments, do not render a fake attachment card, `-` placeholder, or empty list row; show only the upload drop zone
 - provide one drag/drop/click upload zone inside the same panel
 - support preview/remove controls on the attachment item itself
 - avoid a header row such as field title plus a separate "upload" button unless the product explicitly asks for that form-style layout
@@ -110,11 +140,11 @@ A panel that contains a title, toolbar button, inner bordered list row, and card
 | Date | popup date picker opens immediately | `YYYY-MM-DD` or host agreed date string |
 | DateTime | popup date-time picker opens immediately; resolve typed input before OK commit | `YYYY-MM-DD HH:mm:ss` or host agreed date-time string |
 | DateRange | popup range picker opens immediately | `{ begin, end }` or host equivalent |
-| SingleSelect | popup select opens immediately; single selection may request commit after change | option value |
-| MultiSelect | popup multi-select opens immediately; keep responsive tags and `+N` overflow | option value array |
-| SingleUser / MultiUser | searchable user selector opens immediately; include current value and candidates from `/api/users` or host equivalent | user id or user id array |
-| SingleDepartment / MultiDepartment | searchable department selector opens immediately; include current value and candidates from `/api/departments` or host equivalent | department id or department id array |
-| File | attachment panel/editor opens as host popup; upload/delete goes through host data-source boundary | normalized file payload |
+| SingleSelect | popup select opens immediately; single selection may request commit after change; empty value is clear state/placeholder, not a `-` option | option value |
+| MultiSelect | popup multi-select opens immediately; keep responsive tags and `+N` overflow; empty value is `[]`, not a `-` tag | option value array |
+| SingleUser / MultiUser | searchable user selector opens immediately; include current value and candidates from `/api/users` or host equivalent; do not add a fake `-` candidate | user id or user id array |
+| SingleDepartment / MultiDepartment | searchable department selector opens immediately; include current value and candidates from `/api/departments` or host equivalent; do not add a fake `-` candidate | department id or department id array |
+| File | attachment panel/editor opens as host popup; empty state shows only upload zone; upload/delete goes through host data-source boundary | normalized file payload |
 | Lookup | read-only by default; if editable, use a relation/lookup selector popup, not plain text | backend relation payload |
 
 Reuse the host Drawer form's field-type mapping where possible so Drawer forms and table cell editors submit the same value shapes.
@@ -146,6 +176,14 @@ Normalize current backend value shapes before rendering editor state:
 
 If remote user or department candidates are still loading, the current cell value must still echo from the record value. Do not show an empty select just because the candidate API has not returned yet.
 User and department candidate lists must use the same host candidate adapters as Drawer forms and advanced filters. Do not source cell-editor candidates from field schema options, static fixtures, current table rows, or hardcoded demo lists; current values are only an echo fallback.
+
+Empty value rule:
+
+- display-only cells may render the muted placeholder `-`
+- editor dropdowns must not include `-` as an option or selected tag unless the backend schema/candidate API explicitly returned it as a real option
+- single empty select/user/department editor uses `undefined` or an empty string internally and shows placeholder text
+- multi empty select/user/department editor uses `[]`
+- if the current record value is empty, do not merge an echo option into the option list
 
 ## 8. Value contract
 
@@ -217,9 +255,12 @@ Before reporting an editable Make table as done, verify at least:
 
 - popup fields open their picker/dropdown/panel immediately after edit mode starts
 - clicking a partially clipped editable cell scrolls it fully into view before the editor mounts
+- popup/dropdown panels are fully visible; their right and bottom edges, last option rows, date footer, and attachment controls are not clipped
 - select, date, user, and department triggers do not draw a second blue border inside the active cell
 - inline editors fill the active cell and have no extra nested border or outer margin
-- attachment fields use one connected popup/panel with thumbnails and one upload zone, not a nested form card
+- select/user/department empty states do not create a fake `-` option
+- attachment fields use one connected popup/panel with compact thumbnails and one upload zone, not a nested form card
+- empty attachment editors show only the upload zone, not a fake `-` card or empty list row
 - date range, select, user, department, number, textarea, and file fields echo existing values on entry
 - unchanged close from outside click, picker/dropdown close, same-value selection, Enter, Tab, or `edit:end` fallback does not call save APIs, create dirty state, or backfill table data
 - changed commit sends normalized submit values and backfills accepted render values
