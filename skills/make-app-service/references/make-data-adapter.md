@@ -34,6 +34,19 @@ The wrapper should:
 
 Do not duplicate Make fetch logic in each route.
 
+## Runtime base URL config
+
+Adapters consume normalized Service config. Route handlers should pass adapter parameters only; they should not know Make domains or stitch absolute gateway URLs.
+
+Default base selection:
+
+- schema/meta calls use `makeApiBaseUrl` plus `makeSchemaPath` unless the host adapter documents a more specific schema base.
+- auth forwarding calls use `makeAuthBaseUrl`, falling back to `makeApiBaseUrl`.
+- business/data calls use `makeBusinessBaseUrl`, falling back to `makeApiBaseUrl`.
+- candidate, lookup, record, and file adapters use the relevant normalized base from config, not inline environment reads.
+
+Do not hard-code concrete Make dev/test/prod domains, namespace-local gateway hostnames, or environment-to-domain maps in adapters. K8s, backend, operations, Make tooling, or deployed runtime config inject the actual base URL.
+
 ## Schema adapter
 
 Schema adapter should:

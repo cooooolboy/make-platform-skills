@@ -28,6 +28,15 @@ Route tests should cover:
 - file upload/delete/download call the file adapter with safe path/body mapping
 - custom orchestration routes cover success, unsupported input, and Make failure
 
+Config tests should cover:
+
+- `MAKE_API_BASE_URL` takes precedence over `MAKE_SERVER_URL`
+- `MAKE_SERVER_URL` works as a compatibility fallback
+- `MAKE_AUTH_BASE_URL` and `MAKE_BUSINESS_BASE_URL` fall back to the normalized Make API base URL when absent
+- base URLs are trimmed and trailing slashes are removed
+- missing `MAKE_API_BASE_URL` and `MAKE_SERVER_URL` fails config loading with a non-secret error
+- `/api/config` does not expose Make base URLs, tokens, cookies, service keys, or deployment-internal details
+
 Adapter tests should cover:
 
 - Make response envelope `code !== 200`
@@ -49,6 +58,7 @@ Before reporting Service work as ready:
 - no route leaks raw Make response envelopes unless documented
 - invalid client input is rejected before Make calls
 - no tokens, cookies, service keys, or signed URLs appear in logs or public config
+- Make adapter base URLs come from normalized Service config and are not hard-coded in routes or adapters
 - candidate endpoints use real host/Make data sources, not demo arrays
 - lookup updates preserve unrelated relations
 - file upload requires persisted record identity

@@ -115,9 +115,61 @@ Default guidance:
 
 Service code should:
 
-- read Make adapter config from `config.ts` or the host equivalent
-- trim env strings and normalize trailing slashes in adapters
+- read Make adapter config from `apps/service/src/config.ts` or the host equivalent
+- expose a pure `loadConfig(env = process.env)` or host-equivalent function so config behavior can be unit tested without mutating global process state
+- trim env strings and normalize trailing slashes before adapters consume base URLs
 - avoid hard-coded Make domains in route handlers
 - keep secrets out of public config
+
+Default new-project config semantics:
+
+- `appKey`: read `env.MAKE_APP_KEY` first, then fall back to the project-declared app key when a fallback is needed.
+- `makeApiBaseUrl`: read `env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL`, trim it, and remove trailing slashes. `MAKE_API_BASE_URL` is preferred; `MAKE_SERVER_URL` is a compatibility alias.
+- `makeAuthBaseUrl`: read `env.MAKE_AUTH_BASE_URL`, otherwise fall back to `makeApiBaseUrl`.
+- `makeBusinessBaseUrl`: read `env.MAKE_BUSINESS_BASE_URL`, otherwise fall back to `makeApiBaseUrl`.
+- `makeSchemaPath`: read `env.MAKE_SCHEMA_PATH`, otherwise use `/meta/v1/schema`.
+- When both `MAKE_API_BASE_URL` and `MAKE_SERVER_URL` are missing in a Make-backed Service, throw a clear non-secret config error during `loadConfig`.
+
+Recommended shape:
+
+The `port` field may appear in the same `config.ts` because Service runtime settings are often loaded together. Its fixed value, build/start contract, and publish readiness checks still come from `make-app-runtime`; this section only defines Make adapter config semantics.
+
+```ts
+export type ServiceConfig = {
+  appKey: string;
+  port: number;
+  makeApiBaseUrl: string;
+  makeAuthBaseUrl: string;
+  makeBusinessBaseUrl: string;
+  makeSchemaPath: string;
+};
+
+export const loadConfig = (
+  env: NodeJS.ProcessEnv = process.env,
+): ServiceConfig => {
+  const makeApiBaseUrl = stripTrailingSlash(
+    env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL || "",
+  );
+
+  if (!makeApiBaseUrl) {
+    throw new Error("MAKE_API_BASE_URL or MAKE_SERVER_URL is required");
+  }
+
+  return {
+    appKey: readTextEnv(env.MAKE_APP_KEY, DEFAULT_APP_KEY),
+    port: readPortFromRuntimeRule(env.PORT),
+    makeApiBaseUrl,
+    makeAuthBaseUrl: stripTrailingSlash(env.MAKE_AUTH_BASE_URL || makeApiBaseUrl),
+    makeBusinessBaseUrl: stripTrailingSlash(
+      env.MAKE_BUSINESS_BASE_URL || makeApiBaseUrl,
+    ),
+    makeSchemaPath: readTextEnv(env.MAKE_SCHEMA_PATH, "/meta/v1/schema"),
+  };
+};
+```
+
+Existing projects may keep equivalent names such as `baseUrl`, `serverUrl`, or `makeBaseUrl`, but they must preserve the same precedence and failure behavior.
+
+`GET /api/config` must expose only public UI config. Do not return Make base URLs, tokens, cookies, service keys, signed URLs, or deployment-internal route details.
 
 If the task is to change `apps/service/src/config.ts` structure for port, build, start, or runtime artifact reasons, use `make-app-runtime`.
