@@ -124,7 +124,7 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 5. Gate table initialization until normalized schema fields are available; missing schema is a loading/error state, not a reason to infer columns from row data.
 6. Build or reuse a pure display adapter by field type before writing canvas shapes.
 7. Derive column configs from normalized schema fields; avoid hand-maintained static columns for dynamic schemas.
-8. Route display groups to focused renderers: text/clickable URL, tag list, user avatar/name list, attachment list, lookup reference text, and generic text fallback.
+8. Route display groups to focused renderers: text/clickable URL, tag list, compact user avatar/name list, attachment list, lookup reference text, and generic text fallback.
 9. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
 10. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
 11. Add focused tests for schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
@@ -173,12 +173,12 @@ Track C common capabilities:
 - pure field-display adapter before canvas rendering
 - text/link renderer with ellipsis, tooltip, empty `-`, and safe click handling
 - tag renderer for select and department values, including `+N` overflow
-- user renderer with avatar image, deterministic fallback avatar, name text, and `+N` overflow
+- user renderer with fixed compact avatar image/fallback circle, restrained stable avatar color, one-character or initials fallback text, separate ellipsized name text, and `+N` overflow
 - attachment renderer with image thumbnails, file-extension blocks, safe open behavior, and `+N` overflow
 - lookup renderer with clickable valid references, muted deleted references, strikethrough, and fallback label extraction
 - row-head defaults: `showSN` and `bodyRowHeadSuffixOptions`
 - object/entity/schema switch resets table scroll and transient state; same-object data refresh may preserve scroll
-- user/department edit candidates come from host candidate sources; generated Make App defaults are `/api/users` and `/api/departments`, normalized to `userId/userName` and `departmentId/departmentName`
+- user/department edit candidates come from host candidate sources; generated Make App UI-Service defaults are `/api/users` and `/api/departments`, or host equivalent routes, normalized to `userId/userName` and `departmentId/departmentName`
 
 ## What to avoid
 

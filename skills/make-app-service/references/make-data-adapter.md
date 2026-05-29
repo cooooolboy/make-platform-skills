@@ -7,6 +7,7 @@ Use this reference when implementing Service adapters that call Make platform AP
 The adapter layer owns Make/backend-specific details:
 
 - base URL and path construction from runtime config
+- deployment-injected `appKey` from `config.appKey`
 - `X-Make-Target`
 - consuming already-prepared auth or forwarded request context from the host auth/runtime layer without inventing auth policy
 - Make response envelope parsing
@@ -24,6 +25,7 @@ Use a shared request wrapper for Make calls.
 The wrapper should:
 
 - build the URL from normalized config and a relative path
+- attach or encode `config.appKey` according to the Make Meta/Data API contract
 - attach required Make headers
 - send JSON or multipart bodies
 - parse JSON envelopes safely
@@ -33,6 +35,29 @@ The wrapper should:
 - log start/success/failure with redacted context
 
 Do not duplicate Make fetch logic in each route.
+
+## Make API references
+
+Use the Make backend API designs as the source of truth for Service-to-Make calls:
+
+- Meta API: `https://git.qtech.cn/make/AgenticDSL/-/blob/main/Design/MetaAPIDesign.md?ref_type=heads`
+- Data API: `https://git.qtech.cn/make/AgenticDSL/-/blob/main/Design/DataAPIDesign.md?ref_type=heads`
+
+Do not infer Meta/Data payload shapes from UI components, local DSL files, screenshots, or demo data. If those docs are unavailable in the current environment, preserve the host project's existing adapter contract and mark the missing API reference as a blocker before inventing new Make request shapes.
+
+## Runtime base URL config
+
+Adapters consume normalized Service config. Route handlers should pass adapter parameters only; they should not know Make domains or stitch absolute gateway URLs.
+
+Default base selection:
+
+- schema/meta calls follow Meta API design and use `makeApiBaseUrl` plus `makeSchemaPath` unless the host adapter documents a more specific schema base.
+- auth forwarding calls use `makeAuthBaseUrl`, falling back to `makeApiBaseUrl`.
+- business/data calls follow Data API design and use `makeBusinessBaseUrl`, falling back to `makeApiBaseUrl`.
+- candidate, lookup, record, and file adapters use the relevant normalized base from config, not inline environment reads.
+- all Make Meta/Data calls that require an app key must use `config.appKey` from `MAKE_APP_KEY`; route handlers must not accept `appKey` from UI query/body/header input.
+
+Do not hard-code concrete Make dev/test/prod domains, namespace-local gateway hostnames, or environment-to-domain maps in adapters. K8s, backend, operations, Make tooling, or deployed runtime config inject the actual base URL.
 
 ## Schema adapter
 

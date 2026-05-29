@@ -189,7 +189,11 @@ Recommended placement behavior:
 Default visual baseline for Make schema table editing:
 
 - use an ExpensePoc-style attachment panel connected to the edited cell
+- default panel width is about `450px`, with a viewport max such as `calc(100vw - 32px)`; do not make the panel as narrow as a single cell
+- use one flat blue panel border connected to the active cell, with `border-radius: 0`, no card chrome, and no nested border that competes with the canvas active-cell outline
 - render existing image/file thumbnails or cards at the top of the panel
+- when there are no attachments, render no placeholder attachment card, no `-` row, and no empty bordered list; show only the upload drop zone
+- existing attachment thumbnails/cards stay compact and square, roughly `64px` by `64px`, with file name ellipsis below; do not render oversized previews by default
 - render one drag/drop/click upload zone in the same panel
 - use a single active/panel border; do not add a nested card border inside the active cell
 - do not default to a form-card layout with a title header, toolbar upload button, and inner list row
@@ -212,6 +216,8 @@ For an attachment field integration, verify:
 - rendering handles images, non-images, empty values, and more-than-visible counts
 - clicking a rendered attachment opens/previews the file without triggering row navigation unexpectedly
 - enabled local input modes, such as drag/drop, paste, and click-to-upload, add files in the editor
+- empty attachment state shows only the upload drop zone, not a fake `-` attachment or empty list row
+- existing attachment cards are compact square thumbnails/icons and the panel is wide enough for normal drag/drop text
 - removal updates the normalized array
 - dirty comparison clears after save/discard and does not depend on generated `uid`
 - popup roots are included in `relatedElements()`

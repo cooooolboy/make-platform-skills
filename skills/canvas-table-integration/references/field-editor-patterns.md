@@ -109,6 +109,7 @@ Recommended pattern:
 - put currency, percent, thousands separators, and unit display in the editor formatter or table render layer
 - parse formatted input back to a number before commit
 - round or clamp to backend precision before submit when metadata such as `precision` or `decimalPlaces` is present
+- parser failures are invalid editor state. Do not commit, backfill, display, or submit `NaN`/`Infinity`; show validation or close/cancel according to the host edit flow.
 
 Typical concerns:
 
@@ -176,11 +177,13 @@ Typical concerns:
 For Make-style select fields, prefer schema options such as `{ label, value }`. Submit the raw value or value array; keep tag labels in `displayValue` or render mapping.
 Select editors should open the dropdown immediately when the edit session begins. Single-select may commit after a selection change; multi-select usually remains open while the user manages tags and commits on close/Tab/outside-click according to the host policy.
 
+Do not synthesize a `-` option for empty values. Empty display uses the table renderer's muted placeholder, but editor options must contain only real schema/candidate options unless the backend itself defines an option whose value is `-`. For empty single-select state, use `undefined`/clear state plus placeholder text; for empty multi-select state, use `[]`. The current record value may be merged into options only when it has a real value/id that is not yet present in loaded options.
+
 ## 7. Person fields
 
 Recommended pattern:
 
-- reuse the host project's existing people selector
+- reuse the host project's existing people selector backed by the host user candidate API
 - treat `focus()` as "open the selector" rather than only text focus
 - usually submit-style editing
 
@@ -188,9 +191,9 @@ Typical concerns:
 
 - display list vs submit ids
 - auxiliary render mapping data for avatars/names
-- candidate source: existing row values, host user API, or existing people picker data source
+- candidate source: host user API or existing people picker data source; current row values are only for echoing existing selections
 
-For generated Make App projects, the default people candidate source is:
+For generated Make App projects, the default people candidate source is a UI-Service contract; use the host equivalent route when the host project requires it:
 
 - `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
 - option value: `userId`
@@ -199,14 +202,14 @@ For generated Make App projects, the default people candidate source is:
 
 For Make identity values, tolerate both record-style values and current identity-service values. Read ids from `recordID`, `userId`, or `id`, and labels from `name`, `userName`, `displayName`, or `label`. For multi-user fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 
-Do not fabricate mock user candidates in production just to make a dropdown look populated. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
+Do not use field schema `options`, table row samples, hardcoded fixtures, or mock users as candidate lists in production. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
 The people editor must echo the current record value even while remote candidates are loading. Normalize ids from `recordID`, `userId`, or `id`; normalize labels from `name`, `userName`, `displayName`, or `label`.
 
 ## 8. Department fields
 
 Recommended pattern:
 
-- reuse the host project's department selector
+- reuse the host project's department selector backed by the host department candidate API
 - treat `focus()` as opening the selector
 - usually submit-style editing
 
@@ -214,9 +217,9 @@ Typical concerns:
 
 - display list vs submit ids
 - extra mapped render data for downstream cell rendering
-- candidate source: real department API, host department selector data, or current cell value fallback
+- candidate source: real department API or host department selector data; current cell values are only for echoing existing selections
 
-For generated Make App projects, the default department candidate source is:
+For generated Make App projects, the default department candidate source is a UI-Service contract; use the host equivalent route when the host project requires it:
 
 - `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
 - option value: `departmentId`
@@ -225,7 +228,7 @@ For generated Make App projects, the default department candidate source is:
 
 For Make department values, tolerate both record-style values and current department-service values. Read ids from `recordID`, `departmentId`, or `id`, and labels from `name`, `departmentName`, `displayName`, or `label`. For multi-department fields, normalize arrays with the same priority before dirty comparison and submit conversion.
 
-Do not replace an empty real department API result with local fallback data unless the product explicitly asks for demo/mock mode. Submitting a fake department id usually creates backend validation failures.
+Do not use field schema `options`, table row samples, hardcoded fixtures, or mock departments as candidate lists in production. Do not replace an empty real department API result with local fallback data unless the product explicitly asks for demo/mock mode. Submitting a fake department id usually creates backend validation failures.
 The department editor must echo the current record value even while remote candidates are loading. Normalize ids from `recordID`, `departmentId`, or `id`; normalize labels from `name`, `departmentName`, `displayName`, or `label`.
 
 ## 9. Attachment fields

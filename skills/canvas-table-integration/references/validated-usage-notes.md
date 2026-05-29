@@ -40,6 +40,7 @@ Validated pattern:
 
 - display-only formatting may happen before `setData(...)`
 - editable number-like fields keep row and submit values numeric, with display formatting in render/editor layers
+- number-like display formatting requires finite-number validation; invalid values render the empty placeholder instead of `NaN`
 
 This supports the guidance that formatting belongs near the display boundary, while editable submit values should preserve their business type.
 
@@ -131,6 +132,7 @@ Observed patterns:
 - page-level draft state owns dirty row keys, save/discard, and unsaved-change guards
 - dirty row colors use `setRowColors(...)`
 - number-like fields keep row and submit values numeric while display formatting lives in render/editor formatting
+- numeric parser failures must not be committed, backfilled, or displayed as `NaN`
 - date-time editors resolve direct typed input before OK commits
 - attachment values are normalized into render/editor arrays
 - attachment dirty comparison ignores generated `uid` and compares stable file fields

@@ -20,9 +20,9 @@ Do not leave undocumented routes as the only integration path for generated UI.
 Default public routes:
 
 - `GET /health` -> `{ status: "ok" }`
-- `GET /api/config` -> public config only, for example `{ appKey, listPageSize }`
+- `GET /api/config` -> public config only, for example `{ listPageSize }`
 
-Public config must not expose tokens, Make API base secrets, session cookies, service keys, or private deployment details.
+Public config must not expose `appKey`, tokens, Make API base URLs, session cookies, service keys, or private deployment details.
 
 ## Schema routes
 

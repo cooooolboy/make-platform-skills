@@ -31,7 +31,7 @@ When create/edit/detail must be URL-addressable, use dynamic child routes:
 /objects/:objectKey/:recordId/edit
 ```
 
-Presentation is still Drawer by default for create/edit/detail. Only render these child routes as full pages when the user explicitly asks for page-route mode.
+Presentation is still right-side Drawer by default for create/edit/detail. URL-addressable Drawer state does not change placement; keep `placement="right"` or `side="right"`. Only render these child routes as full pages when the user explicitly asks for page-route mode.
 
 Do not generate a separate hard-coded route per object such as `/customers`, `/orders`, and `/opportunities` unless the host project already uses that convention or the user explicitly requests it.
 
@@ -53,7 +53,7 @@ Form layout:
 - normal fields such as text, number, date, date-time, date range, select, user, and department occupy one column by default
 - derive fields and control types from host-provided field metadata
 - use type-appropriate controls; date, select, user, department, file, and lookup fields must not silently become plain text inputs
-- user and department selectors use the host-provided candidate source and must include search/loading/empty/error UI states. Generated Make App defaults use `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, then normalize to `{ label, value }` options with `userId/userName` and `departmentId/departmentName`
+- user and department selectors use the host-provided candidate source and must include search/loading/empty/error UI states. Generated Make App UI-Service defaults use `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, unless the host project documents equivalent Service/API routes; normalize results to `{ label, value }` options with `userId/userName` and `departmentId/departmentName`
 - create pages must omit attachment upload fields when upload requires a saved record identity; edit pages may show attachments only when the persisted record identity exists
 - one-column layout on small screens
 - section headings rather than deeply nested cards
@@ -77,7 +77,7 @@ Detail layout:
 - render values through the same field-type display adapter used by Detail Drawers. Do not display raw objects, arrays, or JSON wrapper strings in route detail pages.
 - `Date`, `DateTime`, and `DateRange` values must use formatted display text. `DateRange` values such as `[begin, end]` or `{ begin, end }` display as `YYYY-MM-DD 至 YYYY-MM-DD`.
 - select, user, department, file, and lookup values use their type-specific read-only display renderers; empty values display `-`.
-- route detail titles use the record/object title with real overflow handling only. Do not allocate a tiny title slot that truncates short names.
+- route detail titles use the record/object title with real overflow handling only. Do not allocate a tiny title slot that truncates otherwise displayable titles.
 - collapse to one column on small screens
 
 ## Navigation

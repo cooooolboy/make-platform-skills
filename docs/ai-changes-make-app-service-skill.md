@@ -12,6 +12,8 @@
 - 新增 `references/make-data-adapter.md`，约束 Make Data API adapter、schema、record、user/department、lookup、file 等适配规则。
 - 新增 `references/testing-and-safety.md`，补充 Service 接口测试和提交前安全检查。
 - 更新根 `README.md` 的 Skill 路由总览和可用 Skill 列表，让 Service 接口相关问题进入 `make-app-service`。
+- 补充 Service Make adapter 运行时配置规范：`apps/service/src/config.ts` 优先读取 `MAKE_API_BASE_URL`，`MAKE_SERVER_URL` 仅作兼容别名；缺少 Make base URL 时配置加载失败；`MAKE_AUTH_BASE_URL`、`MAKE_BUSINESS_BASE_URL` 和 `MAKE_SCHEMA_PATH` 用于覆盖对应 adapter 路径，不在 skill 中写死具体环境域名。
+- 明确 `config.ts` 中端口/构建/发布契约仍由 `make-app-runtime` 负责，`make-app-service` 只约束 Make adapter 配置语义。
 
 ## 边界
 

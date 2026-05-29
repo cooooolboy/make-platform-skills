@@ -28,9 +28,15 @@ UI behavior:
 
 - toolbar buttons remain in order: search, `筛选`, `刷新`
 - opening with no conditions inserts one default draft condition
+- popover renders as one white panel surface; root condition rows are not inside a second tinted/gray body container
+- nested condition groups use a single light neutral group surface, not a colored card inside another colored card
+- value editor and delete button are connected with no gap, no double border seam, and no rounded corner between them for select/input/number/date/user/department editors
 - edits do not reload records before `确认`
 - `确认` commits and closes only when validation passes
 - validation failure marks invalid controls and keeps the popover open
+- required value editors are marked invalid for every editor type: text, number, select, multi-select, date/date-time, user, and department
+- after a failed `确认`, typing or selecting a valid value clears that control's error state immediately while other invalid rows stay marked
+- field or operator changes recompute the row value and validation; operators that do not require a value clear stale value errors
 - outside click discards unconfirmed draft changes
 - `清空所有` clears applied filters only after confirmation
 - active trigger shows `已筛选 N 个条件`
@@ -66,3 +72,9 @@ Service and integration:
 - table scroll leaves a floating header menu in the wrong place
 - unsupported fields still show `按该字段筛选`
 - error UI shows a global warning while the exact invalid control is not marked
+- value select/multi-select/date/user/department controls do not turn red after `确认`
+- fixed value controls remain red after the user enters or selects a valid value
+- changing an operator to empty/not-empty leaves an old value error on the row
+- advanced filter body has two competing backgrounds and looks split into outer/inner panels
+- delete icon is rendered as a detached gray button instead of the attached final segment of the value control
+- one side of the value/delete pair is rounded while the adjacent seam is also rounded

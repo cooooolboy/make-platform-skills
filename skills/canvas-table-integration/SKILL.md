@@ -38,6 +38,7 @@ This skill has three tracks:
   - editor-container patterns
   - field-editor mappings
   - ExpensePoc-derived editable-cell defaults: popup editors open immediately, inline editors fill the active cell, and unchanged values do not call save APIs
+  - ExpensePoc-derived popup visibility, empty-value, no-double-border, and attachment-panel visual rules
   - schema field-type mappings for display value vs submit value
   - draft save layer vs immediate save layer
   - positioning / scroll / popup close handling
@@ -87,7 +88,7 @@ For new Make App projects or pages that display Make schema records, choose Trac
 - 设计或接入 `customEdit`
 - 复用项目已有输入框 / 下拉 / 日期 / 人员 / 部门 / 附件组件
 - 让表格 cell editor 的 Make 字段映射与 Drawer 表单保持一致
-- 处理编辑器定位、滚动、关闭、保存、回填、回滚
+- 按 ExpensePoc 默认方式处理编辑器定位、滚动、关闭、保存、回显、回填、回滚
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
 - 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
 - 把现有项目字段编辑器接进 canvas table
@@ -292,9 +293,10 @@ Default Make schema table baseline:
 - each generated column should retain `fieldType`, `fieldSchema`, and `renderKind` or equivalent metadata for renderer dispatch
 - normalize field values once through a pure adapter before canvas rendering
 - route display by field type group, not by business field names, except for explicit business roles such as a primary code link
-- use the ExpensePoc-proven renderer families by default: text/link, tag list, user avatar/name list, attachment list, lookup reference text, and safe generic fallback
+- use the ExpensePoc-proven renderer families by default: text/link, tag list, compact user avatar/name list, attachment list, lookup reference text, and safe generic fallback
+- number, currency, and percent renderers must only format finite parsed numbers; blank, invalid, `NaN`, `Infinity`, or unparseable values render the empty placeholder `-` and must never display `NaN`
 - apply ellipsis plus overflow-only tooltip by default: visible text/tag/user/lookup labels must show ellipsis when truncated and get tooltip only when ellipsized; attachment/tag/user/lookup `+N` badges get a tooltip with the full hidden value list
-- keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same default candidate contract as forms: `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to `userId/userName` and `departmentId/departmentName`
+- keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same default UI-Service candidate contract as forms: `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, or host equivalent routes, normalized to `userId/userName` and `departmentId/departmentName`
 - treat object/entity/schema key as table identity. On identity change, rebuild or reset the table so scrollLeft/scrollTop, active edit state, selection, hover/suffix state, and header popups do not leak from the previous object
 - preserve row defaults: `showSN` sequence numbers plus hover-revealed detail entry through `bodyRowHeadSuffixOptions`
 
@@ -313,6 +315,7 @@ Treat these as safety rules:
 - never pass raw meta directly into the table runtime
 - convert meta into `IColumn[]` before creating the table
 - for Make schema tables, do not create the table with generic placeholder columns or row-key-inferred columns while waiting for schema
+- never render numeric parser failures as `NaN`, `Infinity`, or exception text; normalize them to an empty display value before canvas rendering
 - do not put `aria-hidden` or `inert` on the visual canvas-table host, or on any ancestor that can contain the package-created focusable canvas
 - if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
 - pagination is opt-in: do not add visible pagination controls, page-size selectors, page state, page query params, total-count handling, paginated fetch logic, `virtualOptions`, or `data:load` wiring unless the user explicitly asks for pagination, virtual loading, or paginated backend integration

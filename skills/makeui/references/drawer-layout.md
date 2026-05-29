@@ -11,19 +11,21 @@
 
 ## Default mode
 
-Create, edit, and detail UIs default to a right-side Drawer.
+Create, edit, and detail UIs use a right-side Drawer by default. For generated Make App object create/edit/detail, this is a hard layout rule unless the user explicitly requests a different surface.
 
-- placement: right
+- placement: right; use `placement="right"` for Drawer components and `side="right"` for shadcn/ui Sheet
 - default width: `60%`
-- small screens: may use `100%`
+- small screens: may use `100%`, but the surface still enters from the right
 - mask closable: enabled by default; clicking the mask or blank area closes the current Drawer
 - header action area contains close and primary/secondary actions
 - no fixed footer by default
 - body scrolls inside the Drawer shell
 
+Do not use bottom Drawer/Sheet, mobile bottom sheet, centered Modal/Dialog, or page-level replacement for object create/edit/detail unless the user explicitly requests that different presentation.
+
 Mask click uses the same close path as the header close control. If a form has an explicit unsaved-change guard, apply that same guard to mask close instead of silently ignoring the mask click.
 
-Treat these as Make UI defaults. User requirements and established project patterns may override them.
+Treat these as Make UI defaults. For Make object create/edit/detail, right-side placement is not overridden by a generic existing bottom-sheet pattern; use a different surface only when the user explicitly asks for it or the task is not an object CRUD Drawer.
 
 Use route pages only when the user explicitly asks for an independent page, route, navigation, page jump, or standalone screen.
 
@@ -42,7 +44,7 @@ Use a compact header layout:
 - do not place a close icon/button in the left title area
 - do not render duplicate close controls, such as a left `X` plus a right `关闭` button
 - close should be icon-only by default, with accessible name/title `关闭`; avoid visible `关闭` text unless an existing project pattern explicitly requires text buttons
-- title text must be readable within the available header space. Give the title container `min-width: 0` plus a flexible width, and only apply ellipsis after real overflow; keep the full title available through `title`/tooltip. Do not shrink the title slot so short titles become `合...`.
+- title text must be readable within the available header space. Give the title container `min-width: 0` plus a flexible width, and only apply ellipsis after real overflow; keep the full title available through `title`/tooltip. Do not shrink the title slot so otherwise displayable titles are truncated.
 
 When Ant Design is used, prefer `FullscreenOutlined` and `FullscreenExitOutlined` for fullscreen controls, and the project-standard close control for closing.
 
@@ -97,7 +99,7 @@ Field-metadata-driven Make forms:
 - use the field component mapping in `component-usage.md`
 - use date pickers for date fields, searchable selectors for user/department fields when candidate data is available, select controls for select fields, mode-safe attachment controls for file fields, and read-only/association displays for lookup fields
 - do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
-- user and department selectors show search, loading, empty, error, and retry UI states around the host-provided candidate source. For generated Make App projects, the default candidate contract is `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, unless the host project documents equivalent routes
+- user and department selectors show search, loading, empty, error, and retry UI states around the host-provided candidate source. For generated Make App projects, the default UI-Service candidate contract is `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, unless the host project documents equivalent Service/API routes
 - user selector options use `userId` as value and `userName` as label; department selector options use `departmentId` as value and `departmentName` as label; merge current record values into options so detail/edit views display labels before async candidates load
 - create mode must omit `Make.Field.File` upload controls when upload requires a saved record identity
 - edit mode may render `Make.Field.File` controls only when a stable persisted record identity exists

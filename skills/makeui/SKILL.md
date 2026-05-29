@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.30.
+Current skill revision: 0.3.31.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
@@ -44,7 +44,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 ### Scope boundary
 
 - Do not add or modify authentication/login, token, OAuth, cookie, logout, `/api/make/**`, domain, gateway, deployment, Docker/K8s, Node runtime, package-manager, build-output, or Service runtime rules in `makeui`.
-- Do not define business API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source contract for UI selectors, and it must yield to host project docs when present.
+- Do not define business API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source behavior for UI selectors. Route names must yield to host project docs and the owning Service/API skill when the host documents a different transport.
 - If the task needs auth/login/logout/session behavior, use `make-app-auth`. If the task needs build output, Service runtime, packaging, or publish-readiness rules, use `make-app-runtime`.
 - `makeui` may consume host-provided object/field metadata for UI rendering, but must not decide how that metadata is fetched, stored, authenticated, or deployed.
 
@@ -67,14 +67,15 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Make record tables must use `@qfei-design/canvas-table` via `canvas-table-integration`; do not replace them with UI-library tables.
 - CanvasTable wrapper and host must fill the available content width and remaining height; use a flex height chain or accurate `calc()` fallback instead of fixed table dimensions.
 - CanvasTable defaults to `showSN` sequence numbers and a hover-revealed row-head detail icon through `bodyRowHeadSuffixOptions`, unless the user explicitly says the table does not need it.
-- Create/edit/detail use right-side Drawers by default. Drawer width defaults to `60%`, may become `100%` on small screens, and mask close is enabled.
+- Create/edit/detail must use right-side Drawer-style surfaces for default Make object CRUD. Ant Design uses `Drawer placement="right"`; shadcn/ui uses `Sheet side="right"`. Width defaults to `60%` and may become `100%` on small screens, but the surface still opens from the right. Do not use bottom Drawer/Sheet, centered Modal/Dialog, or bottom sheet unless the user explicitly asks for that different surface.
 - Create/edit/detail desktop layouts default to two columns. Do not render all fields as one full-width column on desktop unless the user explicitly asks or the viewport is too narrow.
 - Create/edit fields default to a vertical-label two-column grid. Common fields occupy one column; wide fields such as `TextArea`, `URL`/link, `File`, `Lookup`/relation selectors, long text, and rich controls span the full row. Collapse to one column on small screens.
 - Detail views default to a compact two-column label/value grid. Common fields occupy one column; long text, `TextArea`, `URL`/link-rich values, `File`, `Lookup`/relation values, attachment-heavy values, and rich content span the full row.
 - Detail values must be normalized by Make field type before rendering. Date range objects such as `{ begin, end }` or arrays such as `[begin, end]` display as a formatted range, not raw JSON; select/user/department/file/lookup values use their type-specific read-only renderers. Empty values display a muted `-`.
-- Detail Drawer/page titles must have enough flexible width for the selected object or record title. Use ellipsis only for real overflow and keep the full title available through a tooltip or accessible title; do not create a tiny title slot that truncates short names such as `合同台账` to `合...`.
+- Detail Drawer/page titles should show the complete selected object or record title whenever space permits. Give the title area flexible width and use ellipsis only for true overflow; keep the full title available through a tooltip or accessible title. Do not create a tiny title slot that truncates otherwise displayable titles.
 - Create/edit forms use type-appropriate controls. Date, select, user, department, file, and lookup fields must not silently degrade to plain text inputs. File upload is omitted in create mode when upload requires an existing record identity.
-- User and department form/detail fields use searchable candidate sources. Generated Make App defaults are `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to selector options with `userId/userName` and `departmentId/departmentName`, unless the host project documents equivalent routes.
+- User and department selector UI must consume host candidate APIs. Generated Make App UI-Service defaults are `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to selector options with `userId/userName` and `departmentId/departmentName`, unless the host project documents equivalent Service/API routes.
+- Do not use field schema `options`, local demo arrays, row samples, hardcoded names, or stale client-only lists as the source of truth for user/department selectors. Current record values may be merged into options only to echo existing selections while the real candidate API is loading or temporarily empty. If the selector appears inside advanced filter or CanvasTable cell editing, implement the surface with `make-app-filter` or `canvas-table-integration` while preserving this candidate-source contract.
 - Use dynamic object routes such as `/objects/:objectKey`. Do not generate one hard-coded route component per object.
 
 ## Out of scope
