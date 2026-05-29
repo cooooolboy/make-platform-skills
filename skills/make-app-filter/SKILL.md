@@ -48,8 +48,10 @@ It does not own general page layout (`makeui`), CanvasTable rendering internals 
 ## Default behavior
 
 - Advanced filter is optional product capability. Generate it only when the user asks for advanced filtering, table header filtering, condition builders, or the existing project already has it.
-- Once advanced filter is in scope, use the ExpensePoc default: toolbar `筛选` button, bottom-left popover, draft editing, `确认`, `清空所有`, active label `已筛选 N 个条件`, and field-type controls.
+- Once advanced filter is in scope, use the ExpensePoc default: toolbar `筛选` button, bottom-left popover, single white panel surface, draft editing, `确认`, `清空所有`, active label `已筛选 N 个条件`, and field-type controls.
+- Filter rows use one connected control line: field selector, operator selector, value editor, and delete icon. The value editor and delete icon are attached with no gap or rounded seam between them for every value editor type, including select, input, number, date, user, and department editors.
 - Empty draft rows do not count as active filters and do not compile to an expression. If the user clicks `确认` while a condition row exists but is incomplete, keep the popover open and mark only the invalid controls in red.
+- After the first failed `确认`, every draft change must revalidate the latest draft and clear fixed errors immediately. A value select/input/date/number/user/department editor that becomes valid must lose its red error state without waiting for another `确认`.
 - Clicking outside the popover or clicking the trigger to close discards unconfirmed draft edits.
 - `清空所有` empties the draft. It clears applied filters only after the user clicks `确认`.
 - Search keyword and advanced filter compile separately; merge them with `AND`. Search itself is an `OR` group over searchable text-like fields.
@@ -66,7 +68,7 @@ It does not own general page layout (`makeui`), CanvasTable rendering internals 
 - Header menu filtering must append a condition to the advanced filter draft and open the same popover. It must not submit immediately or trigger record reload before `确认`.
 - CanvasTable record-list headers should expose a more menu with `按该字段筛选` for supported fields when advanced filter is in scope, unless explicitly disabled.
 - Table scrolling, object switching, outside click, or unmount must close any header menu and restore the header suffix icon to hover-only state.
-- Tests are required for operator matrix, expression compilation, empty filter omission, draft confirm/discard, header menu linkage, unsupported field hiding, and Service payload shape.
+- Tests are required for operator matrix, expression compilation, empty filter omission, draft confirm/discard, value-control validation error rendering and clearing, header menu linkage, unsupported field hiding, and Service payload shape.
 
 ## Collaboration rules
 

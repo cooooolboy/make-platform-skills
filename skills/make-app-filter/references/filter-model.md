@@ -66,6 +66,22 @@ Advanced filter uses draft editing:
 
 Do not reload records while the user is editing draft conditions.
 
+## Validation lifecycle
+
+Validation is control-specific and draft-aware:
+
+- `确认` validates every draft condition and returns errors keyed by condition id, with separate `field`, `operator`, and `value` flags.
+- The row may get an invalid class for layout/testing, but the red border belongs only to the invalid control.
+- A required value editor must receive its own error state when `operatorNeedsValue(operator)` is true and the value is empty.
+- This includes every value editor type: text input, number input, select, multi-select, date picker, date-time picker, user selector, and department selector.
+- After the first failed `确认`, each draft change revalidates the whole latest draft or at least the changed condition against the latest tree.
+- When a user types a value, selects an option, changes a date, changes field, changes operator, adds/removes a row, or clears a row, stale errors must be removed immediately for controls that are now valid.
+- Other rows that are still invalid remain marked; do not clear all errors just because one row changed.
+- Operators that do not need values, such as empty/not-empty, must clear any stale `value` error for that condition.
+- Closing the popover without commit, opening a fresh draft, clearing all, object switch, and successful confirm reset validation state.
+
+Do not keep a `validationErrors` snapshot that only changes on the next `确认`. That causes fixed controls to stay red and makes users think valid input is still invalid.
+
 ## Active summary
 
 Only complete conditions count as active.
