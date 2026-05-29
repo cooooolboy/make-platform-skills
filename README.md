@@ -120,7 +120,7 @@ npx skills update make-app-filter
 - 不负责 Service route 实现；这些交给 `make-app-service`
 
 ### make-app-service
-指导生成、重构或审查 Make App 的 `apps/service` API，覆盖 UI-Service 合同、Service 路由、Make Data API adapter、Make adapter 环境变量/config 语义、schema/records/users/departments/lookup/file 代理接口和 Service API 测试。
+指导生成、重构或审查 Make App 的 `apps/service` API，覆盖 UI-Service 合同、Service 路由、Make Meta/Data API adapter、`MAKE_APP_KEY` / Make adapter 环境变量/config 语义、schema/records/users/departments/lookup/file 代理接口和 Service API 测试。
 
 #### 升级 skill
 ```bash
@@ -132,8 +132,8 @@ npx skills update make-app-service
 - 更新 `apps/docs/api.md` 中的 UI-Service 合同
 - 生成 schema、fields、records、record detail、create、update、delete、cell update 等通用对象接口
 - 生成人员、部门、lookup options、文件上传/删除/下载代理接口
-- 设计 Make Data API adapter、错误返回、请求参数校验、日志脱敏和接口测试
-- 约束 `apps/service/src/config.ts` 中 Make adapter 配置语义：`MAKE_API_BASE_URL` 优先、`MAKE_SERVER_URL` 兼容、缺少 Make base URL 时启动失败
+- 设计 Make Meta/Data API adapter、错误返回、请求参数校验、日志脱敏和接口测试
+- 约束 `apps/service/src/config.ts` 中 Make adapter 配置语义：`MAKE_APP_KEY` 由部署注入且 Service 调 Make Meta/Data 时使用，`MAKE_API_BASE_URL` 优先、`MAKE_SERVER_URL` 兼容，缺少必需配置时启动失败
 - 不负责页面布局；页面和组件展示交给 `makeui`
 - 不负责认证实现；统一登录、cookie、session、401/403 交给 `make-app-auth`
 - 不负责打包发布；端口、`dist/server.js`、package scripts 和镜像入口交给 `make-app-runtime`

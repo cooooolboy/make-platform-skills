@@ -1,6 +1,6 @@
 ---
 name: make-app-service
-description: Use when generating, refactoring, reviewing, or debugging Make App `apps/service` API code and UI-Service contracts. Covers Service route design, `apps/docs/api.md`, schema normalization APIs, record CRUD APIs, user/department/lookup/file proxy APIs, Make Data API adapters, Make adapter runtime config semantics, Make adapter env names such as `MAKE_API_BASE_URL`, Service error envelopes, request validation, logging, and Service API tests. Does not cover UI layout, authentication implementation, build output, Docker/K8s runtime, DSL modeling, Make CLI deployment, or canvas-table internals.
+description: Use when generating, refactoring, reviewing, or debugging Make App `apps/service` API code and UI-Service contracts. Covers Service route design, `apps/docs/api.md`, schema normalization APIs, record CRUD APIs, user/department/lookup/file proxy APIs, Make Meta/Data API adapters, Make adapter runtime config such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, Service error envelopes, request validation, logging, and Service API tests. Does not cover UI layout, authentication implementation, build output, Docker/K8s runtime, DSL modeling, Make CLI deployment, or canvas-table internals.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/make-app-service
 ---
@@ -19,7 +19,7 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 2. Preserve the host API contract. Update `apps/docs/api.md` before or with any Service route or response-shape change.
 3. Keep Service thin: validate UI input, normalize request/response shapes, call Make adapters, and return stable UI-facing contracts.
 4. Do not read local DSL/YAML as a published runtime data source. Runtime schema and data come from Make/backend APIs or the host Service adapter.
-5. Use shared adapters for Make calls, candidate APIs, lookup, files, and schema normalization. Build Make adapter URLs from normalized runtime config, not from route-local domains.
+5. Use shared adapters for Make Meta/Data calls, candidate APIs, lookup, files, and schema normalization. Build Make adapter URLs and `appKey` from normalized runtime config, not from route-local domains or UI input.
 6. Add or update Service tests for every changed route, adapter, validation path, and error path.
 7. Read only the needed reference files from the map below.
 
@@ -40,7 +40,7 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 
 - `make-app-service` defines Service-owned app APIs such as schema, records, candidates, lookup options, file proxy, and thin custom orchestration.
 - It may document route names, query/body shapes, response envelopes, and adapter behavior.
-- It may define Service-side Make adapter config semantics and environment variable names used by Service source, such as `MAKE_API_BASE_URL`, while leaving deployment injection to runtime/operations.
+- It may define Service-side Make adapter config semantics and environment variable names used by Service source, such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, while leaving deployment injection to runtime/operations.
 - It must not decide authentication implementation, OAuth/session mechanics, or `/api/make/auth/**` behavior; those belong to `make-app-auth`.
 - It must not decide build output, Service port, Docker/K8s entrypoint, package scripts, workspace manifests, or publish readiness; those belong to `make-app-runtime`.
 - It must not define business models, entities, field meanings, relations, or DSL YAML; those belong to `makedsl`.
@@ -66,7 +66,9 @@ Keep route handlers small. Put Make/backend calls in adapter modules, cross-rout
 - `apps/docs/api.md` is the UI-Service contract source. Do not change Service route behavior without updating it.
 - UI-facing APIs return stable, normalized shapes. Do not leak raw Make response envelopes unless the route contract explicitly says so.
 - Service route handlers validate query/body/path params before calling Make adapters and return 400 for invalid client input.
-- Service adapters own non-auth Make request details: `X-Make-Target`, Make response code checks, pagination translation, and file body mapping. Auth/session forwarding belongs to `make-app-auth`; publish/runtime proxy header contracts belong to `make-app-runtime`.
+- Service adapters own non-auth Make request details: `appKey`, `X-Make-Target`, Make response code checks, pagination translation, and file body mapping. Auth/session forwarding belongs to `make-app-auth`; publish/runtime proxy header contracts belong to `make-app-runtime`.
+- Make-backed Service config must read `appKey` from deployment-injected `MAKE_APP_KEY`. Generated production code must not invent, hard-code, or accept `appKey` from UI requests.
+- If `MAKE_APP_KEY` is missing for a Service that calls Make Meta/Data APIs, config loading must fail with a clear non-secret error before the Service is reported ready. Local test fixtures may inject `MAKE_APP_KEY` explicitly.
 - New generated Service code reads Make adapter runtime config from `apps/service/src/config.ts` or the host equivalent. `MAKE_API_BASE_URL` is the preferred Make base URL env var; `MAKE_SERVER_URL` is a compatibility alias only.
 - If neither `MAKE_API_BASE_URL` nor `MAKE_SERVER_URL` is configured for a Make-backed Service, config loading must fail with a clear non-secret error before the Service is reported ready.
 - `MAKE_AUTH_BASE_URL` and `MAKE_BUSINESS_BASE_URL` may override auth/business/data forwarding bases; when absent, they fall back to the normalized Make API base URL. `MAKE_SCHEMA_PATH` defaults to `/meta/v1/schema`.
