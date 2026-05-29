@@ -191,7 +191,7 @@ Typical concerns:
 - auxiliary render mapping data for avatars/names
 - candidate source: host user API or existing people picker data source; current row values are only for echoing existing selections
 
-For generated Make App projects, the default people candidate source is:
+For generated Make App projects, the default people candidate source is a UI-Service contract; use the host equivalent route when the host project requires it:
 
 - `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
 - option value: `userId`
@@ -217,7 +217,7 @@ Typical concerns:
 - extra mapped render data for downstream cell rendering
 - candidate source: real department API or host department selector data; current cell values are only for echoing existing selections
 
-For generated Make App projects, the default department candidate source is:
+For generated Make App projects, the default department candidate source is a UI-Service contract; use the host equivalent route when the host project requires it:
 
 - `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
 - option value: `departmentId`

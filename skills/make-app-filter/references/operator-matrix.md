@@ -71,7 +71,7 @@ Default value rules:
 
 ## Candidate sources
 
-User and department selector controls must use remote candidate sources:
+User and department selector controls must use remote candidate sources. Keep the behavior contract when route names are provided through host equivalent routes:
 
 - users: `GET /api/users?keyword=&page=&size=` or host equivalent
 - departments: `GET /api/departments?keyword=&page=&size=` or host equivalent

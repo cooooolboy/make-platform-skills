@@ -1,6 +1,6 @@
 ---
 name: make-app-runtime
-description: Use when generating, refactoring, reviewing, or debugging Make App project runtime structure, workspace manifests, Service runtime, local/dev scripts, build outputs, Docker/K8s image entrypoints, publish readiness, or packaging errors such as missing `apps/service/dist/server.js`. Covers `apps/` workspace contracts, `apps/ui/dist`, `apps/service` port/config/build/start contracts, runtime artifact tests, and forwarded host/proto headers. Does not cover UI layout, authentication implementation, DSL modeling, Make CLI resource deployment, or canvas-table internals.
+description: Use when generating, refactoring, reviewing, or debugging Make App project runtime structure, workspace manifests, Service runtime, local/dev scripts, build outputs, Docker/K8s image entrypoints, publish readiness, or packaging errors such as missing `apps/service/dist/server.js`. Covers `apps/` workspace contracts, `apps/ui/dist`, `apps/service` port/build/start contracts, runtime config file location, runtime artifact tests, and forwarded host/proto header preservation. Does not cover UI layout, authentication implementation, Make adapter env semantics, DSL modeling, Make CLI resource deployment, or canvas-table internals.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/make-app-runtime
 ---
@@ -9,9 +9,9 @@ metadata:
 
 Use this skill for Make App runtime and packaging contracts. These rules are intentionally strict because platform image entrypoints and publish artifacts should not vary per POC.
 
-This skill owns project runtime structure, workspace manifests, build outputs, Service start entry, Service port/config baseline, Docker/K8s runtime entry alignment, and publish-readiness checks.
+This skill owns project runtime structure, workspace manifests, build outputs, Service start entry, Service port baseline, runtime config file location, Docker/K8s runtime entry alignment, and publish-readiness checks.
 
-It does not own UI layout (`makeui`), authentication implementation (`make-app-auth`), DSL modeling (`makedsl`), Make resource deployment (`makecli`), or canvas-table behavior (`canvas-table-integration`).
+It does not own UI layout (`makeui`), authentication implementation (`make-app-auth`), Make adapter environment variable semantics (`make-app-service`), DSL modeling (`makedsl`), Make resource deployment (`makecli`), or canvas-table behavior (`canvas-table-integration`).
 
 ## Quick start
 
@@ -125,9 +125,9 @@ pnpm --filter <service-package-name> build
 test -f apps/service/dist/server.js
 ```
 
-## Runtime config and port
+## Runtime config location and port
 
-Service config centralizes runtime environment reads in `apps/service/src/config.ts` for new projects.
+Service runtime environment reads are centralized in `apps/service/src/config.ts` for new projects. This skill only requires the config entry location and fixed port handling needed by runtime/startup. Make adapter variables such as `MAKE_API_BASE_URL`, `MAKE_SERVER_URL`, `MAKE_AUTH_BASE_URL`, and `MAKE_BUSINESS_BASE_URL` belong to `make-app-service`.
 
 Service HTTP port is fixed to `3000`. Generated or refactored Service code, `.env.example`, docs, health checks, tests, CORS, and UI local Service base URL examples must align to `3000`.
 
