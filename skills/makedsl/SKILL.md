@@ -1,7 +1,7 @@
 ---
 name: makedsl
 description: Use when designing or generating Make platform DSL YAML — defining apps, entities, fields, relations, views, or record schemas. Also triggered by requests like "建模", "建表", "加字段", "定义关联", or "生成 DSL".
-version: 0.1.8
+version: 0.1.9
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makedsl
 ---
@@ -18,6 +18,7 @@ make platform 从 kubernetes 和 ansible 中借鉴了设计思路, 业务的模�
 - Do not generate Service startup logic that hard-codes container paths such as `/dsl/00-app.yaml`.
 - Published Service should load schema from Make remote schema APIs or environment-provided config. Local DSL files are acceptable for development, fixtures, tests, and `makecli apply`, but must not be the only source required for k8s startup.
 - If a Service needs a fallback local schema for offline development, make it explicit and test both the remote-schema path and the fallback path.
+- When frontend build or published App runtime needs remote schema, use Meta Service APIs from @references/MetaAPIDesign.md instead of reading local DSL files.
 
 # DSL定义
 
@@ -157,3 +158,6 @@ properties:
 
 # DataAPI | 数据 CRUD-LS
  对数据的操作可以参考 @references/DataAPIDesign.md
+
+# MetaAPI | 元数据与 Schema
+ 前端构建、运行时 schema 加载、实体/字段/关联元数据读取可以参考 @references/MetaAPIDesign.md
