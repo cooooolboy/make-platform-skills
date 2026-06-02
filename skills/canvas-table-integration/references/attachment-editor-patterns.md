@@ -182,7 +182,9 @@ Attachment panels often need to be wider and taller than the edited cell.
 Recommended placement behavior:
 
 - choose a placement that keeps the panel in view and visually connected to the edited cell
-- switch alignment when the viewport or scroll container does not have enough space
+- default to left alignment from the edited cell when the panel fits in the visible viewport
+- switch to right alignment only when the right-side viewport space from the edited cell is smaller than the panel width
+- calculate placement from the post-scroll anchor rectangle, not from stale cell coordinates captured before the table scrolled
 - covering the edited cell border is acceptable when it prevents the active cell outline from showing through the popup
 - handle placement with host-side CSS or a host-side positioner before considering canvas-table package changes
 
