@@ -37,7 +37,7 @@ This skill has three tracks:
   - host-side edit controller architecture
   - editor-container patterns
   - field-editor mappings
-  - ExpensePoc-derived editable-cell defaults: popup editors open immediately, inline editors fill the active cell, and unchanged values do not call save APIs
+  - ExpensePoc-derived editable-cell defaults: double-click enters edit, clipped cells scroll fully into view before editing, popup editors open immediately, inline editors fill the active cell, and unchanged values do not call save APIs
   - ExpensePoc-derived popup visibility, empty-value, no-double-border, and attachment-panel visual rules
   - schema field-type mappings for display value vs submit value
   - draft save layer vs immediate save layer
@@ -88,11 +88,11 @@ For new Make App projects or pages that display Make schema records, choose Trac
 - 设计或接入 `customEdit`
 - 复用项目已有输入框 / 下拉 / 日期 / 人员 / 部门 / 附件组件
 - 让表格 cell editor 的 Make 字段映射与 Drawer 表单保持一致
-- 按 ExpensePoc 默认方式处理编辑器定位、滚动、关闭、保存、回显、回填、回滚
+- 按 ExpensePoc 默认方式处理双击进入编辑、编辑前滚动到可见、编辑器定位、弹窗左右/上下边界、关闭、保存、回显、回填、回滚
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
 - 按后端字段类型补齐 18 种 Make 字段的展示和可编辑/只读边界
 - 把现有项目字段编辑器接进 canvas table
-- 修复双击进入编辑后弹窗没有立即打开、编辑器没有铺满单元格、回显缺失、未修改仍调用接口等单元格编辑问题
+- 修复双击进入编辑后弹窗没有立即打开、被遮挡单元格没有先滚动到可见、编辑器没有铺满单元格、回显缺失、未修改仍调用接口等单元格编辑问题
 
 ### Track C: Make field-display integration
 
@@ -252,8 +252,9 @@ This track does **not** require a fixed UI library. Prefer the current project's
 
 For Make schema-driven editable tables, default to the ExpensePoc-proven edit baseline unless the user explicitly asks for a different interaction:
 
+- Make editable cells enter edit on double-click by default. Keyboard/programmatic edit entry may still be supported, but a pointer user must not need a third click after the double-click activation.
 - popup editors such as date, date range, select, user, department, lookup selector, and attachment panel open during the same cell-edit activation; never require an extra click after edit mode starts
-- before mounting an editor, partially hidden target cells must be scrolled into the visible body viewport so the active cell and editor anchor are not clipped
+- before mounting or showing the real editor/popup, partially hidden target cells must finish scrolling into the visible body viewport so the active cell and editor anchor are not clipped
 - popup editor triggers inside the active cell are borderless and shadowless; the only blue editing border should be the canvas-table active-cell outline or the attachment popup panel itself
 - inline editors such as text, textarea, number, currency, and percent fill the entire active cell with no extra wrapper border, margin, or outer padding
 - every editor must echo the current cell value on entry using normalized backend value shapes, not formatted display strings

@@ -24,20 +24,24 @@ Do not let each field editor call backend APIs directly. Field editors extract v
 Canonical flow:
 
 1. Resolve the editable field config from schema field type, not from column title text.
-2. Before mounting the editor, scroll the target cell fully into the visible table body if it is clipped horizontally, vertically, by fixed-left boundaries, or by the container edge.
-3. Create a full-cell editor element for the active cell and a separate popup root appended outside the canvas host.
-4. Mount the field editor with the normalized current value, then focus it. Popup fields must open immediately.
-5. Return `element`, `getValue()`, object `autoClose`, `relatedElements()`, `overlayOptions`, and `destroy()` from `customEdit`.
-6. On any commit-style close path, call `updateVal()`, compare `oldValue` with `nextValue.submitValue` by field type, and skip all save/backfill work when unchanged.
-7. If changed, pass the normalized commit to the host draft or immediate-save layer. With `editApplyMode: "controlled"`, call `setCellData(...)` or `setRowData(...)` only after the host layer accepts the commit. On failure, rollback to the old value.
+2. Enter edit mode from the canvas-table edit activation. For pointer users, the default Make table behavior is double-clicking an editable cell. The first click may activate/select the cell, but after the double-click enters edit mode there must not be a third click to open the field popup.
+3. Before mounting or showing the real field editor, scroll the target cell fully into the visible table body if it is clipped horizontally, vertically, by fixed-left boundaries, by the row header, by the table header/body boundary, or by the container edge.
+4. If scrolling is needed, do not render/open the field control or popup during the pre-scroll frame. Use a delayed mount, hidden placeholder, or equivalent host bridge until `scrollTo(...)` has applied and the post-scroll geometry is available.
+5. After any scroll, recalculate or wait until the next animation frame so editor coordinates come from the post-scroll cell geometry.
+6. Create a full-cell editor element for the active cell and a separate popup root appended outside the canvas host.
+7. Mount the field editor with the normalized current value, then focus it. Popup fields must open immediately after the post-scroll mount.
+8. For popup fields, choose placement from the current viewport and post-scroll anchor geometry: prefer left/top-start alignment when the popup fits; flip to right/end alignment or shift within the viewport when the popup would be clipped on the right or bottom edge.
+9. Return `element`, `getValue()`, object `autoClose`, `relatedElements()`, `overlayOptions`, and `destroy()` from `customEdit`.
+10. On any commit-style close path, call `updateVal()`, compare `oldValue` with `nextValue.submitValue` by field type, and skip all save/backfill work when unchanged.
+11. If changed, pass the normalized commit to the host draft or immediate-save layer. With `editApplyMode: "controlled"`, call `setCellData(...)` or `setRowData(...)` only after the host layer accepts the commit. On failure, rollback to the old value.
 
 ## 2. Activation and popup rule
 
 When the table enters edit mode, the editor must be usable immediately.
 
-Popup-style fields must open their popup during the same edit activation. A user may need to click or double-click the cell according to the table's activation behavior, but after edit mode starts the field popup must already be open. It is incorrect to first show a small input and require one more click to open the picker/dropdown.
+Default Make editable-cell activation is double-click. A single click may only activate/select the cell; double-click must enter edit mode. Keyboard or programmatic edit entry may exist, but generated POC projects must support the double-click path. Once double-click has entered edit mode, popup-style fields must already be open. It is incorrect to first show a small input and require one more click to open the picker/dropdown.
 
-Before mounting the editor, make the target cell visible. If the clicked cell is partially clipped by horizontal scroll, vertical scroll, the fixed-left region, header/body viewport boundary, or the container edge, scroll just enough to bring the full editable cell into the visible body viewport, then calculate editor placement from the updated geometry. Do not mount the editor at the old clipped coordinates and then rely on the popup to compensate.
+Before mounting the real field editor, make the target cell visible. If the clicked cell is partially clipped by horizontal scroll, vertical scroll, the fixed-left region, header/body viewport boundary, or the container edge, scroll just enough to bring the full editable cell into the visible body viewport. Only after that scroll has applied should the host mount/open the editor and calculate popup placement from the updated geometry. Do not mount the editor at the old clipped coordinates, do not show a pre-scroll popup, and do not rely on the popup to compensate.
 
 Practical rules:
 
@@ -47,6 +51,8 @@ Practical rules:
 - fixed-left cells should not trigger horizontal scroll, but normal cells must not be hidden behind the row-head or fixed-left area
 - after calling the table's public scroll method, recalculate or wait for the next frame before focusing/opening the editor
 - use the installed package's public scroll APIs, for example `scrollTo(...)` when available; do not mutate internal scroll state directly
+- do not scroll merely because a popup panel is wider than the cell; first ensure the cell itself is visible, then let popup placement/viewport shifting handle the wider panel
+- do not include popup width, guessed popup placement, or a pre-scroll right-aligned dropdown in the scroll calculation. Scroll is based only on making the cell visible; popup placement is decided after scroll completion
 
 Default popup-style fields:
 
@@ -71,7 +77,15 @@ Popup visibility requirements:
 - popup/panel roots are returned by `relatedElements()` so clicks inside them are not outside clicks
 - `overlayOptions: { overflow: "visible" }` is enabled for any editor that can extend outside the cell
 - select/user/department dropdown min width is at least the active cell width, and panel placement must avoid cutting off the lower/right edges
-- if the active cell or popup would be clipped, scroll/flip/shift before the user sees it; do not accept a dropdown whose bottom border, right border, or last options are hidden
+- if the active cell would be clipped, scroll the cell into view before mounting the editor; if only the popup would be clipped, flip or shift the popup before the user sees it. Do not accept a dropdown whose bottom border, right border, or last options are hidden
+
+Placement baseline:
+
+- select, user, department, date, date range, and lookup popups prefer left/top-start alignment from the edited cell when there is enough viewport space
+- if the popup would overflow right, align its right edge with the edited cell or shift it left within the viewport
+- if the popup would overflow bottom, flip above the cell or shift upward within the viewport while keeping the anchor visually clear
+- attachment panels follow the ExpensePoc rule: default left alignment from the edited cell; switch to right alignment only when the available right-side viewport space is smaller than the panel width
+- all placement decisions use the post-scroll cell geometry, not stale coordinates from before `scrollTo(...)`. A dropdown that chooses right alignment before scroll and then switches left after scroll is a bug; the popup should not be shown or placed until after the scroll has settled
 
 ## 3. No double-border rule
 
@@ -149,6 +163,8 @@ A panel that contains a title, toolbar button, inner bordered list row, and card
 
 Reuse the host Drawer form's field-type mapping where possible so Drawer forms and table cell editors submit the same value shapes.
 
+For user editors, the selected value echo and dropdown candidate rows must use the same avatar dimensions as table display: a fixed 22px circular image/fallback, 11px radius, 9px centered fallback text, and the user name outside the avatar. The avatar background must not be a content-sized text pill, and the fallback text must not be enlarged to fill the circle.
+
 ## 7. Initial value and echo rule
 
 Resolve the editor's initial value from the table edit options and row data in this order:
@@ -176,6 +192,15 @@ Normalize current backend value shapes before rendering editor state:
 
 If remote user or department candidates are still loading, the current cell value must still echo from the record value. Do not show an empty select just because the candidate API has not returned yet.
 User and department candidate lists must use the same host candidate adapters as Drawer forms and advanced filters. Do not source cell-editor candidates from field schema options, static fixtures, current table rows, or hardcoded demo lists; current values are only an echo fallback.
+
+Person-field echo requirements:
+
+- `SingleUser` may arrive as one object, a one-item array, a scalar id, or an identity API object; normalize all of them before opening the editor.
+- `MultiUser` may arrive as an array of record-style or identity-service objects; normalize every item independently.
+- When a current user value has a stable id plus label, merge it into the selector options as an echo option before rendering, even if `/api/users` has not loaded or does not include that user in the current page.
+- When a current user value has a label but no stable id, display that label as a temporary echo value and require the user to choose a real candidate before committing a changed value. Do not clear the editor to empty.
+- The people editor is empty only when the normalized current value has neither stable id nor display label.
+- Existing selected users must stay visible while remote search/candidate loading updates; a later candidate response must merge with, not replace, the selected echo options.
 
 Empty value rule:
 
@@ -206,6 +231,8 @@ type CellEditorValue = {
 Use `renderValue` to backfill canvas display data, `submitValue` for dirty comparison and API payloads, and `displayValue` only for user-facing text.
 
 Do not submit formatted values such as `¥1,260,000.00`, `2026-06-01 至 2026-12-31`, option labels, user names, department names, or attachment preview text.
+
+After a changed commit is accepted, the visible cell must receive the accepted `renderValue`. The table renderer then normalizes and displays that value by field type. Do not display `submitValue` directly when it is an id, enum value, date object, attachment payload, or backend relation payload. If the host save layer returns a fresher normalized record value, prefer that returned render value and then call `setCellData(...)` or `setRowData(...)`.
 
 ## 9. Close, save, and rollback rule
 
@@ -254,16 +281,20 @@ The equality check must understand field types. Examples:
 Before reporting an editable Make table as done, verify at least:
 
 - popup fields open their picker/dropdown/panel immediately after edit mode starts
-- clicking a partially clipped editable cell scrolls it fully into view before the editor mounts
+- pointer activation supports double-click into edit mode; popup fields do not require a third click after the double-click
+- clicking a partially clipped editable cell scrolls it fully into view before the real editor or popup is mounted/opened
+- editor and popup coordinates are calculated only after any scroll has applied, so the full-cell editor is anchored to the visible cell
 - popup/dropdown panels are fully visible; their right and bottom edges, last option rows, date footer, and attachment controls are not clipped
+- popup placement is decided from post-scroll geometry; popups default left/top-start when they fit, flip or shift near right/bottom viewport edges, and attachment panels default left and switch right only when right-side space is insufficient
 - select, date, user, and department triggers do not draw a second blue border inside the active cell
 - inline editors fill the active cell and have no extra nested border or outer margin
 - select/user/department empty states do not create a fake `-` option
 - attachment fields use one connected popup/panel with compact thumbnails and one upload zone, not a nested form card
 - empty attachment editors show only the upload zone, not a fake `-` card or empty list row
 - date range, select, user, department, number, textarea, and file fields echo existing values on entry
+- user fields with current values from `{ recordID, name }`, `{ userId, userName }`, one-item arrays, or loaded candidate objects all show the selected person on entry; candidate loading must not blank the editor
 - unchanged close from outside click, picker/dropdown close, same-value selection, Enter, Tab, or `edit:end` fallback does not call save APIs, create dirty state, or backfill table data
-- changed commit sends normalized submit values and backfills accepted render values
+- changed commit sends normalized submit values and backfills accepted render values, not raw ids or formatted display labels
 - `Escape` cancels without writing the candidate value
 - clicking inside a popup does not close the editor because the popup root is included in `relatedElements()`
 - `destroy()` removes editor and popup DOM roots

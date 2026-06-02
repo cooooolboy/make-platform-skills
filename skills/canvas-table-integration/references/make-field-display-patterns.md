@@ -43,7 +43,7 @@ Default visual rules:
 - tags are 22px tall, 4px radius, 12px text, 8px horizontal text padding, and use `+N` overflow when space runs out. A visible tag's tooltip appears only when that tag label is ellipsized; a `+N` tag's tooltip contains the full label list joined with `、`
 - select tags use `#eef4ff` background and `#1677ff` text, with option labels resolved from field properties before falling back to raw values
 - department tags use `#f2f4f7` background and `#344054` text, with the same tag overflow and tooltip behavior as select fields
-- user values render a fixed compact avatar plus name text and `+N` overflow. Avatar image and fallback color circle both use a fixed 22px size, 11px radius, and no layout-driven resizing. Fallback avatar background follows the project primary/avatar token, defaulting to a restrained blue when no token exists; only use a hash color palette when the host already has that convention and the colors are muted. Fallback avatar text uses one meaningful CJK character or at most two ASCII initials, 9-10px white centered text, never two large Chinese characters. Visible user names get tooltip only when ellipsized; `+N` gets a tooltip with all names
+- user values render a fixed compact avatar plus name text and `+N` overflow. Avatar image and fallback color circle both use the ExpensePoc avatar token: fixed 22px diameter, 11px radius, no layout-driven resizing, and no content-sized background. Fallback avatar background follows the project primary/avatar token, defaulting to a restrained blue when no token exists; only use a hash color palette when the host already has that convention and the colors are muted. Fallback avatar text uses 9px white centered text, 400 weight, and at most two display characters. The renderer may use the last two Chinese characters like ExpensePoc, but it must never shrink the circle, enlarge the font, or draw a small pill/tag background around the text. Visible user names get tooltip only when ellipsized; `+N` gets a tooltip with all names
 - file values render 22px image thumbnails for images, otherwise a 22px file-extension block, and `+N` overflow when width cannot fit all attachments. Do not flatten attachments into plain filenames; `+N` tooltip should expose the full attachment name list when names are available
 - lookup references render blue clickable text only when entity + `recordID` exist and the reference is not deleted; deleted references render muted with strikethrough. Multiple lookup references render inline with gaps, collapse to `+N` when width runs out, and use overflow-only tooltip for ellipsized labels or collapsed lists
 
@@ -130,7 +130,7 @@ Use tolerant extraction. Do not fail the cell because one key is absent.
 - user label priority: `name`, `userName`, `displayName`, `label`, `userId`, `id`, `recordID`
 - user identity priority: `recordID`, `userId`, `id`; fallback to name for display-only avatar color
 - user avatar priority: `avatar`, `avatarM`, `avatarL`, `avatarS`, `avatarOrigin`, `userAvatar`
-- user fallback avatar text: derive from the normalized display name, prefer the first meaningful CJK character; for non-CJK names use up to two uppercase initials. Do not use the full name or the last two Chinese characters in the avatar. The full name remains outside the avatar as ellipsized text.
+- user fallback avatar text: derive from the normalized display name, using one or two short display characters. Chinese names may use the last two characters, matching ExpensePoc; non-CJK names use up to two uppercase initials. The full name remains outside the avatar as ellipsized text.
 - department candidate API results: value/id is `departmentId`, label is `departmentName`; flatten trees before option display
 - department label priority: `name`, `departmentName`, `displayName`, `label`, `departmentId`, `id`, `recordID`
 - URL href priority: `href`, `url`, `value`; text priority: `label`, `name`, href
@@ -148,7 +148,7 @@ Keep renderers focused and canvas-only:
 - `text` / `number` / `date` / unknown: `TextShape`, ellipsis, overflow-only tooltip, muted `-` for empty
 - `url`: validate href; render clickable text only for safe `http(s)`, protocol-relative, or absolute app paths; use overflow-only tooltip
 - `select` and `department`: tag renderer; reserve room for `+N`; visible tag tooltip only when its label is ellipsized; `+N` tooltip contains the complete label list
-- `user`: avatar image if present, otherwise a stable compact color circle plus fallback text; render the full display name outside the avatar with ellipsis and overflow-only tooltip; use `+N` with full-name tooltip for hidden users
+- `user`: avatar image if present, otherwise a stable compact color circle plus fallback text; use an actual 22px circle/image, not a text tag or content-sized background. Render the full display name outside the avatar with ellipsis and overflow-only tooltip; use `+N` with full-name tooltip for hidden users
 - `file`: image attachments use `ImgShape`; other files use a file icon/extension block; bind click to open safe URL; show `+N` only when width cannot fit all visible items; use the `+N` tooltip for full attachment names instead of flattening the cell to text
 - `lookup`: normalize to explicit reference items when possible; render openable references as blue clickable text, deleted references muted with strikethrough, collapsed references as `+N` with full-label tooltip
 - clickable lookup text should use shape-level click handlers only for valid reference items; missing `recordID` or deleted references render as plain text
@@ -182,7 +182,7 @@ Add focused tests before or with implementation:
 - backend variants: primitive, object, array, JSON string, empty value
 - select option label fallback
 - user backend shapes with `name`, `userName`, `recordID`, `userId`, and avatar keys
-- user renderer uses a fixed compact avatar: 22px circle/image, 9-10px fallback text, one CJK character or two ASCII initials, and a separate ellipsized user-name text; it must not render two oversized Chinese characters inside the avatar
+- user renderer uses a fixed compact avatar: 22px circle/image, 11px radius, 9px fallback text, one or two short display characters, and a separate ellipsized user-name text. It must not render oversized Chinese characters, shrink the avatar background around text, or replace the circle with a pill/tag.
 - department backend shapes with `name`, `departmentName`, `recordID`, and tree/candidate data when relevant
 - file URL/object/JSON normalization and image vs file rendering
 - lookup `{ entity, field, data }` object and JSON-string wrappers

@@ -73,8 +73,8 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 7. Keep text, number, select, date, and attachment metadata as reusable editor patterns, not fixed component choices.
 8. Use `editApplyMode: "controlled"` when a business save or draft layer owns writes; after save accepts a commit, backfill with `setCellData(...)` or `setRowData(...)`.
 9. For popup editors, return `relatedElements()`, use `overlayOptions` when overflow is needed, and prefer object `autoClose`.
-10. Popup editors must open immediately when edit mode starts; do not require a third click after the cell has entered editing.
-11. Before mounting an editor, scroll a partially hidden target cell fully into the visible body viewport and then calculate editor geometry.
+10. Pointer users enter Make cell editing by double-clicking the editable cell; popup editors must open immediately when edit mode starts and must not require a third click.
+11. Before mounting/opening the real editor or popup, scroll a partially hidden target cell fully into the visible body viewport, then calculate editor geometry from the post-scroll cell position.
 12. Inline editors must fill the active cell and avoid nested bordered wrappers, cards, form items, margin, and outer padding.
 13. Keep table initialization stable during draft updates; do not recreate the table just because merged rows or callbacks changed.
 14. Restore focus to the current canvas only inside the canvas edit lifecycle; never steal focus from host modal, drawer, dialog, popover, or form interactions.
@@ -106,7 +106,7 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 6. Read the host Make schema and Drawer form field mapping before coding editors.
 7. Classify supported field types into text, number, date, option, identity, attachment, and read-only groups before coding editors.
 8. For date, user, department, select, file, and lookup fields, choose a type-appropriate editor, read-only display, or explicit documented fallback before implementation.
-9. Apply `make-cell-edit-defaults.md`: popup editors open immediately, inline editors fill the cell, current values echo on entry, and unchanged commits do not call save APIs.
+9. Apply `make-cell-edit-defaults.md`: double-click enters edit, clipped cells scroll fully into view before editor mount, popup editors open immediately, inline editors fill the cell, current values echo on entry, and unchanged commits do not call save APIs.
 10. Design or reuse a host edit controller layer before writing field-specific code.
 11. Design or reuse a single editor-container abstraction before writing individual field editors.
 12. Implement or reuse field editors through a common editor interface.
@@ -157,9 +157,9 @@ Track B common capabilities:
 - submit-style and realtime-style field editors
 - field-editor mapping by business field type
 - Make-style field coverage: `ID`, `Text`, `TextArea`, `URL`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `File`, `Lookup`
-- editor overlay positioning and scroll-follow behavior
+- double-click edit activation, editor overlay positioning, scroll-into-view, popup flip/shift, and scroll-follow behavior
 - `commit(...)` / `cancel(...)` / `updateValue(...)` usage, with `close(commit)` and `changeValue(...)` treated as legacy compatibility only
-- `edit:end` as the post-commit event surface
+- `edit:end` as the post-commit event surface, with accepted `renderValue` backfilled to the visible table cell
 - attachment field integration using host upload/file components or drag/drop DOM editors plus canvas-table render support
 - backend system identity handling for row keys, dirty keys, detail routes, and attachment preconditions
 
@@ -173,7 +173,7 @@ Track C common capabilities:
 - pure field-display adapter before canvas rendering
 - text/link renderer with ellipsis, tooltip, empty `-`, and safe click handling
 - tag renderer for select and department values, including `+N` overflow
-- user renderer with fixed compact avatar image/fallback circle, restrained stable avatar color, one-character or initials fallback text, separate ellipsized name text, and `+N` overflow
+- user renderer with fixed 22px compact avatar image/fallback circle, restrained stable avatar color, one-or-two-character fallback text at 9px, separate ellipsized name text, and `+N` overflow
 - attachment renderer with image thumbnails, file-extension blocks, safe open behavior, and `+N` overflow
 - lookup renderer with clickable valid references, muted deleted references, strikethrough, and fallback label extraction
 - row-head defaults: `showSN` and `bodyRowHeadSuffixOptions`

@@ -177,7 +177,7 @@ Typical concerns:
 For Make-style select fields, prefer schema options such as `{ label, value }`. Submit the raw value or value array; keep tag labels in `displayValue` or render mapping.
 Select editors should open the dropdown immediately when the edit session begins. Single-select may commit after a selection change; multi-select usually remains open while the user manages tags and commits on close/Tab/outside-click according to the host policy.
 
-Do not synthesize a `-` option for empty values. Empty display uses the table renderer's muted placeholder, but editor options must contain only real schema/candidate options unless the backend itself defines an option whose value is `-`. For empty single-select state, use `undefined`/clear state plus placeholder text; for empty multi-select state, use `[]`. The current record value may be merged into options only when it has a real value/id that is not yet present in loaded options.
+Do not synthesize a `-` option for empty values. Empty display uses the table renderer's muted placeholder, but editor options must contain only real schema/candidate options unless the backend itself defines an option whose value is `-`. For empty single-select state, use `undefined`/clear state plus placeholder text; for empty multi-select state, use `[]`. For generic select fields, the current record value may be merged into options only when it has a real value/id that is not yet present in loaded options. Identity fields follow the person/department echo rules below.
 
 ## 7. Person fields
 
@@ -201,6 +201,10 @@ For generated Make App projects, the default people candidate source is a UI-Ser
 - optional avatar: `avatar`
 
 For Make identity values, tolerate both record-style values and current identity-service values. Read ids from `recordID`, `userId`, or `id`, and labels from `name`, `userName`, `displayName`, or `label`. For multi-user fields, normalize arrays with the same priority before dirty comparison and submit conversion.
+
+People selector options, selected values, and inline echo UI should reuse the same ExpensePoc avatar token as table display: fixed 22px circular image/fallback, 11px radius, 9px centered fallback text, 400 weight, and a separate name label. Do not render user initials with a content-sized pill/tag background, do not enlarge the avatar text, and do not shrink the circular background around the text. Empty user values use placeholder/clear state, not a fake `-` avatar or candidate option.
+
+Current-value echo is mandatory. `SingleUser` may arrive as one object, a one-item array, a scalar id, or an identity API object; `MultiUser` may arrive as an array. Normalize these shapes before rendering the selector. If a selected user has an id and label, merge it into the selector options as an echo option even when `/api/users` is still loading or the current page of candidates does not contain that user. If the selected user has only a label and no stable id, keep that label visible as a temporary echo and require a real candidate selection before committing a changed value; do not render the editor empty. Candidate responses must merge with selected echo options rather than replacing them.
 
 Do not use field schema `options`, table row samples, hardcoded fixtures, or mock users as candidate lists in production. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
 The people editor must echo the current record value even while remote candidates are loading. Normalize ids from `recordID`, `userId`, or `id`; normalize labels from `name`, `userName`, `displayName`, or `label`.

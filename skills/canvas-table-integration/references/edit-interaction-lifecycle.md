@@ -6,14 +6,14 @@ Use this file to reason about the full editing lifecycle from activation to clos
 
 Common entry paths:
 
-- pointer interaction on an active editable cell
+- double-click on an editable cell, which is the default pointer activation for Make editable tables
 - keyboard input starting directly from the active cell
 
 When editing starts from keyboard input, `keyCode` may matter for the host editor.
 
-For popup-style Make field editors, the popup must open during the same edit activation. If the user activates a date range, select, user, department, lookup selector, or attachment cell and only sees a small inline input until they click again, the integration is wrong. The field editor should mount opened and then focus itself.
+For pointer users, a single click may activate/select the cell and the double-click enters edit mode. After that double-click activation, there must not be another click just to open the picker/dropdown/panel. For popup-style Make field editors, the popup must open during the same edit activation. If the user activates a date range, select, user, department, lookup selector, or attachment cell and only sees a small inline input until they click again, the integration is wrong. The field editor should mount opened and then focus itself.
 
-Before mounting the editor, check whether the target cell is fully visible in the body viewport. If it is partially clipped by scroll position, fixed-left boundaries, headers, or container edges, scroll the table just enough to make the cell visible, then mount and focus the editor using the updated cell geometry.
+Before mounting the real field editor, check whether the target cell is fully visible in the body viewport. If it is partially clipped by horizontal scroll, vertical scroll, fixed-left boundaries, the row header, headers, or container edges, scroll the table just enough to make the full cell visible. While that scroll is being applied, do not render/open the real editor or popup; use a delayed mount, hidden placeholder, or equivalent host bridge if the package needs an edit element synchronously. Then recalculate or wait until the next frame and mount/focus the editor using the updated cell geometry. Do not compute overlay coordinates before `scrollTo(...)` and reuse them after the table moves.
 
 ## 2. The editor is a DOM overlay
 
@@ -35,9 +35,9 @@ The editor container should respect the current cell width and height as a start
 
 For inline text, textarea, number, currency, and percent editors, the active-cell editor should fill the cell. The visual result should look like the cell itself became editable, not like a smaller bordered form control was inserted into the cell.
 
-When the host scrolls a partially hidden target cell into view before editing, use the post-scroll cell coordinates for this positioning calculation. Do not compute editor coordinates before `scrollTo(...)` and then reuse stale coordinates after the table moves.
+When the host scrolls a partially hidden target cell into view before editing, use the post-scroll cell coordinates for this positioning calculation. Do not compute editor coordinates before `scrollTo(...)` and then reuse stale coordinates after the table moves. Scroll calculation is only about making the cell visible; do not include popup width, guessed popup placement, or a pre-scroll right-aligned dropdown in the scroll target.
 
-Popup/dropdown panels must not be clipped by the active cell, canvas host, table scroll container, or page viewport edge. Render select/date/user/department/lookup dropdowns into a popup root outside the canvas host, usually appended to `document.body`, include that root in `relatedElements()`, and use `overlayOptions: { overflow: "visible" }`. Attachment panels may render as an absolute panel connected to the full-cell editor element or into a popup root, but either way the panel root must be included in `relatedElements()` and allowed to overflow the edited cell. If the panel would be cut off at the right or bottom edge, flip or shift placement before showing it. A dropdown that loses its lower-right border, bottom options, calendar footer, or attachment controls is positioned incorrectly.
+Popup/dropdown panels must not be clipped by the active cell, canvas host, table scroll container, or page viewport edge. Render select/date/user/department/lookup dropdowns into a popup root outside the canvas host, usually appended to `document.body`, include that root in `relatedElements()`, and use `overlayOptions: { overflow: "visible" }`. Attachment panels may render as an absolute panel connected to the full-cell editor element or into a popup root, but either way the panel root must be included in `relatedElements()` and allowed to overflow the edited cell. If the panel would be cut off at the right or bottom edge, flip or shift placement before showing it. Prefer start/left alignment when the popup fits; align right or shift left when it would overflow right; flip above or shift upward when it would overflow bottom. Placement must be decided after scroll completion from the visible anchor. A dropdown that first renders right-aligned during the scroll and then jumps left after the scroll is still incorrect, because it means popup placement happened too early. A dropdown that loses its lower-right border, bottom options, calendar footer, or attachment controls is positioned incorrectly.
 
 ## 4. Scroll-follow behavior
 
@@ -144,7 +144,7 @@ After commit, the host may need to:
 - refresh dependent UI
 - restore keyboard focus to the current canvas when the interaction is returning from canvas cell editing back to the table
 
-If `editApplyMode: "controlled"` is used, the table will not mutate row data by itself. The host must call `setCellData(...)` or `setRowData(...)` only after the draft/save layer accepts the commit.
+If `editApplyMode: "controlled"` is used, the table will not mutate row data by itself. The host must call `setCellData(...)` or `setRowData(...)` only after the draft/save layer accepts the commit. The value backfilled into the visible cell should be the accepted `renderValue`, not a raw `submitValue` id or formatted `displayValue` label unless that is also the field's render contract.
 
 When accepted cell-edit commits trigger host row refreshes, delayed focus should resolve the latest table canvas instead of capturing only the original instance. A practical pattern is immediate focus, next-frame focus, and one short delayed focus against `tableRef.current?.canvas`.
 
