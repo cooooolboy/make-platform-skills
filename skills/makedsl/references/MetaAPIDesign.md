@@ -20,7 +20,6 @@
 - `MakeService.ListResources`
 
 Request Body 是 JSON  
-**!!!注意有个例外的情况: 上传文件(`api/make/data/v1/file`)是`Content-Type: multipart/form-data`**  
 Response Body 格式如下：  
 
 ### 单条数据 Response
