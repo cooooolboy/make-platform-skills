@@ -2,7 +2,7 @@
 
 ## 能力
 
-需要提供 DSL 的 **CRUD-LS** (Create, Read, Update, Delete, List, Status) 操作
+前端构建和运行时 schema 加载只需要读取 Meta 服务中的 App、Entity、Field、Relation 元数据。
 
 ## 约束
 
@@ -16,11 +16,7 @@
 - **Action 不在路径里，在 `X-Make-Target` header 里面**
 
 可选 value：
-- `MakeService.CreateResource`
 - `MakeService.GetResource`
-- `MakeService.UpdateResource`
-- `MakeService.DeleteResource`
-- `MakeService.StatusResource`
 - `MakeService.ListResources`
 
 Request Body 是 JSON  
