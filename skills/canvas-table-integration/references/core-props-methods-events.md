@@ -120,12 +120,18 @@ Use these methods first:
 - `updateProps(newProps)`
 - `updateCanvasSize(width, height, refresh?)`
 - `refreshCanvas()`
+- `scrollTo(x, y)`
+- `scrollToRow(rowIndex)`
+- `getScrollState()`
 - `getTableData()`
+- `setRowData(rowKey, data)`
+- `setCellData(rowKey, columnKey, data)`
 - `getSelectionInfo()`
 - `clearSelection()`
 - `updateSummaryData(newSummaryData)`
 - `setSummaryLoading(loading, columnKey?)`
 - `refreshEmptyState()`
+- `clearData(params?)`
 - `destroy()`
 
 ### Behavioral notes
@@ -136,6 +142,16 @@ Use these methods first:
 - virtual mode: `setData(rows, page)`
 
 Do not omit `page` in virtual mode.
+
+#### `scrollTo(...)` and `getScrollState()`
+
+Use `getScrollState()` to snapshot the current public scroll position before a same-object refresh that must call `setData(...)`. Restore the viewport with `scrollTo(x, y)` after the refreshed data has applied.
+
+Do not call `scrollTo(0, 0)` after a same-object cell edit, row refresh, or Service/API refresh. Reset to the top-left only when the object/entity/schema identity changes or when the user explicitly navigates to another table context.
+
+#### `setRowData(...)` and `setCellData(...)`
+
+Use targeted row/cell updates after accepted single-row or single-cell saves. Prefer these methods over remounting the table or replacing all data when the object/entity/schema identity has not changed.
 
 #### `getTableData()`
 
@@ -214,7 +230,7 @@ Prefer `table.tableId` as the namespace key.
 ### Fixed columns
 
 - column field: `fixed: 'left'`
-- optional method: `scrollTo`
+- methods: `scrollTo`, `getScrollState`
 
 ### Summary row
 

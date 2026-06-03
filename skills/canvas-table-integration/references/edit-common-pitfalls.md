@@ -378,3 +378,18 @@ Fix:
 - run that comparison for every close path, including outside click, picker/dropdown close, same-value selection, Enter, Tab, programmatic `commit(...)`, and `edit:end` fallback
 - skip save API calls, dirty state creation, draft patch enqueueing, business save events, and `setCellData(...)` when unchanged
 - compare numbers as numbers, date ranges by normalized begin/end, select fields by option values, identity fields by stable ids, and files by stable metadata
+
+## 30. Edit completion resets the table to the left edge
+
+Symptom:
+
+- the user scrolls horizontally to edit a far-right field
+- after commit, cancel, rollback, or row refresh, the table jumps back to `scrollLeft = 0`
+- same-object single-cell saves feel like the whole table has been reinitialized
+
+Fix:
+
+- treat edit completion as a same-object data update; only object/entity/schema identity switches reset scroll
+- prefer `setCellData(...)` or `setRowData(...)` for accepted single-field saves
+- if `setData(...)` or a full row refresh is unavoidable, snapshot the current public scroll state with `getScrollState()` before the update and restore it with `scrollTo(x, y)` after the table applies the new data
+- do not change the React `key`, remount/recreate the table, call `scrollTo(0, 0)`, or rebuild columns merely because one cell changed

@@ -143,10 +143,13 @@ After commit, the host may need to:
 - emit or observe `edit:end`
 - refresh dependent UI
 - restore keyboard focus to the current canvas when the interaction is returning from canvas cell editing back to the table
+- preserve the table's current scroll position
 
 If `editApplyMode: "controlled"` is used, the table will not mutate row data by itself. The host must call `setCellData(...)` or `setRowData(...)` only after the draft/save layer accepts the commit. The value backfilled into the visible cell should be the accepted `renderValue`, not a raw `submitValue` id or formatted `displayValue` label unless that is also the field's render contract.
 
 When accepted cell-edit commits trigger host row refreshes, delayed focus should resolve the latest table canvas instead of capturing only the original instance. A practical pattern is immediate focus, next-frame focus, and one short delayed focus against `tableRef.current?.canvas`.
+
+Accepted edit commits must not reset table scroll. If the user edited a far-right or lower-row cell, commit/cancel/rollback should leave the table at that same `scrollLeft` and `scrollTop` unless the edit intentionally navigates to another object/page. Prefer targeted `setCellData(...)` or `setRowData(...)`; if the host must refresh rows with `setData(...)`, snapshot the current public scroll state with `getScrollState()` before the update and restore it with `scrollTo(x, y)` after the table has applied the refreshed data. Do not remount the table or change its identity key for a same-object edit result.
 
 Never run those delayed focus attempts while a host modal, drawer, dialog, popover, or form surface is opening or active. If a row click, action button, or edit commit opens host UI, that host UI owns focus until it closes.
 
@@ -169,6 +172,7 @@ Editable host components should keep table initialization stable while editing a
 
 If recreation is unavoidable, reapply derived canvas state after `setData(...)`, including:
 
+- scrollLeft and scrollTop
 - dirty row colors
 - selection if the host owns selection state
 - any row/cell visual state stored outside row data

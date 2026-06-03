@@ -77,11 +77,12 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 11. Before mounting/opening the real editor or popup, scroll a partially hidden target cell fully into the visible body viewport, then calculate editor geometry from the post-scroll cell position.
 12. Inline editors must fill the active cell and avoid nested bordered wrappers, cards, form items, margin, and outer padding.
 13. Keep table initialization stable during draft updates; do not recreate the table just because merged rows or callbacks changed.
-14. Restore focus to the current canvas only inside the canvas edit lifecycle; never steal focus from host modal, drawer, dialog, popover, or form interactions.
-15. Guarantee usable canvas height before initialization; padding-only containers are not enough.
-16. Date editors must resolve typed input before OK commits.
-17. Use stable backend identity for persisted editable rows; keep mutable business codes out of technical row keys.
-18. Attachment editors are host popups with data-source upload boundaries; real upload/delete/download proxy logic belongs to the host data-source or Service API adapter.
+14. Preserve current table scroll after edit commit/cancel/rollback. Same-object saves and row refreshes must not reset the table to the left/top.
+15. Restore focus to the current canvas only inside the canvas edit lifecycle; never steal focus from host modal, drawer, dialog, popover, or form interactions.
+16. Guarantee usable canvas height before initialization; padding-only containers are not enough.
+17. Date editors must resolve typed input before OK commits.
+18. Use stable backend identity for persisted editable rows; keep mutable business codes out of technical row keys.
+19. Attachment editors are host popups with data-source upload boundaries; real upload/delete/download proxy logic belongs to the host data-source or Service API adapter.
 
 ## Track A workflow
 
@@ -112,7 +113,7 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 12. Implement or reuse field editors through a common editor interface.
 13. Distinguish submit-style editors from realtime-style editors.
 14. For attachment fields, identify whether upload requires a saved record id and where the data-source / Service API adapter upload/delete/download boundary lives.
-15. Validate positioning, scroll-into-view, scroll-follow behavior, click-outside close, and rollback behavior.
+15. Validate positioning, scroll-into-view, post-edit scroll preservation, scroll-follow behavior, click-outside close, and rollback behavior.
 16. Verify at least one real editable field flow in the target project.
 
 ## Track C workflow
@@ -157,7 +158,7 @@ Track B common capabilities:
 - submit-style and realtime-style field editors
 - field-editor mapping by business field type
 - Make-style field coverage: `ID`, `Text`, `TextArea`, `URL`, `Number`, `Currency`, `Percent`, `Date`, `DateTime`, `DateRange`, `SingleSelect`, `MultiSelect`, `SingleUser`, `MultiUser`, `SingleDepartment`, `MultiDepartment`, `File`, `Lookup`
-- double-click edit activation, editor overlay positioning, scroll-into-view, popup flip/shift, and scroll-follow behavior
+- double-click edit activation, editor overlay positioning, scroll-into-view, popup flip/shift, post-edit scroll preservation, and scroll-follow behavior
 - `commit(...)` / `cancel(...)` / `updateValue(...)` usage, with `close(commit)` and `changeValue(...)` treated as legacy compatibility only
 - `edit:end` as the post-commit event surface, with accepted `renderValue` backfilled to the visible table cell
 - attachment field integration using host upload/file components or drag/drop DOM editors plus canvas-table render support
@@ -255,6 +256,7 @@ For Track B, report:
 - which fields use submit-style updates vs realtime-style updates
 - how click-outside close is handled
 - how overlay positioning and scroll-follow behavior are handled
+- how edit commit/cancel/rollback preserves the current table scroll position
 - which stable row identity is used for persisted edits, dirty rows, detail routes, and attachment preconditions
 - how attachment fields are represented and edited
 - what was verified in the target project

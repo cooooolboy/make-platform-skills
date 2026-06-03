@@ -260,6 +260,7 @@ For Make schema-driven editable tables, default to the ExpensePoc-proven edit ba
 - every editor must echo the current cell value on entry using normalized backend value shapes, not formatted display strings
 - all edits use a shared value contract with separate `renderValue`, `submitValue`, and optional `displayValue`
 - in single-field cell editing, every close path must compare normalized old/new values first; unchanged values close without calling save APIs, marking dirty state, or writing table data
+- after edit commit/cancel/rollback, keep the table at the current scrollLeft/scrollTop. Do not reset to the left/top, remount the table, change the table identity key, or call `scrollTo(0, 0)` for a same-object edit result
 
 ## Track C: Make field-display integration scope
 

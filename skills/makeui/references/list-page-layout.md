@@ -113,7 +113,7 @@ This skill only specifies:
 - how toolbar and optional pagination wrap around it
 - where optional controls should appear
 
-Do not use Ant Design Table, Arco Table, TDesign Table, or a hand-written HTML table for Make record lists.
+Do not use the selected UI library's Table component or a hand-written HTML table for Make record lists.
 
 For Make object lists, table columns and headers come from host-provided object/field metadata:
 
