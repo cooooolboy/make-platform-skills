@@ -36,6 +36,9 @@ Config tests should cover:
 - `MAKE_SERVER_URL` works as a compatibility fallback
 - `MAKE_AUTH_BASE_URL` and `MAKE_BUSINESS_BASE_URL` fall back to the normalized Make API base URL when absent
 - base URLs are trimmed and trailing slashes are removed
+- internal make-gateway base URLs include `/make`, for example `http://make-gateway.make-dev/make`
+- bare internal gateway hosts such as `http://make-gateway.make-dev` are rejected or normalized to include `/make` before adapters consume them
+- Service upstream base URLs reject `/api/make`; that prefix is only for browser or ingress access
 - missing `MAKE_API_BASE_URL` and `MAKE_SERVER_URL` fails config loading with a non-secret error
 - `/api/config` does not expose `appKey`, Make base URLs, tokens, cookies, service keys, or deployment-internal details
 
@@ -68,6 +71,7 @@ Before reporting Service work as ready:
 - invalid client input is rejected before Make calls
 - no tokens, cookies, service keys, or signed URLs appear in logs or public config
 - Make adapter base URLs come from normalized Service config and are not hard-coded in routes or adapters
+- Service internal gateway requests use `/make/meta/**`, `/make/data/**`, or `/make/auth/**`, not bare-host `/meta|data|auth/**` and not `/api/make/**`
 - candidate endpoints use real host/Make data sources, not demo arrays
 - lookup updates preserve unrelated relations
 - file upload requires persisted record identity

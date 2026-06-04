@@ -62,6 +62,17 @@ Default base selection:
 - all Make Meta/Data calls that require an app key must use `config.appKey` from `MAKE_APP_KEY`; route handlers must not accept `appKey` from UI query/body/header input.
 - record reads use the Make gateway/Data API path `/data/v1/record` under the normalized business/data base URL. Do not replace this with makecli reads, local files, demo data, or direct UI-supplied record payloads.
 
+For Service-to-internal-make-gateway calls, the normalized base URL must already include the gateway `/make` path scope:
+
+```text
+MAKE_API_BASE_URL=http://make-gateway.make-dev/make
+GET ${makeApiBaseUrl}/meta/v1/schema
+POST ${makeBusinessBaseUrl}/data/v1/record
+GET ${makeAuthBaseUrl}/auth/current-context
+```
+
+Do not set an internal gateway base to a bare host such as `http://make-gateway.make-dev` and then append `/meta/v1/**` or `/data/v1/**`. Do not use the browser-facing `/api/make` prefix for Service upstream calls; `/api/make/**` is only the external same-origin gateway entry used by browsers or ingress.
+
 Do not hard-code concrete Make dev/test/prod domains, namespace-local gateway hostnames, or environment-to-domain maps in adapters. K8s, backend, operations, Make tooling, or deployed runtime config inject the actual base URL.
 
 ## Schema adapter
