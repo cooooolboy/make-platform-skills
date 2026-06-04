@@ -20,6 +20,7 @@ Route tests should cover:
 - `/health` and `/api/config` do not expose secrets
 - schema routes return normalized schema and fields
 - record list parses `fields`, `filter`, `sort`, `pagination`
+- record list/detail call the Make adapter path for gateway `/data/v1/record` and forward the required login/session context
 - invalid query/body returns 400 and does not call Make adapter
 - create/update/delete/cell-update call the adapter with the documented payload
 - detail uses the single-record adapter
@@ -42,6 +43,9 @@ Adapter tests should cover:
 
 - Make Meta/Data requests include the configured `appKey` when the backend API requires it
 - route handlers do not accept `appKey` from UI query/body/header input
+- record reads use `/data/v1/record`
+- request wrappers preserve required inbound login context for gateway, such as `Cookie` for cookie/unified-login apps and host-approved auth headers when applicable
+- no record/candidate/lookup/file/custom route shells out to `makecli` or reads makecli command output as runtime data
 - Make response envelope `code !== 200`
 - invalid JSON response
 - non-2xx HTTP response
@@ -58,6 +62,8 @@ Before reporting Service work as ready:
 
 - `apps/docs/api.md` matches changed routes and response shapes
 - no runtime code reads local DSL/YAML as required schema/data source
+- no published runtime route uses `makecli`, `npx makecli`, local makecli config, or makecli stdout as a data source
+- Make-backed record reads go through gateway `/data/v1/record` and preserve the established login/session context
 - no route leaks raw Make response envelopes unless documented
 - invalid client input is rejected before Make calls
 - no tokens, cookies, service keys, or signed URLs appear in logs or public config
@@ -91,4 +97,6 @@ When route docs changed, also run any UI/service integration tests that consume 
 - file route forwarded `fieldKey` when backend expects `field`
 - signed download URL query was logged
 - Service route mixed auth/session handling with business API code
+- Service route called `makecli` for runtime records, which fails in online containers
+- Service adapter dropped the request `Cookie` / login context before calling gateway `/data/v1/record`
 - runtime build or port rules were added here instead of `make-app-runtime`

@@ -16,22 +16,21 @@ Use this priority:
 
 1. User-specified component library.
 2. Existing project component library.
-3. New-project selection among Ant Design, Arco Design, TDesign, and shadcn/ui when no library exists.
+3. New-project selection among Ant Design, Arco Design, and shadcn/ui when no library exists.
 
 Do not add a new component library to an existing project unless the user asks.
 
 Use this same rule for icons and styling tools.
 
-For new projects, component-library selection is a blocking decision. Actively ask the user to choose one of:
+For new projects, component-library selection is a blocking decision. Actively ask the user to choose one of these ordered options:
 
-- Ant Design
-- Arco Design
-- TDesign
-- shadcn/ui
+1. Ant Design (recommended/default)
+2. Arco Design
+3. shadcn/ui
 
-Recommend Ant Design, but do not select it automatically. Until the user chooses, do not scaffold or edit component-library-specific UI code, imports, theme setup, icons, or package dependencies. If progress is still useful before the answer, produce only a component-library-neutral plan, file map, or pseudocode.
+Recommend Ant Design as the default option, but do not select it before the user has responded to the component-library choice. The user may either explicitly name Ant Design, Arco Design, or shadcn/ui, or delegate to the default/recommended option. Generic answers such as "default", "recommended", "you decide", "anything is fine", or "whatever" count as choosing Ant Design. Until the user gives one of those explicit or delegated choices, do not scaffold or edit component-library-specific UI code, imports, theme setup, icons, or package dependencies. If progress is still useful before the answer, produce only a component-library-neutral plan, file map, or pseudocode.
 
-Do not mix Ant Design, Arco Design, TDesign, and shadcn/ui in the same app unless the existing project already does so and the user asks to keep it.
+Do not mix Ant Design, Arco Design, and shadcn/ui in the same app unless the existing project already does so and the user asks to keep it.
 
 When shadcn/ui is selected, treat it as a source-code component system, not a traditional prebuilt UI package. Follow the official Vite path for new or existing Vite projects:
 

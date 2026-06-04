@@ -43,6 +43,7 @@ Route handlers should not:
 - build raw Make request bodies inline for every route
 - parse schema variants repeatedly in JSX-like or route-local code
 - call local DSL/YAML files for published runtime schema
+- shell out to `makecli`, `npx makecli`, or read local makecli config/credentials to serve published runtime data
 - contain large multi-step business workflows
 - swallow adapter errors and return empty success
 
@@ -105,6 +106,7 @@ Default guidance:
 
 - keep `/health` and `/api/config` public
 - protect Make-backed `/api/*` routes when the host project has a Service API key or auth middleware
+- for Make-backed record/data routes, forward the established request login context to Make gateway through the adapter; do not replace this with makecli or local credentials
 - keep CORS scoped to documented UI origins in local development
 - do not introduce a permissive wildcard CORS policy for generated Apps
 - do not make Service listen on a wider interface as part of this skill; port/host runtime policy belongs to `make-app-runtime`
@@ -120,6 +122,7 @@ Service code should:
 - trim env strings and normalize trailing slashes before adapters consume base URLs
 - avoid hard-coded Make domains in route handlers
 - keep secrets out of public config
+- treat `makecli` as unavailable in online Service runtime; runtime adapters use gateway/API calls, not local CLI commands
 
 Default new-project config semantics:
 

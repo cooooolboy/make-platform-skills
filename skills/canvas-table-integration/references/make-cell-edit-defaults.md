@@ -34,6 +34,7 @@ Canonical flow:
 9. Return `element`, `getValue()`, object `autoClose`, `relatedElements()`, `overlayOptions`, and `destroy()` from `customEdit`.
 10. On any commit-style close path, call `updateVal()`, compare `oldValue` with `nextValue.submitValue` by field type, and skip all save/backfill work when unchanged.
 11. If changed, pass the normalized commit to the host draft or immediate-save layer. With `editApplyMode: "controlled"`, call `setCellData(...)` or `setRowData(...)` only after the host layer accepts the commit. On failure, rollback to the old value.
+12. Preserve the current table scroll position after commit, cancel, rollback, and accepted backfill. A same-object edit must not reset horizontal scroll to the left edge or vertical scroll to the top.
 
 ## 2. Activation and popup rule
 
@@ -234,6 +235,14 @@ Do not submit formatted values such as `¥1,260,000.00`, `2026-06-01 至 2026-12
 
 After a changed commit is accepted, the visible cell must receive the accepted `renderValue`. The table renderer then normalizes and displays that value by field type. Do not display `submitValue` directly when it is an id, enum value, date object, attachment payload, or backend relation payload. If the host save layer returns a fresher normalized record value, prefer that returned render value and then call `setCellData(...)` or `setRowData(...)`.
 
+Post-edit scroll preservation:
+
+- editing completion is a same-object data update, not an object/entity/schema identity change
+- after commit, cancel, rollback, same-value close, or accepted save backfill, keep the current `scrollLeft` and `scrollTop`
+- do not call `scrollTo(0, 0)`, remount/recreate the table, change the React `key`, or reinitialize columns/data just because one field changed
+- prefer `setCellData(...)` or `setRowData(...)` for accepted single-cell saves; if a full row refresh or `setData(...)` is unavoidable, snapshot the current public scroll state with `getScrollState()` before the update and restore it with `scrollTo(x, y)` after the update
+- only object/entity/schema identity switches reset scroll to the top-left; a Service/API refresh within the same object should preserve the user's current viewport
+
 ## 9. Close, save, and rollback rule
 
 Recommended `autoClose` split:
@@ -295,6 +304,7 @@ Before reporting an editable Make table as done, verify at least:
 - user fields with current values from `{ recordID, name }`, `{ userId, userName }`, one-item arrays, or loaded candidate objects all show the selected person on entry; candidate loading must not blank the editor
 - unchanged close from outside click, picker/dropdown close, same-value selection, Enter, Tab, or `edit:end` fallback does not call save APIs, create dirty state, or backfill table data
 - changed commit sends normalized submit values and backfills accepted render values, not raw ids or formatted display labels
+- edit completion preserves the current horizontal and vertical scroll; editing a far-right field must not return the table to the left edge
 - `Escape` cancels without writing the candidate value
 - clicking inside a popup does not close the editor because the popup root is included in `relatedElements()`
 - `destroy()` removes editor and popup DOM roots

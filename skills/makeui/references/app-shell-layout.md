@@ -10,14 +10,14 @@
 
 ## Structure
 
-Use a fixed-height application shell:
+Use a fixed-height application shell. This is a hard layout rule for generated Make App shells and object-list pages:
 
 - root shell: full viewport height
 - top header: fixed height
 - left sidebar: optional, collapsible, independently scrollable
 - content region: fills the remaining width and height
 
-The shell should prevent body-level scrolling. Scrolling happens inside the sidebar, table, drawer body, or route content area.
+The shell must prevent body-level and whole-page scrolling. Scrolling happens only inside the owning region: sidebar, table, drawer body, or route content area. Do not make `body`, the app root, the shell, or the object-list page the scroll container for normal list browsing.
 
 For generated Make App UI, the application shell is mandatory. Start layout work from the shell, not from an isolated list page. Only skip shell generation when an existing project already provides a reusable shell and the task is explicitly to plug a page into that shell.
 
@@ -27,7 +27,7 @@ Default Make App shell:
 - right-side vertical workspace on a light neutral background
 - fixed flat top header inside the workspace
 - content region below the header
-- no body-level scroll
+- no body-level or whole-page scroll
 
 When no project-specific shell already exists, use the ExpensePoc-style dense object-management shell as the default:
 
@@ -69,6 +69,7 @@ Use the sidebar for app modules or object navigation.
 - Object navigation items should link to a dynamic object route, for example `/objects/:objectKey`, instead of separate hard-coded pages per object.
 - If navigation is long, scroll inside the sidebar only.
 - Do not let sidebar overflow force page-level scrolling.
+- Do not move long navigation scrolling to `body`, app root, shell, workspace, or list-page containers.
 
 For a metadata-driven Make App, build navigation from modules or object groups when available. If no grouping exists, list objects directly. Object entries still use a dynamic route such as `/objects/:objectKey`.
 
@@ -94,10 +95,13 @@ Every container between the shell and the working area should preserve height:
 
 Use this rule especially for list pages with table regions.
 
+Missing any of these height-chain properties is a layout bug when it causes `body`, the app root, the shell, or the list page to scroll.
+
 ## Page content
 
 The content region owns page-local layout:
 
 - list pages: no page-level scroll; table scrolls
+- sidebar navigation: no page-level scroll; sidebar nav area scrolls
 - drawer forms/details: drawer body scrolls
 - route forms/details: route content may scroll inside the content region

@@ -75,7 +75,7 @@ Toolbar placement:
 - create/new as the rightmost primary action
 - refresh must sit in this local toolbar above the table; do not place it in the global header, object title header, table header row, canvas-table header area, or column header area
 
-The table container fills remaining height. The list page itself should not scroll.
+The table container fills remaining height. The list page itself must not scroll.
 
 The local toolbar sits below the workspace header, not inside the header. Keep page actions out of the global header unless there is no local toolbar.
 
@@ -113,7 +113,7 @@ This skill only specifies:
 - how toolbar and optional pagination wrap around it
 - where optional controls should appear
 
-Do not use Ant Design Table, Arco Table, TDesign Table, or a hand-written HTML table for Make record lists.
+Do not use the selected UI library's Table component or a hand-written HTML table for Make record lists.
 
 For Make object lists, table columns and headers come from host-provided object/field metadata:
 
@@ -135,6 +135,8 @@ The table region should have:
 - `min-width: 0`
 - `overflow: hidden` around the canvas table host
 - internal table scroll instead of page scroll
+
+Treat page-level scrolling on object-list pages as a defect. If records overflow vertically or horizontally, the CanvasTable/table region owns that scroll. If the left object navigation overflows, the sidebar navigation area owns that scroll. Do not fix overflow by allowing `body`, app root, shell, workspace, or list-page containers to scroll.
 
 CanvasTable sizing requirements:
 
@@ -164,3 +166,4 @@ Avoid:
 - nested cards around the table
 - view tabs unless requested
 - page-level vertical scrolling for normal list browsing
+- body/app-root/shell scrolling caused by long sidebar navigation or many table rows

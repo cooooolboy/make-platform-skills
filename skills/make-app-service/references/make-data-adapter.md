@@ -10,6 +10,7 @@ The adapter layer owns Make/backend-specific details:
 - deployment-injected `appKey` from `config.appKey`
 - `X-Make-Target`
 - consuming already-prepared auth or forwarded request context from the host auth/runtime layer without inventing auth policy
+- forwarding the incoming request login context required by Make gateway
 - Make response envelope parsing
 - Make API error detection
 - pagination translation
@@ -27,6 +28,7 @@ The wrapper should:
 - build the URL from normalized config and a relative path
 - attach or encode `config.appKey` according to the Make Meta/Data API contract
 - attach required Make headers
+- attach forwarded login/session context required by Make gateway, including `Cookie` for cookie/unified-login apps and host-approved auth headers from the incoming request
 - send JSON or multipart bodies
 - parse JSON envelopes safely
 - treat non-2xx HTTP as errors
@@ -35,6 +37,8 @@ The wrapper should:
 - log start/success/failure with redacted context
 
 Do not duplicate Make fetch logic in each route.
+
+Do not implement Make-backed Service APIs by shelling out to `makecli` or reading makecli command output. `makecli` is a developer/deployment tool, not a published Service runtime dependency, and online Service containers should be assumed not to have it installed.
 
 ## Make API references
 
@@ -56,6 +60,7 @@ Default base selection:
 - business/data calls follow Data API design and use `makeBusinessBaseUrl`, falling back to `makeApiBaseUrl`.
 - candidate, lookup, record, and file adapters use the relevant normalized base from config, not inline environment reads.
 - all Make Meta/Data calls that require an app key must use `config.appKey` from `MAKE_APP_KEY`; route handlers must not accept `appKey` from UI query/body/header input.
+- record reads use the Make gateway/Data API path `/data/v1/record` under the normalized business/data base URL. Do not replace this with makecli reads, local files, demo data, or direct UI-supplied record payloads.
 
 Do not hard-code concrete Make dev/test/prod domains, namespace-local gateway hostnames, or environment-to-domain maps in adapters. K8s, backend, operations, Make tooling, or deployed runtime config inject the actual base URL.
 
@@ -87,6 +92,9 @@ type MakeRecordAdapter = {
 
 Rules:
 
+- list, detail, and lookup target-record reads must call the Make gateway/Data API record endpoint `/data/v1/record`
+- request wrappers must forward the inbound login/session context expected by Make gateway; do not drop cookies or the host-approved auth context when Service calls the gateway
+- do not implement list/detail by invoking `makecli` or by reading local makecli credentials/config at request time
 - list response normalizes total count; if backend total is missing, use returned record count as fallback
 - detail uses the backend single-record operation when available
 - create returns `recordID` only when that is the UI contract; otherwise document the exact response shape
@@ -127,6 +135,7 @@ Rules:
 
 - `value` is target `recordID`
 - label comes from the target display field, with a safe fallback only when documented
+- target record reads still go through `/data/v1/record` with forwarded login context, not makecli
 - reject unsupported relation direction, non-lookup fields, and missing target metadata with 400
 - do not leak full target records into dropdown APIs by default
 
@@ -165,9 +174,13 @@ Rules:
 
 ## Forwarded headers
 
-When the host runtime contract says Service must pass request-origin context to a gateway, the adapter may preserve standard forwarded headers from the incoming request or host proxy contract:
+Make-backed Service calls to gateway must preserve the request context needed by the gateway to authenticate and resolve the published App:
 
+- `Cookie` for cookie/unified-login apps
+- an inbound `Authorization` header only when the host Service contract already uses bearer auth
 - `X-Forwarded-Host`
 - `X-Forwarded-Proto`
 
-The requirement for these headers belongs to `make-app-runtime`. The exact auth/session forwarding behavior belongs to `make-app-auth` when unified login or cookies are involved.
+Derive or sanitize forwarded host/proto through the shared helper described by `make-app-auth` / `make-app-runtime`; do not blindly trust arbitrary client-supplied forwarded headers. Redact all auth/session header values in logs and errors.
+
+`make-app-service` owns the requirement that Make-backed record/data adapters must not drop the established login context before calling gateway. The exact login implementation, session lifecycle, 401/403 UX, and auth proxy behavior still belong to `make-app-auth`.

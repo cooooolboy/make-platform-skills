@@ -14,7 +14,7 @@ Do not force Less if the project already uses CSS Modules, Tailwind, styled-comp
 
 For app shells and list pages:
 
-- avoid body-level scrolling
+- forbid body-level and whole-page scrolling for generated shells and object-list pages
 - keep the global shell fixed to viewport height
 - preserve `flex: 1`
 - use `min-height: 0` and `min-width: 0`
@@ -22,7 +22,7 @@ For app shells and list pages:
 - keep table wrappers and canvas hosts at `width: 100%` and `height: 100%`
 - avoid fixed table widths/heights unless the user explicitly asks for a fixed-size embedded table
 
-For list pages, the table region scrolls. For drawers, the Drawer body scrolls. For route pages, the content region may scroll.
+For list pages, the table region scrolls. For long side navigation, the sidebar navigation area scrolls. For drawers, the Drawer body scrolls. For route pages, the content region may scroll. The `body`, app root, shell, workspace, and list-page containers are not acceptable scroll containers for normal object-list browsing.
 
 ## Density and spacing
 

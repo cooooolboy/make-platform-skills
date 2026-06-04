@@ -31,6 +31,15 @@
 - `/api/users` 未加载、候选分页未包含当前人时，也必须显示当前选中人员；候选返回后与 echo option 合并，不能替换导致当前值消失。
 - 当前人员值只有 label 没有稳定 id 时，先作为临时 echo 展示，提交变更前必须要求用户选择真实候选，不能直接清空编辑器。
 
+## 继续补充：编辑完成后保留滚动位置
+
+- 单元格编辑完成属于同一对象的数据更新，不是对象/entity/schema 切换。
+- 提交、取消、回滚、未修改关闭、保存后回填都必须保留当前 `scrollLeft` 和 `scrollTop`；用户在最右侧编辑字段后，表格不能主动回到最左侧。
+- 接受单字段保存时优先使用 `setCellData(...)` 或 `setRowData(...)`，不要因为一个字段变更就重建表格或改 React `key`。
+- 如果宿主必须全量刷新行数据或调用 `setData(...)`，需要在刷新前用 `getScrollState()` 记录当前滚动位置，刷新后用 `scrollTo(x, y)` 恢复。
+- 同步补充 `core-props-methods-events.md` 的公开方法清单，列出 `getScrollState()`、`scrollTo(...)`、`setCellData(...)` 和 `setRowData(...)`，避免后续实现依赖未记录方法。
+- 只有对象/entity/schema 身份切换时才允许重置到左上角；同一对象内的 Service/API refresh 不应重置滚动。
+
 ## 边界
 
 - 本次只修改 `canvas-table-integration`。
