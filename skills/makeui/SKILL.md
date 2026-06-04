@@ -7,7 +7,7 @@ metadata:
 
 # makeui
 
-Current skill revision: 0.3.34.
+Current skill revision: 0.3.35.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
@@ -65,6 +65,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Do not insert a summary/title card between the workspace header and table for default object lists.
 - Do not add pagination, views, import/export, grouping, sorting, column settings, selection, or Kanban/split views unless requested.
 - Make record tables must use `@qfei-design/canvas-table` via `canvas-table-integration`; do not replace them with UI-library tables.
+- Generated Make App shells and object-list pages must not create body-level or whole-page scrolling. Keep the root shell fixed to viewport height and put every overflow in the owning region: long sidebar navigation scrolls only inside the sidebar, table data scrolls only inside the CanvasTable/table region, Drawer content scrolls only inside the Drawer body, and route-page content scrolls only inside the content region. Do not let `body`, the app root, the shell, or the list page become the scroll container for normal object-list browsing.
 - CanvasTable wrapper and host must fill the available content width and remaining height; use a flex height chain or accurate `calc()` fallback instead of fixed table dimensions.
 - CanvasTable defaults to `showSN` sequence numbers and a hover-revealed row-head detail icon through `bodyRowHeadSuffixOptions`, unless the user explicitly says the table does not need it.
 - Create/edit/detail must use right-side Drawer-style surfaces for default Make object CRUD. Ant Design uses `Drawer placement="right"`; shadcn/ui uses `Sheet side="right"`. Width defaults to `60%` and may become `100%` on small screens, but the surface still opens from the right. Do not use bottom Drawer/Sheet, centered Modal/Dialog, or bottom sheet unless the user explicitly asks for that different surface.

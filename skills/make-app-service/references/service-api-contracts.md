@@ -61,6 +61,8 @@ Default:
 
 Rules:
 
+- Make-backed list and detail routes read records through the Service Make adapter calling gateway `/data/v1/record`, with the incoming request's login/session context forwarded to gateway.
+- Do not serve record routes from `makecli`, local makecli config, makecli stdout, generated fixtures, or local DSL/YAML in published runtime.
 - List and detail are separate contracts. Use Make single-record reads for detail when available.
 - Validate `sort` shape. Prefer `{ fieldKey, order }`; reject ambiguous legacy `{ field, order }` in new contracts.
 - Validate `filter` shape before passing to Make. Prefer `{ expression }` for CEL-style filters.
@@ -93,6 +95,7 @@ Rules:
 
 - Resolve target entity and display field from runtime schema relation metadata.
 - Read only the target record identity and target display field by default.
+- Read target records through gateway `/data/v1/record` with forwarded login/session context, not through makecli.
 - `keyword` applies to the target display field when supported.
 - Do not let UI call generic target-record list APIs for every lookup dropdown unless the host contract explicitly chooses that path.
 - Reject non-lookup fields and unsupported relation directions with 400.

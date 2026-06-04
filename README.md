@@ -133,6 +133,7 @@ npx skills update make-app-service
 - 生成 schema、fields、records、record detail、create、update、delete、cell update 等通用对象接口
 - 生成人员、部门、lookup options、文件上传/删除/下载代理接口
 - 设计 Make Meta/Data API adapter、错误返回、请求参数校验、日志脱敏和接口测试
+- 线上 Service 读取记录必须通过 Make gateway 的 `/data/v1/record`，并把请求登录态转发给 gateway；不得通过 `makecli` 获取运行时数据
 - 约束 `apps/service/src/config.ts` 中 Make adapter 配置语义：`MAKE_APP_KEY` 由部署注入且 Service 调 Make Meta/Data 时使用，`MAKE_API_BASE_URL` 优先、`MAKE_SERVER_URL` 兼容，缺少必需配置时启动失败
 - 不负责页面布局；页面和组件展示交给 `makeui`
 - 不负责认证实现；统一登录、cookie、session、401/403 交给 `make-app-auth`
