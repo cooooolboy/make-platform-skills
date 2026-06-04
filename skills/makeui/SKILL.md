@@ -1,13 +1,13 @@
 ---
 name: makeui
-description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, or canvas-table internals.
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, or canvas-table internals.
 metadata:
   homepage: https://github.com/qfeius/make-platform-skills/makeui
 ---
 
 # makeui
 
-Current skill revision: 0.3.35.
+Current skill revision: 0.3.36.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
@@ -29,6 +29,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 | Task / topic | Read |
 | --- | --- |
 | UI scope, boundaries, shell defaults, dynamic routes | `references/principles.md` |
+| Component structure, module boundaries, page decomposition | `references/component-structure.md` |
 | App shell, sidebar, top header, viewport height chain | `references/app-shell-layout.md` |
 | Object list page, toolbar placement, default actions | `references/list-page-layout.md` |
 | Create/edit/detail Drawer, stacked Drawers, mask close, header actions | `references/drawer-layout.md` |
@@ -54,6 +55,14 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - `apps/dsl` is a modeling artifact, not a UI runtime dependency. Generated UI must not read `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` files as its field source.
 - If object/field metadata is missing or inconsistent, show a visible UI dependency/error state and report the missing dependency. Do not invent business API paths, parse local DSL, or create fake user/department/business fallback data in `makeui`.
 - Schema, data, route, and render failures must resolve to visible object-shell states: loading, empty, error, forbidden, expired-session, retry, not-found, or render-error. Do not let exceptions become a blank page.
+
+### Component structure and modularization
+
+- This is the MakeUI 组件化拆分 / 模块化 hard rule: generated or modified `apps/ui` code must be split by responsibility instead of implemented as one page-sized component.
+- Route/page files only orchestrate layout, read route params, compose feature modules, and bridge minimal page state. Do not put data fetching, field metadata normalization, table column construction, form field mapping, Drawer state, row actions, and render details all in one route/page component.
+- Split non-trivial UI into route pages, feature modules, reusable components, hooks, data/API adapters, and configuration builders. Follow the host project's existing folders first, such as `components`, `features`, `hooks`, `services`, `api`, `utils`, `adapters`, `pages`, or `routes`.
+- Do not create 单文件堆逻辑: if a page has multiple UI regions, reusable behavior, complex state, Make field adaptation, table configuration, or create/edit/detail surfaces, extract those responsibilities into named modules before finishing the change.
+- Very small local edits may stay near the touched component, but they must not enlarge an existing monolithic file or mix unrelated responsibilities.
 
 ### UI defaults
 
