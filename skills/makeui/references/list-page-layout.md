@@ -18,7 +18,7 @@ Default object-list scaffold:
 
 1. App shell
 2. Left sidebar with module/object navigation
-3. Workspace header with selected object name on the left and current user/avatar on the right
+3. Workspace header with selected object name on the left and current user shown on the right as a 32px circular avatar plus plain display name
 4. Local page toolbar
 5. CanvasTable container
 

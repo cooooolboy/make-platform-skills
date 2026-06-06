@@ -64,6 +64,9 @@ Adapter tests should cover:
 Before reporting Service work as ready:
 
 - `apps/docs/api.md` matches changed routes and response shapes
+- generated Make POC Service code is not left as a flat `apps/service/src` tree; it uses route/app registration, `make-client/`, `services/`, `utils/`, config/logger, and colocated tests or host-equivalent layered folders
+- route handlers remain thin: validation, delegation, error mapping, safe logs, and response sending only
+- Make request construction, schema normalization, lookup/file orchestration, and custom workflows live in adapters/services/helpers instead of route-local files
 - no runtime code reads local DSL/YAML as required schema/data source
 - no published runtime route uses `makecli`, `npx makecli`, local makecli config, or makecli stdout as a data source
 - Make-backed record reads go through gateway `/data/v1/record` and preserve the established login/session context

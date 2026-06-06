@@ -21,6 +21,8 @@ Logout:
 await auth.logout();
 ```
 
+Generated App shells must expose logout as a visible account action. The default Make UI placement is the top-header current-user dropdown: avatar plus display name opens a menu below the header, and the menu contains `退出`. If the host project already has an equivalent account menu, use that established surface, but the action must still call `auth.logout()`.
+
 Do not construct Org logout URLs in generated App code. make-gateway and Org own global logout behavior.
 
 The SDK calls make-gateway logout and follows the gateway-provided App `redirectUri`. Generated App code must not rebuild this flow, consume deprecated `orgSsoLogoutUrl` directly, or patch wrong logout URLs in UI code. After the App loads again, `auth.init({ redirect: true })` decides whether the user should enter the Org login page.
@@ -38,6 +40,7 @@ Handle 401/403 in one Make API adapter or data-source layer. Every frontend requ
 - Automatically retrying unified login multiple times after state/challenge expiration.
 - Hand-writing per-request 401/403 login wrappers when the SDK option `apiAuthRedirect: true` is available.
 - Rebuilding Org authorize/logout URLs in App code.
+- Hiding logout in page-specific actions instead of exposing it through the account/current-user surface.
 - Hard-coding Org, unified-login, or account-center environment domains in App code.
 - Clearing `zs_session` or `make_app_session` from App code.
 - Treating every 403 as a login-expired state after SDK login check confirms the user is already authenticated.
