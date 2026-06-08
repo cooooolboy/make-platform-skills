@@ -26,7 +26,7 @@ Codex 判断优先级：
 | 页面、布局、App Shell、侧边栏、顶部栏、列表页、新建/编辑/详情、Drawer、表单布局、响应式、UI 状态 | `makeui` | 只负责 UI 怎么展示，不负责认证、打包、Service、业务 API 设计和发布 |
 | CanvasTable、表格渲染、字段类型展示、表格编辑、序号列、行头详情图标、`showSN`、`bodyRowHeadSuffixOptions` | `canvas-table-integration` | 只负责 `@qfei-design/canvas-table` 消费侧接入，不负责页面 Shell 和业务 API |
 | 高级筛选、筛选条件组、AND/OR、字段类型操作符、filter expression、筛选值归一化、表头按字段筛选联动 | `make-app-filter` | 只负责筛选模型、筛选控件行为、表头筛选联动和筛选合同，不负责页面 Shell、表格渲染、Service 实现、认证或发布 |
-| Service 接口、`apps/service` API、UI-Service 合同、`apps/docs/api.md`、schema/records/users/departments/lookup/file 代理接口、Make Data API adapter、Service Make adapter 环境变量和配置语义 | `make-app-service` | 只负责 Service API、薄编排和 Make adapter 配置语义，不负责 UI、认证、打包发布、端口/构建产物、DSL 建模、Make CLI、CanvasTable |
+| Service 接口、`apps/service` API、UI-Service 合同、`apps/docs/api.md`、schema/records/users/departments/lookup/file 代理接口、Make Data API adapter、Service 网关 origin 与服务 scope 配置语义 | `make-app-service` | 只负责 Service API、薄编排和 Make adapter 配置语义，不负责 UI、认证、打包发布、端口/构建产物、DSL 建模、Make CLI、CanvasTable |
 | 登录、认证、Token、统一登录、OAuth、Cookie、Session、logout、401/403、`/api/make/**` 鉴权请求 | `make-app-auth` | 只负责认证和鉴权请求，不负责 UI 布局和打包发布 |
 | 打包、发布、镜像入口、K8s、Service 启动失败、`apps/ui/dist`、`apps/service/dist/server.js`、Service 端口 `3000`、workspace/package.json、`X-Forwarded-Host` | `make-app-runtime` | 只负责运行态和打包发布契约，不负责 Service API、认证实现或 Make adapter 配置语义 |
 | App/Entity/Relation/Field 建模、DSL YAML、对象、字段、关系、选项 | `makedsl` | 只负责 DSL 设计和生成，不负责远端 apply |
@@ -133,8 +133,8 @@ npx skills update make-app-service
 - 生成 schema、fields、records、record detail、create、update、delete、cell update 等通用对象接口
 - 生成人员、部门、lookup options、文件上传/删除/下载代理接口
 - 设计 Make Meta/Data API adapter、错误返回、请求参数校验、日志脱敏和接口测试
-- 线上 Service 读取记录必须通过 Make gateway 的 `/data/v1/record`，并把请求登录态转发给 gateway；不得通过 `makecli` 获取运行时数据
-- 约束 `apps/service/src/config.ts` 中 Make adapter 配置语义：`MAKE_APP_KEY` 由部署注入且 Service 调 Make Meta/Data 时使用，`MAKE_API_BASE_URL` 优先、`MAKE_SERVER_URL` 兼容，缺少必需配置时启动失败
+- 线上 Service 读取记录必须通过 Make gateway 的 `/make/data/v1/record`，并把请求登录态转发给 gateway；不得通过 `makecli` 获取运行时数据
+- 约束 `apps/service/src/config.ts` 中 Make adapter 配置语义：`MAKE_APP_KEY` 由部署注入且 Service 调 Make Meta/Data 时使用，`MAKE_API_BASE_URL` 是严格网关 origin（如 `http://make-gateway.make-dev`），`MAKE_SERVER_URL` 兼容，Make adapter 按服务 scope 显式拼 `/make/**`，缺少必需配置时启动失败
 - 不负责页面布局；页面和组件展示交给 `makeui`
 - 不负责认证实现；统一登录、cookie、session、401/403 交给 `make-app-auth`
 - 不负责打包发布；端口、`dist/server.js`、package scripts 和镜像入口交给 `make-app-runtime`
