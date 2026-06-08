@@ -15,14 +15,29 @@ Before changing code:
 
 Do not leave undocumented routes as the only integration path for generated UI.
 
+For Make Deploy Service-fronted Apps, published browser-facing Service routes live under `/api/**` because the default HTTPRoute sends `/api` to App Service and `/` to UI. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
+
 ## Public routes
 
 Default public routes:
 
-- `GET /health` -> `{ status: "ok" }`
+- `GET /api/health` -> `{ status: "ok" }` for published App Service access
+- `GET /health` -> `{ status: "ok" }` when the host uses prefix-free local health or k8s probes
 - `GET /api/config` -> public config only, for example `{ listPageSize }`
 
 Public config must not expose `appKey`, tokens, Make API base URLs, session cookies, service keys, or private deployment details.
+
+## Auth proxy routes
+
+For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose the browser-facing proxy paths:
+
+- `GET/POST /api/auth/**` -> transparent proxy to make-gateway internal `/make/auth/**`
+
+Rules:
+
+- Preserve upstream status, `Set-Cookie`, `Location`, and body for auth proxy responses.
+- Strip only the browser-facing `/api` prefix before calling make-gateway; do not forward `/api/auth/**` or `/api/make/auth/**` to the internal gateway.
+- If local development keeps `/auth/**`, also test the published `/api/auth/**` path.
 
 ## Schema routes
 

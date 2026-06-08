@@ -122,7 +122,8 @@ The Service API may be a local dev proxy or deployed app backend. Preserve the h
 
 Default guidance:
 
-- keep `/health` and `/api/config` public
+- keep `/api/health` and `/api/config` public for published App Service access; `/health` may remain for local or k8s-probe compatibility
+- for Make Deploy's default route split, mount published browser-facing Service APIs under `/api/**`. Prefix-free `/app/**` and `/auth/**` routes are local compatibility only unless the deploy HTTPRoute exposes them.
 - protect Make-backed `/api/*` routes when the host project has a Service API key or auth middleware
 - for Make-backed record/data routes, forward the established request login context to Make gateway through the adapter; do not replace this with makecli or local credentials
 - keep CORS scoped to documented UI origins in local development
@@ -195,5 +196,7 @@ export const loadConfig = (
 `normalizeGatewayOrigin` can be a host-equivalent helper, but its contract is fixed for new generated code: trim, remove trailing slashes, require an origin-style URL, reject `/make`, `/api/make`, `/meta`, `/data`, `/auth`, and other service scopes in `MAKE_API_BASE_URL`, and leave service path construction to adapters. Existing projects may keep equivalent names such as `baseUrl`, `serverUrl`, or `makeBaseUrl`, but they must preserve the same precedence and failure behavior. `/make` is fixed in the Make Meta/Data adapter boundary, not config loading. A local-only fallback app key is acceptable only when the host project has explicitly documented it for tests or local development; deployed readiness still requires `MAKE_APP_KEY`.
 
 `GET /api/config` must expose only public UI config. Do not return `appKey`, Make base URLs, tokens, cookies, service keys, signed URLs, or deployment-internal route details.
+
+For Service-fronted unified-login Apps, route registration should include the published auth proxy path (`/api/auth/**`) and business paths (`/api/app/**` or the documented `/api/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route.
 
 If the task is to change `apps/service/src/config.ts` structure for port, build, start, or runtime artifact reasons, use `make-app-runtime`.
