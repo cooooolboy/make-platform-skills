@@ -2,15 +2,48 @@
 
 ## Contents
 
+- [ExpensePoc default UI tree](#expensepoc-default-ui-tree)
 - [Default module boundaries](#default-module-boundaries)
 - [Route and page files](#route-and-page-files)
 - [Feature modules](#feature-modules)
 - [Object list and table pages](#object-list-and-table-pages)
 - [Small-change exception](#small-change-exception)
 
+## ExpensePoc default UI tree
+
+For new Make POC projects, use the ExpensePoc-style `apps/ui/src` layout as the default unless the host project already has an equivalent componentized tree:
+
+```text
+apps/ui/src/
+  App.tsx
+  main.tsx
+  components/
+    page-shell/
+    <feature>/
+    <table-feature>/
+      config/
+      editing/
+      editors/
+      hooks/
+      renderers/
+      types/
+  hooks/
+  lib/
+    service-api/
+    make-gateway-api/  # only when the host explicitly allows direct gateway UI mode
+  pages/
+    <route-name>/
+  router/
+  types/
+```
+
+The directory names may follow a host project's established equivalents, but the responsibility split is mandatory. A generated POC UI must not be delivered as a flat `src` folder with most logic beside `App.tsx`, or as one large route component that owns shell, data loading, table configuration, form/detail drawers, row actions, and value display.
+
+When refactoring a flat project, move toward this baseline before reporting the task ready. Preserve existing behavior, but make the source tree communicate page entrypoints, feature UI, shared hooks, Service adapters, pure adapters/config builders, routing, and shared types.
+
 ## Default module boundaries
 
-Generated or refactored `apps/ui` code must be componentized by responsibility. Prefer the host project's existing directory style first. If the project has no clear convention, use these boundaries:
+New generated Make POC UI and non-trivial generated/refactored `apps/ui` code must be componentized by responsibility. Prefer the host project's existing directory style first when it already separates concerns. If the project has no clear convention, use the ExpensePoc default tree and these boundaries:
 
 - `pages` or `routes`: route-level page entrypoints
 - `features/<domain>`: object or workflow-specific UI modules
@@ -19,7 +52,7 @@ Generated or refactored `apps/ui` code must be componentized by responsibility. 
 - `services`, `api`, or `clients`: host Service API calls
 - `utils` or `adapters`: value normalization, field display adaptation, and configuration builders
 
-Do not introduce a new folder taxonomy when the project already has a stable equivalent. Keep naming aligned with the existing codebase.
+Do not introduce a new folder taxonomy when the project already has a stable equivalent. Keep naming aligned with the existing codebase, but do not use naming consistency as a reason to keep unrelated logic flat.
 
 ## Route and page files
 
@@ -66,4 +99,4 @@ For Make record list pages, split the page before it becomes a large all-in-one 
 
 Tiny local edits may stay in the touched component when extracting a module would add more complexity than it removes.
 
-This exception does not apply when the file already mixes unrelated responsibilities, grows into a route-sized component, or the new change adds reusable logic, multiple UI regions, Make field adaptation, table configuration, or create/edit/detail state. In those cases, split the code before completing the task.
+This exception does not apply when the requested change is a new generated POC scaffold, an explicit modularization/refactor, or a change that adds table configuration, form/detail workflows, reusable logic, multiple UI regions, Make field adaptation, or create/edit/detail state. If a small unrelated edit touches a pre-existing file that already mixes responsibilities, do not force a broad split unless the edit worsens that mix; note the follow-up refactor instead.

@@ -1,17 +1,15 @@
 ---
 name: makeui
-description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, or canvas-table internals.
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills/makeui
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, current-user header menu, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, or canvas-table internals.
 ---
 
 # makeui
 
-Current skill revision: 0.3.36.
+Current skill revision: 0.3.40.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
-`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permissions, persistence, business modeling, domain mapping, or `canvas-table` internals.
+`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, current-user header menu placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permissions, persistence, business modeling, domain mapping, or `canvas-table` internals.
 
 ## Quick start
 
@@ -20,9 +18,11 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 3. Use host-provided object/field metadata to render UI. Do not invent business fields or API contracts.
 4. Use the dense object-management layout by default: left navigation, flat workspace header, local toolbar directly above the table, and no extra list-title card. Sidebar color follows the project theme.
 5. Wrap object routes with visible UI states: loading, empty, error, forbidden, expired-session, not-found, retry, and render-error fallback.
-6. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
-7. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
-8. Read only the needed reference files from the map below.
+6. Put the current logged-in user entry in the top header right: a strict 32px circular avatar plus plain display name. No tag, badge, pill background, or open menu is visible until the avatar/name trigger is clicked.
+7. For a new Make POC UI, use the ExpensePoc-style componentized source tree by default: `src/pages`, `src/components`, `src/hooks`, `src/lib/service-api`, `src/router`, and `src/types`, with complex table/workflow components split into nested `config`, `editing`, `editors`, `hooks`, `renderers`, and `types` modules.
+8. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
+9. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
+10. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -37,14 +37,14 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 | Component library choice, field-type UI controls, detail value display | `references/component-usage.md` |
 | Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
 | Make record table display or cell editing | Use `canvas-table-integration` |
-| Authentication, login, logout, token, session behavior | Use `make-app-auth`; `makeui` only owns visual slot placement |
+| Authentication, login, logout handler, token, session behavior | Use `make-app-auth`; `makeui` only owns the current-user menu surface and placement |
 | Build output, Service runtime, packaging, publish readiness | Use `make-app-runtime`; `makeui` does not own runtime contracts |
 
 ## Hard rules
 
 ### Scope boundary
 
-- Do not add or modify authentication/login, token, OAuth, cookie, logout, `/api/make/**`, domain, gateway, deployment, Docker/K8s, Node runtime, package-manager, build-output, or Service runtime rules in `makeui`.
+- Do not add or modify authentication/login, token, OAuth, cookie, logout behavior, session mechanics, `/api/make/**`, domain, gateway, deployment, Docker/K8s, Node runtime, package-manager, build-output, or Service runtime rules in `makeui`.
 - Do not define business API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source behavior for UI selectors. Route names must yield to host project docs and the owning Service/API skill when the host documents a different transport.
 - If the task needs auth/login/logout/session behavior, use `make-app-auth`. If the task needs build output, Service runtime, packaging, or publish-readiness rules, use `make-app-runtime`.
 - `makeui` may consume host-provided object/field metadata for UI rendering, but must not decide how that metadata is fetched, stored, authenticated, or deployed.
@@ -58,11 +58,13 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 
 ### Component structure and modularization
 
-- This is the MakeUI 组件化拆分 / 模块化 hard rule: generated or modified `apps/ui` code must be split by responsibility instead of implemented as one page-sized component.
+- This is the MakeUI 组件化拆分 / 模块化 hard rule: new generated Make POC UI and non-trivial generated/refactored `apps/ui` code must be split by responsibility instead of implemented as one page-sized component.
+- For new Make POC UI projects, the default directory baseline is ExpensePoc-style: `apps/ui/src/pages` for route pages, `apps/ui/src/components` for shell and feature components, `apps/ui/src/hooks` for reusable state/data hooks, `apps/ui/src/lib/service-api` for UI-to-Service calls, `apps/ui/src/router` for route registration, and `apps/ui/src/types` for shared UI types. Complex table or workflow components must add nested modules such as `config`, `editing`, `editors`, `hooks`, `renderers`, and `types`.
 - Route/page files only orchestrate layout, read route params, compose feature modules, and bridge minimal page state. Do not put data fetching, field metadata normalization, table column construction, form field mapping, Drawer state, row actions, and render details all in one route/page component.
 - Split non-trivial UI into route pages, feature modules, reusable components, hooks, data/API adapters, and configuration builders. Follow the host project's existing folders first, such as `components`, `features`, `hooks`, `services`, `api`, `utils`, `adapters`, `pages`, or `routes`.
+- A flat `apps/ui/src` tree or a single `App.tsx`/route file that owns shell, routing, data loading, table config, forms, drawers, row actions, and display adapters is a readiness defect for generated POC work. Split it before reporting the UI as complete.
 - Do not create 单文件堆逻辑: if a page has multiple UI regions, reusable behavior, complex state, Make field adaptation, table configuration, or create/edit/detail surfaces, extract those responsibilities into named modules before finishing the change.
-- Very small local edits may stay near the touched component, but they must not enlarge an existing monolithic file or mix unrelated responsibilities.
+- Very small local edits may stay near the touched component, but they must not enlarge an existing monolithic file or mix unrelated responsibilities. This exception does not apply when the requested change is a new generated POC scaffold, an explicit modularization/refactor, or a change that adds multi-region object pages, table configuration, form/detail workflows, reusable Make field adaptation, or other mixed responsibilities. If a small unrelated edit touches a pre-existing monolithic file, avoid a broad split unless the edit worsens the mix; report the follow-up refactor instead.
 
 ### UI defaults
 
@@ -70,6 +72,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Sidebar has a brand area, section labels, single-line object items, and a clear active state. Background color follows the project theme; do not default to dark.
 - Sidebar active item highlight must be centered inside the sidebar content gutter, with consistent left/right inset and no overflow to the sidebar edge.
 - Sidebar items and workspace header titles do not get subtitles, descriptions, helper lines, schema summaries, or overview copy unless the user asks.
+- The top header right must show the current logged-in user in this strict style when the host auth context exposes user identity: current user avatar image first; if no avatar image exists, render one fixed 32px circular fallback avatar with a deterministic random background color derived from the user id or display name, centered white text, and the last two characters of the display name; then show the plain display name to the right. Do not use one fixed global fallback color for all users. Do not wrap the avatar/name in a Tag, Badge, pill, tinted capsule, card, or visible dropdown shell, and do not show a menu or extra account actions before click. Clicking the avatar/name trigger opens a right-aligned dropdown below the header with a visible `退出` action. `makeui` owns the placement, density, label, and popup surface; the action handler must come from the host auth integration defined by `make-app-auth`.
 - The local toolbar sits above the table. Put search/filter/refresh on the left and create/new on the right. Do not put refresh in the global header, object title header, table header row, canvas-table header area, or column header area.
 - Do not insert a summary/title card between the workspace header and table for default object lists.
 - Do not add pagination, views, import/export, grouping, sorting, column settings, selection, or Kanban/split views unless requested.
@@ -90,7 +93,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 
 ## Out of scope
 
-- Authentication, login, token, logout, session, or SDK integration
+- Authentication, login, token, logout behavior, session mechanics, or SDK integration
 - Frontend build output, package scripts, publishing, deployment, Docker, K8s, or runtime readiness
 - Service structure, Service config, Service port, API proxy, or API orchestration
 - Business fields or field meaning

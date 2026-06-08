@@ -4,6 +4,7 @@
 
 - [Structure](#structure)
 - [Header](#header)
+- [Current user menu](#current-user-menu)
 - [Sidebar](#sidebar)
 - [Content height chain](#content-height-chain)
 - [Page content](#page-content)
@@ -37,7 +38,7 @@ When no project-specific shell already exists, use the ExpensePoc-style dense ob
 - navigation is grouped by module/category section labels
 - object navigation items are single-line labels with an icon when available
 - active object item uses a clear filled highlight
-- workspace header is flat, compact, and only shows the current title plus global right-side user/actions
+- workspace header is flat, compact, and only shows the current title plus global right-side current-user menu/actions
 - content area starts with the local toolbar, then the table region
 - sidebar background color follows the existing project theme or design system; do not default to a dark sidebar unless the project or user asks for it
 
@@ -46,11 +47,11 @@ When no project-specific shell already exists, use the ExpensePoc-style dense ob
 Use the top header for global context and actions:
 
 - left side: current object/module name, breadcrumb, or current module context
-- right side: global actions such as settings, notifications, help, and user avatar
+- right side: global actions such as settings, notifications, help, and the current-user menu
 
 Keep the header visually stable and do not place page-specific bulk actions there unless the page has no local toolbar.
 
-For object list pages, the header should show the selected object name on the left and current user/avatar on the right. Do not replace this stable header with a large app-title band above the whole page.
+For object list pages, the header should show the selected object name on the left and current user avatar/name on the right. Do not replace this stable header with a large app-title band above the whole page.
 
 Header titles are primary labels only by default:
 
@@ -58,6 +59,28 @@ Header titles are primary labels only by default:
 - do not render a subtitle, description, helper line, schema summary, or "overview" copy under the title unless the user explicitly asks
 - keep page-specific actions such as refresh, create, filter, import, export, or batch actions out of the header when a local toolbar exists
 - do not insert an additional object-summary title card below the header just to repeat the current title
+
+## Current user menu
+
+Generated Make App shells must expose the current logged-in user in the top header right when the host auth context provides user identity.
+
+Default pattern:
+
+- show only a 32px circular avatar followed by the current user's plain display name
+- use the current user's real avatar image when the auth/user context provides one
+- if no avatar image exists, render a fixed 32px circular fallback avatar with a deterministic random background color selected from a small, readable color palette by user id or display name, centered white text, and the last two characters of the display name; if the display name is shorter than two characters, use the whole display name
+- the fallback background color must differ by user when possible, but remain stable for the same user across renders and reloads; do not use one fixed global fallback color for all users or a per-render `Math.random()` color that changes on refresh
+- keep the display name outside the avatar; do not put the full name inside the avatar
+- keep avatar dimensions fixed at `width: 32px`, `height: 32px`, `border-radius: 50%`, and do not let the name, menu state, or loading state resize it
+- do not wrap the avatar/name in a Tag, Badge, pill, tinted capsule, card, or other chip-like background
+- do not show a dropdown arrow, dropdown panel, or extra account actions before the user clicks
+- clicking the avatar/name trigger opens a dropdown or popover below the header, aligned to the right edge of the trigger
+- the dropdown must contain a visible `退出` action
+- additional items such as clear cache, change password, language, or settings are optional only when the host project already has those actions or the user asks for them
+
+Do not fabricate a fake user. If the host auth context has not loaded the current user's name yet, show a small loading/skeleton state or a neutral account placeholder until the real identity is available.
+
+`makeui` only owns the visual slot, menu item, and interaction surface. The `退出` action handler must come from the host auth integration defined by `make-app-auth`; do not construct logout URLs, clear cookies, or implement auth/session behavior in UI layout code.
 
 ## Sidebar
 

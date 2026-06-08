@@ -121,7 +121,7 @@ For published/vibe Apps, auth integration is not complete until the agent or pla
 - Business-request 401 from schema/list/create/update/delete enters the shared expired-session handler.
 - Make backend calls are routed through the shared adapter; no raw `window.fetch('/api/make/...')` and no scattered unhandled `auth.api` calls in UI components.
 - Unified-login state/challenge expiration renders a relogin prompt instead of automatically redirecting again.
-- Authenticated unified-login state exposes a visible logout action wired to `auth.logout()`.
+- Authenticated unified-login state exposes a visible logout action wired to `auth.logout()`, preferably in the top-header current-user menu defined by `makeui`.
 - Logout does not consume or rewrite `orgSsoLogoutUrl` in App code; the SDK calls make-gateway logout and follows gateway `redirectUri`, which should be an App return URL rather than an account-center or Org logout URL.
 - Service-fronted unified-login Apps proxy `/api/make/auth/current-context`, `/api/make/auth/session/complete`, and logout through Service without swallowing redirect or cookie headers.
 

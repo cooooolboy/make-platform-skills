@@ -1,8 +1,6 @@
 ---
 name: make-app-service
-description: Use when generating, refactoring, reviewing, or debugging Make App `apps/service` API code and UI-Service contracts. Covers Service route design, `apps/docs/api.md`, schema normalization APIs, record CRUD APIs through Make gateway `/data/v1/record`, user/department/lookup/file proxy APIs, Make Meta/Data API adapters, Make adapter runtime config such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, internal make-gateway `/make` path scope, request login-context forwarding to gateway, Service error envelopes, request validation, logging, and Service API tests. Does not cover UI layout, authentication implementation, build output, Docker/K8s runtime, DSL modeling, Make CLI deployment, or canvas-table internals.
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills/make-app-service
+description: Use when generating, refactoring, reviewing, or debugging Make App `apps/service` API code and UI-Service contracts. Covers Service route design, `apps/docs/api.md`, componentized/layered Service source structure, `make-client` adapters, `services` orchestration modules, `utils` helpers, schema normalization APIs, record CRUD APIs through Make gateway `/data/v1/record`, user/department/lookup/file proxy APIs, Make Meta/Data API adapters, Make adapter runtime config such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, internal make-gateway `/make` path scope, request login-context forwarding to gateway, Service error envelopes, request validation, logging, and Service API tests. Does not cover UI layout, authentication implementation, build output, Docker/K8s runtime, DSL modeling, Make CLI deployment, or canvas-table internals.
 ---
 
 # make-app-service
@@ -18,10 +16,11 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 1. Inspect `apps/docs/api.md`, `apps/service/src`, `apps/service/src/config.ts` or host-equivalent config entry, existing tests, and the host project's declared data flow.
 2. Preserve the host API contract. Update `apps/docs/api.md` before or with any Service route or response-shape change.
 3. Keep Service thin: validate UI input, normalize request/response shapes, call Make adapters, and return stable UI-facing contracts.
-4. Do not read local DSL/YAML as a published runtime data source. Runtime schema and data come from Make/backend APIs or the host Service adapter.
-5. Use shared adapters for Make Meta/Data calls, candidate APIs, lookup, files, and schema normalization. Build Make adapter URLs and `appKey` from normalized runtime config, not from route-local domains or UI input.
-6. Add or update Service tests for every changed route, adapter, validation path, and error path.
-7. Read only the needed reference files from the map below.
+4. For a new Make POC Service, use the ExpensePoc-style layered source tree by default: `app.ts`, `server.ts`, `config.ts`, `logger.ts`, `make-client/`, `services/`, `utils/`, with tests beside the route/adapter/helper they cover.
+5. Do not read local DSL/YAML as a published runtime data source. Runtime schema and data come from Make/backend APIs or the host Service adapter.
+6. Use shared adapters for Make Meta/Data calls, candidate APIs, lookup, files, and schema normalization. Build Make adapter URLs and `appKey` from normalized runtime config, not from route-local domains or UI input.
+7. Add or update Service tests for every changed route, adapter, validation path, and error path.
+8. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -64,6 +63,9 @@ Keep route handlers small. Put Make/backend calls in adapter modules, cross-rout
 ## Hard rules
 
 - `apps/docs/api.md` is the UI-Service contract source. Do not change Service route behavior without updating it.
+- New generated Make POC Services and non-trivial generated/refactored `apps/service` code must use a layered, componentized source structure instead of flat route/adapter/helper files. For new Make POC Services, default to the ExpensePoc-style tree: `app.ts`, `server.ts`, `config.ts`, `logger.ts`, `make-client/` for Make/backend adapters, `services/` for multi-step orchestration, `utils/` for pure helpers, and colocated tests.
+- A flat `apps/service/src` tree is a readiness defect for generated POC work when it mixes route registration, Make request construction, schema normalization, lookup/file orchestration, config parsing, logging, and helpers side by side. Split it before reporting the Service as complete.
+- Route handlers in `app.ts` or `routes/` only validate input, call a service/adapter, map errors, log safe boundary context, and send the documented response. Do not put raw Make payload construction, schema variant parsing, record lookup orchestration, file proxy mapping, or custom workflow steps directly into route handlers.
 - UI-facing APIs return stable, normalized shapes. Do not leak raw Make response envelopes unless the route contract explicitly says so.
 - Service route handlers validate query/body/path params before calling Make adapters and return 400 for invalid client input.
 - Service adapters own Make request details such as `appKey`, `X-Make-Target`, Make response code checks, pagination translation, file body mapping, and consuming a prepared login/session forwarding context. Auth/session mechanics and shared forwarding helpers belong to `make-app-auth`; publish/runtime proxy header contracts belong to `make-app-runtime`.

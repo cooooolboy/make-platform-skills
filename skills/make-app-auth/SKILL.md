@@ -1,9 +1,6 @@
 ---
 name: make-app-auth
-description: Use when generating, modifying, reviewing, or debugging Make App unified login and authenticated /api/make requests with @qfeius/make-app-auth. Covers unified login, OAuth/ngrok mode, 401/403 handling, logout, cookies, sessions, redirect callbacks, and Make App auth troubleshooting.
-version: 0.1.2
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills/make-app-auth
+description: Use when generating, modifying, reviewing, or debugging Make App unified login and authenticated /api/make requests with @qfeius/make-app-auth. Covers unified login, OAuth/ngrok mode, 401/403 handling, logout, current-user menu logout wiring, cookies, sessions, redirect callbacks, and Make App auth troubleshooting. Does not cover UI layout, account menu placement, page structure, build output, Service API contracts, DSL modeling, or canvas-table internals; use makeui for the current-user header menu surface.
 ---
 
 # make-app-auth
@@ -56,6 +53,7 @@ This skill only supports unified login for generated and reviewed Make Apps. Mis
 - Published/vibe Apps must be auth-ready before reporting success: the agent or platform performs the auth checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.
 - For Service-fronted Apps, `/api/make/auth/**` is a required Service proxy contract, not an optional convenience route.
 - For Service-fronted Apps, Service must preserve the App host context for every make-gateway call: derive `X-Forwarded-Host` from inbound `Host`, do not trust client-supplied `X-Forwarded-Host`, add `X-Forwarded-Proto`, and share the same helper for auth and business proxy requests.
+- Generated authenticated App shells must expose a visible logout action in the current-user menu or the host's established account area, and that action must call `auth.logout()`. The visual menu surface belongs to `makeui`; this skill owns the auth handler and logout behavior. Do not implement logout by clearing cookies, rewriting Org URLs, or hiding logout in page-specific controls.
 - Generated Apps must handle recoverable unified-login expiry: when SDK init returns `reason: "state_expired"` or `reason: "challenge_expired"`, show a relogin prompt and call `auth.login({ redirect: true })` from user action.
 
 ## Pre-flight Workflow

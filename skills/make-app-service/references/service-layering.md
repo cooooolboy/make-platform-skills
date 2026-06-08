@@ -4,7 +4,7 @@ Use this reference when structuring `apps/service/src` code.
 
 ## Default folder responsibilities
 
-Preserve existing project structure when it already separates these concerns. For new projects, prefer:
+Preserve existing project structure when it already separates these concerns. For new Make POC projects, use the ExpensePoc-style layered tree by default:
 
 ```text
 apps/service/src/
@@ -12,10 +12,25 @@ apps/service/src/
   server.ts
   config.ts
   logger.ts
-  routes/ or app route registration
+  make-gateway-proxy.ts      # only when Service-fronted auth/proxy routes are needed
+  routes/                    # optional; app.ts may own route registration for small Services
   make-client/
+    request.ts
+    schema.ts
+    records.ts
+    users.ts
+    departments.ts
+    files.ts
+    types.ts
   services/
+    lookup-options.ts
+    lookup-relation-updates.ts
+    <custom-orchestration>.ts
   utils/
+    make-schema-identity.ts
+    make-schema-display.ts
+    <pure-helper>.ts
+  *.test.ts                  # colocated with the behavior under test when practical
 ```
 
 Responsibilities:
@@ -27,6 +42,8 @@ Responsibilities:
 - `make-client/`: Make/backend adapter functions.
 - `services/`: multi-step orchestration such as lookup relation updates or OCR result creation.
 - `utils/`: pure helpers for schema identity, display name resolution, value normalization, and validation.
+
+Generated POC Services must not be delivered as a flat `src` directory with routes, adapters, schema parsing, lookup logic, file proxy logic, config parsing, and helpers all beside each other. A flat tree is a readiness defect unless the project is truly tiny and contains only a health/config endpoint. Once a Service calls Make Meta/Data APIs, exposes records/candidates/lookup/files, or has custom orchestration, split it into the layered tree before reporting completion.
 
 ## Route handler rules
 
@@ -42,6 +59,7 @@ Route handlers should not:
 
 - build raw Make request bodies inline for every route
 - parse schema variants repeatedly in JSX-like or route-local code
+- implement record lookup, lookup-option construction, file proxy mapping, or custom workflow orchestration inline
 - call local DSL/YAML files for published runtime schema
 - shell out to `makecli`, `npx makecli`, or read local makecli config/credentials to serve published runtime data
 - contain large multi-step business workflows

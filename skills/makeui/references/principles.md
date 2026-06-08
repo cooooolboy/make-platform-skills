@@ -18,7 +18,7 @@
 ## Hard boundaries
 
 - Do not invent business fields, field meanings, API shapes, permission rules, approval states, persistence behavior, deployment rules, or runtime architecture.
-- Do not add or modify authentication, login, logout, token handling, cookies, OAuth, SSO, `/api/make/**`, gateway, domain, or session behavior in `makeui`; route those tasks to `make-app-auth`.
+- Do not add or modify authentication, login, logout behavior, token handling, cookies, OAuth, SSO, `/api/make/**`, gateway, domain, or session mechanics in `makeui`; route those tasks to `make-app-auth`. `makeui` only owns the visible current-user menu surface.
 - Do not add or modify Service structure, Service config, Service port, Service build output, Docker/K8s, frontend build output, package scripts, Node runtime, or publish readiness rules in `makeui`.
 - Do not decide where field metadata comes from. `makeui` consumes the host project's object/field metadata and renders the UI from it.
 - Do not infer that a requested table needs pagination, cell editing, virtual loading, or custom renderers; table implementation belongs to `canvas-table-integration`.
@@ -46,7 +46,7 @@ For generated object-list UI, the shell structure is:
 
 1. left full-height sidebar for module/object navigation
 2. right fixed header with selected object/module name on the left
-3. current user/avatar and global action slots on the header right, when the host project exposes them
+3. current logged-in user on the header right as a strict 32px circular avatar plus plain display name; the dropdown containing `退出` appears only after the avatar/name trigger is clicked
 4. local list toolbar below the header
 5. canvas-table region filling the remaining height
 
