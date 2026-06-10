@@ -1,78 +1,99 @@
 ---
 name: make-app-filter
-description: Use when designing, generating, refactoring, or reviewing Make App advanced filter behavior, filter builders, field-type operators, toolbar filter popovers, CanvasTable header filter linkage, Service filter contracts, and Make Data API filter expression translation. Covers filter IR, AND/OR groups, field operator matrices, ExpensePoc-style advanced filter panel defaults, header more-menu "filter by this field", CEL expression compilation, empty-filter handling, user/department candidate values, and tests. Does not cover general page layout, table rendering, auth, runtime packaging, DSL modeling, or Make CLI deployment.
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills/make-app-filter
+description: Use when integrating, generating, refactoring, or reviewing Make App filtering with `@qfei-design/make-filter` and CanvasTable header linkage. Covers natural-language requests such as 筛选, 高级筛选, 条件筛选, 表格筛选, 表头筛选, 列头筛选, or 按字段筛选; package pre-flight; advanced filter IR; field-type operators; toolbar filter popovers; `AdvancedFilterPanel`; `useAdvancedFilterController`; AntD adapter; host-owned CanvasTable header filter UI linkage; Service `filter.expression` payloads; URL/deep-link filter echo; candidate values; and tests. Requires Make filtering to be delivered as one integrated feature: package-backed advanced filter plus host-owned CanvasTable header filter linkage. Does not cover general page layout, table rendering internals, CanvasTable header menu API details, Service route implementation, auth, runtime packaging, DSL modeling, or Make CLI deployment.
 ---
 
 # make-app-filter
 
-Use this skill for Make App advanced filtering. It owns the filter model, field-type operator rules, advanced filter panel behavior, table-header-to-filter linkage, Service filter contract shape, filter expression translation, and filter tests.
+Use this skill for Make App filtering. Any Make project that uses filtering, advanced filters, condition builders, table filtering, or CanvasTable header "按该字段筛选" must deliver one integrated feature:
 
-It does not own general page layout (`makeui`), CanvasTable rendering internals (`canvas-table-integration`), Service route implementation (`make-app-service`), auth (`make-app-auth`), runtime packaging (`make-app-runtime`), DSL modeling (`makedsl`), or Make CLI execution (`makecli`).
+- package-backed toolbar advanced filter using `@qfei-design/make-filter`
+- host-owned CanvasTable header filter UI/menu
+- linkage from header "按该字段筛选" to the same package controller and toolbar panel
+- Service `filter.expression` payload integration
+
+Do not implement only advanced filter or only header filter in Make record-list pages. They must be done together or not done.
+
+This skill owns the consumer-side package integration contract, advanced-filter behavior, field support, Service filter payload shape, host-owned header-linkage semantics, URL/deep-link filter echo, and filter-specific tests. It does not own page shell/layout (`makeui`), CanvasTable rendering internals or header menu API details (`canvas-table-integration`), Service route implementation (`make-app-service`), auth (`make-app-auth`), runtime packaging (`make-app-runtime`), DSL modeling (`makedsl`), or Make CLI execution (`makecli`).
 
 ## Quick start
 
-1. Inspect host field metadata, existing search/filter state, records API contract, and the CanvasTable column/header setup.
-2. Build a normalized Filter IR before rendering controls. Do not bind UI directly to raw backend filter payloads.
-3. Choose operators and value editors by Make field type. Unsupported fields must be hidden or disabled.
-4. Keep advanced filter edits in a draft. Only submit after `确认`; outside click or trigger re-click discards unconfirmed changes.
-5. Compile applied filters to the host Service contract. New Make App code should send `filter: { expression }`; omit `filter` when no expression exists.
-6. Do not filter Make record lists locally. List filtering must go through Service/backend filter APIs.
-7. For CanvasTable record lists with advanced filter enabled, add the header more-menu linkage by default unless the user explicitly says header filtering is not needed.
-8. Read only the needed reference files from the map below.
+1. Treat any Make record-list request containing "筛选", "高级筛选", "条件筛选", "表格筛选", "表头筛选", "列头筛选", or "按字段筛选" as the same integrated filtering requirement. Implement both the package-backed toolbar advanced filter and the host-owned CanvasTable header filter linkage.
+2. Locate the host UI package, usually `apps/ui/package.json`. If no UI package exists, stop and report the missing host package.
+3. Ensure `@qfei-design/make-filter@^0.1.4` is installed. If missing or older, install/upgrade with the host package manager.
+4. Read package docs before designing code. Prefer installed package docs; if the host is working in the package repo, read source docs.
+5. Import `@qfei-design/make-filter/styles.css` once in the host UI entry.
+6. Use package APIs for filter core, panel, controller, adapter, validation, and CEL compile/parse. Do not copy or hand-write these capabilities in the host.
+7. Keep host responsibilities outside the package: toolbar trigger, Popover/Drawer/Modal container, scroll sizing, applied state, candidate APIs, Service request adapter, and CanvasTable header filter UI/menu.
+8. Wire header "按该字段筛选" to the same package controller/panel; do not create separate header-only state or a local filter implementation.
+9. Before finishing, verify tests or deterministic checks for package source usage, empty filter omission, search merge, draft confirm/discard, candidate sources, header linkage, unsupported fields, and Service payload shape.
+
+## Package pre-flight
+
+If `@qfei-design/make-filter` is missing:
+
+- `pnpm-lock.yaml` -> `pnpm add @qfei-design/make-filter@^0.1.4`
+- `yarn.lock` -> `yarn add @qfei-design/make-filter@^0.1.4`
+- `package-lock.json` -> `npm install @qfei-design/make-filter@^0.1.4`
+- no lockfile -> default to `npm install @qfei-design/make-filter@^0.1.4`
+
+If a different advanced-filter package name is already used, stop and ask before changing the dependency. If `@qfei-design/make-filter` is installed but older than `0.1.4`, upgrade before integrating.
+
+Required read order for installed `0.1.5+` packages:
+
+1. `node_modules/@qfei-design/make-filter/package.ai.json`
+2. `node_modules/@qfei-design/make-filter/docs/agent-usage.md`
+3. `node_modules/@qfei-design/make-filter/recipes.json`
+4. `node_modules/@qfei-design/make-filter/capabilities.json`
+5. `node_modules/@qfei-design/make-filter/PUBLIC_API.md`
+6. `node_modules/@qfei-design/make-filter/README.md`
+7. `node_modules/@qfei-design/make-filter/docs/api.md`
+
+When working directly in the package repo, use the same root-relative paths. If the installed package is `0.1.4` and these AI docs are absent, fall back to `README.md`, `docs/api.md`, and `dist/**/*.d.ts`; do not invent undocumented APIs.
 
 ## Topic reference map
 
 | Task / topic | Read |
 | --- | --- |
-| Filter IR, draft/confirm semantics, search merge | `references/filter-model.md` |
-| Make field type to operator/value-editor matrix | `references/operator-matrix.md` |
-| ExpensePoc-style panel layout, spacing, validation states | `references/ui-style.md` |
+| Package install, imports, host/package boundary | `references/package-integration.md` |
+| Filter IR, controller draft/confirm semantics, search merge, URL echo | `references/filter-model.md` |
+| Make field type to operator/value-editor matrix and candidate values | `references/operator-matrix.md` |
+| Host Popover/container, trigger, panel sizing, validation visuals | `references/ui-style.md` |
 | CanvasTable header more menu and advanced filter linkage | `references/header-table-linkage.md` |
-| Service filter contract and CEL expression translation | `references/service-translation.md` |
+| Service filter contract and CEL expression payload | `references/service-translation.md` |
 | Tests, smoke checks, common regressions | `references/testing-and-pitfalls.md` |
 | Toolbar placement and surrounding page layout | Use `makeui` |
-| CanvasTable suffixRender public API details | Use `canvas-table-integration` |
+| CanvasTable `suffixRender` mechanics | Use `canvas-table-integration` |
 | Service route implementation and adapter tests | Use `make-app-service` |
-
-## Scope boundary
-
-- `make-app-filter` may define filter state shape, operator names, value normalization, field support, expression compilation, header filter linkage, and filter-specific tests.
-- `make-app-filter` may define how advanced filter state combines with a toolbar keyword search.
-- It must not decide where the filter button sits beyond the local toolbar order already agreed with `makeui`: search, filter, refresh on the left.
-- It must not implement table cell rendering, table sorting, table editing, or CanvasTable internals.
-- It must not design generic Service APIs outside filter params. Service route implementation and logging stay in `make-app-service`.
-- It must not use local DSL/YAML as runtime field metadata. Filter fields come from normalized runtime schema/field metadata.
-
-## Default behavior
-
-- Advanced filter is optional product capability. Generate it only when the user asks for advanced filtering, table header filtering, condition builders, or the existing project already has it.
-- Once advanced filter is in scope, use the ExpensePoc default: toolbar `筛选` button, bottom-left popover, single white panel surface, draft editing, `确认`, `清空所有`, active label `已筛选 N 个条件`, and field-type controls.
-- Filter rows use one connected control line: field selector, operator selector, value editor, and delete icon. The value editor and delete icon are attached with no gap or rounded seam between them for every value editor type, including select, input, number, date, user, and department editors.
-- Empty draft rows do not count as active filters and do not compile to an expression. If the user clicks `确认` while a condition row exists but is incomplete, keep the popover open and mark only the invalid controls in red.
-- After the first failed `确认`, every draft change must revalidate the latest draft and clear fixed errors immediately. A value select/input/date/number/user/department editor that becomes valid must lose its red error state without waiting for another `确认`.
-- Clicking outside the popover or clicking the trigger to close discards unconfirmed draft edits.
-- `清空所有` empties the draft. It clears applied filters only after the user clicks `确认`.
-- Search keyword and advanced filter compile separately; merge them with `AND`. Search itself is an `OR` group over searchable text-like fields.
 
 ## Hard rules
 
-- New filter output uses `filter: { expression: string }`. Do not generate new old-style object-array filter payloads.
-- If no valid expression exists, omit `filter`. Do not send `filter: []`, `filter: {}`, or `{ expression: "" }`.
-- Field keys used in CEL must be valid identifiers: `/^[A-Za-z_][A-Za-z0-9_]*$/`. Skip or reject invalid field keys instead of emitting unsafe expressions.
-- Do not expose unsupported fields in advanced filter or table header "按该字段筛选". ExpensePoc defaults treat `Make.Field.File`, `Make.Field.DateRange`, `Make.Field.Lookup`, and unknown types as unsupported until the host backend documents safe semantics.
-- Single select, single user, and single department fields expose only equality operators by default. Multi select, multi user, and multi department fields expose collection operators and empty/not-empty.
-- User and department values are identities, not display names. Advanced filter user/department value editors must use the same host candidate APIs as forms and table cell editors: `/api/users` and `/api/departments` or host equivalents. Normalize users as `userId/userName` and departments as `departmentId/departmentName`.
-- Do not source advanced filter user/department options from field schema `options`, local demo arrays, current table rows, hardcoded fixtures, or display labels. Current applied values may be merged only to keep selected labels visible while the real candidate API is loading or temporarily empty.
-- Header menu filtering must append a condition to the advanced filter draft and open the same popover. It must not submit immediately or trigger record reload before `确认`.
-- CanvasTable record-list headers should expose a more menu with `按该字段筛选` for supported fields when advanced filter is in scope, unless explicitly disabled.
+- Do not create new Make advanced-filter implementations in host apps. No hand-written Filter IR helpers, operator matrix, validator, CEL compiler/parser, or advanced filter panel when the package provides it.
+- Do not deliver filtering partially in Make record-list pages. If filtering is in scope, implement package-backed toolbar advanced filter, CanvasTable header filter UI, header-to-panel linkage, and Service expression payload together.
+- New integrations must import package APIs from `@qfei-design/make-filter`, `@qfei-design/make-filter/react`, and optional `@qfei-design/make-filter/adapters/antd`.
+- New integrations must import `@qfei-design/make-filter/styles.css` once. Host CSS may style the outer overlay/container, but must not fork package internals unless fixing a host-specific containment issue.
+- New filter output uses `filter: { expression: string }`. If `compileListFilter` returns `undefined`, omit `filter`.
+- Do not send `filter: []`, `filter: {}`, `{ expression: "" }`, or blank raw filter strings.
+- Do not filter Make record lists locally. List filtering goes through Service/backend filter APIs.
+- Filter fields come from normalized runtime object/field metadata. Do not read `apps/dsl/**`, copied YAML, row samples, or hardcoded demo data as runtime filter metadata.
+- User and department filter values are identities, not display names. Candidate sources must use host UI-Service routes such as `/api/users` and `/api/departments` or documented equivalents.
+- Do not source user/department options from field schema `options`, current table rows, local arrays, or display labels. Current applied values may be merged only to keep labels visible while remote candidates load.
+- Unsupported fields must be hidden from field selectors and header "按该字段筛选"; do not guess backend semantics for File, DateRange, Lookup, unknown fields, or invalid field keys.
+- Header menu filtering is a host integration. It appends a draft condition through the package controller and opens the same toolbar filter panel. It must not submit immediately, reload records, or create a separate header-only state.
 - Table scrolling, object switching, outside click, or unmount must close any header menu and restore the header suffix icon to hover-only state.
-- Tests are required for operator matrix, expression compilation, empty filter omission, draft confirm/discard, value-control validation error rendering and clearing, header menu linkage, unsupported field hiding, and Service payload shape.
+
+## Default behavior
+
+- Filtering is optional product capability. Generate it only when requested or already established by the project.
+- Once filtering is in scope, default to the complete ExpensePoc package baseline: toolbar `筛选` trigger, bottom-left popover, host-owned container, package `AdvancedFilterPanel`, package draft controller, `确认`, `清空所有`, active label `已筛选 N 个条件`, field-type controls, CanvasTable header menu `按该字段筛选`, header `openWithField(fieldKey)` linkage, and Service `filter.expression` payload.
+- The host keeps search text separate from advanced filter state. Compile both through `compileListFilter({ fields, searchText, advancedFilter })`.
+- Clicking outside the popover or trigger-closing discards unconfirmed draft changes by calling the package controller reset flow.
+- `清空所有` clears the draft and affects applied filters only after `确认`.
+- Object/entity switch clears applied advanced filter, search state, popover state, header menu state, and table object-level transient state.
 
 ## Collaboration rules
 
-- With `makeui`: use `makeui` for toolbar placement and page shell; this skill owns filter behavior inside the control.
-- With `canvas-table-integration`: use the canvas skill for `suffixRender` mechanics; this skill owns the "按该字段筛选" action semantics.
+- With `makeui`: use `makeui` for toolbar placement, page shell, and surrounding layout; this skill owns filter behavior and package integration.
+- With `canvas-table-integration`: use that skill for CanvasTable `suffixRender` and header menu mechanics; this skill owns how the host "按该字段筛选" action talks to the package-backed advanced-filter controller.
 - With `make-app-service`: this skill defines filter query shape; Service route validation, adapter logging, and Make request details stay in service.
-- With `makedsl`: use DSL/Data API references only to confirm backend filter support. Do not make this skill generate DSL.
+- With `makedsl`: use DSL/Data API references only to confirm backend filter support. Do not generate DSL from this skill.

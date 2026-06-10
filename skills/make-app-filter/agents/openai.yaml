@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make App Filter"
+  short_description: "Make filtering with package and table linkage"
+  default_prompt: "Use $make-app-filter to add integrated Make filtering with the package panel and CanvasTable header linkage."
