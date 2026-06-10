@@ -1,34 +1,28 @@
 # Entity Data Filter Usage
 
-说明：
+本文约束 makedsl / Make App 生成 `MakeService.ListResources` 请求时如何生成 `filter`。当前 Data API 统一使用 `Expression` 对象承载 CEL 表达式。
 
-- 仅`record.list` 支持 `filter`。
-- `filter` 采用 `or-of-and` 结构：顶层数组表示 `OR`，每个数组元素内部表示 `AND`。
+## 核心规则
 
-## list 请求结构
+- 仅列表查询支持 `filter`，包括 Record 列表以及受限的 User / Department 候选列表。
+- Record 列表必须使用后端筛选，不要在前端拉全量数据后自行过滤。
+- `filter` 必须是对象形态：`{ "expression": "<CEL>" }`。
+- 省略 `filter`、传 `null`、省略 `filter.expression`、或 `filter.expression` 为空白字符串，均表示不筛选。
+- 不要生成裸字符串、数组、旧对象 DSL，例如 `filter: "name.contains('x')"`、`filter: []`、`filter: [{...}]`、`filter: {}`。
+- 表达式里的字段引用必须使用字段 key，且字段 key 必须是合法 CEL identifier；不要使用中文字段名、显示名、带连字符字段名、深层路径或反引号转义。
 
-`list` 请求体中的 `filter` 必须是数组。省略或传 `null` 表示不过滤。
+正确：
 
 ```json
 {
-  "app": "demo",
-  "entity": "task",
+  "appKey": "demo",
+  "entityKey": "task",
   "fields": ["name", "status", "dueDate"],
-  "filter": [
-    {
-      "name": {
-        "contains": "项目"
-      },
-      "status": {
-        "isAnyOf": ["todo", "doing"]
-      }
-    }
-  ],
+  "filter": {
+    "expression": "name.contains('项目') && status in ['todo', 'doing']"
+  },
   "sort": [
-    {
-      "field": "dueDate",
-      "order": "asc"
-    }
+    { "fieldKey": "dueDate", "order": "asc" }
   ],
   "pagination": {
     "page": 1,
@@ -37,35 +31,7 @@
 }
 ```
 
-非法写法：
-
-```json
-{
-  "app": "demo",
-  "entity": "task",
-  "filter": {}
-}
-```
-
-非法写法：
-
-```json
-{
-  "app": "demo",
-  "entity": "task",
-  "filter": []
-}
-```
-
-## 执行语义
-
-`filter` 固定使用 `OR` of `AND`：
-
-- `filter` 数组中的多个 group 之间是 `OR`。
-- 每个 group 内多个字段条件之间是 `AND`。
-- 同一字段下多个操作符之间也是 `AND`。
-
-示例：
+错误：
 
 ```json
 {
@@ -73,98 +39,185 @@
     {
       "name": {
         "contains": "项目"
-      },
-      "status": {
-        "!=": "done"
-      }
-    },
-    {
-      "budget": {
-        ">": 100000
       }
     }
   ]
 }
 ```
-
-等价于：
-
-```text
-(name contains "项目" AND status != "done")
-OR
-(budget > 100000)
-```
-
-同一字段多个操作符示例：
 
 ```json
 {
-  "filter": [
-    {
-      "budget": {
-        ">=": 100000,
-        "<=": 500000
-      }
-    }
-  ]
+  "filter": {}
 }
 ```
 
-等价于：
+## 逻辑组合
+
+`filter.expression` 使用 CEL 的布尔表达式：
+
+- `A && B` 表示同时满足。
+- `A || B` 表示满足任一条件。
+- 可以使用括号提升可读性。
+- 当前解析形态是 DNF：外层 `||` 拆成多个筛选组，组内 `&&` 表示同时满足。
+- 支持 `A || (B && C)`、`A && B`；不支持需要服务端自动分配律展开的 `(A || B) && C`。
+
+示例：
 
 ```text
-budget >= 100000 AND budget <= 500000
+name.contains('项目') && status in ['todo', 'doing']
 ```
 
-## 操作符和右值
+```text
+name.contains('项目') || budget >= 100000
+```
 
-| 操作符 | 右值格式 | 说明 |
+## 操作符和 CEL 写法
+
+| CEL 写法 | 筛选语义 | 说明 |
 | --- | --- | --- |
-| `contains` | 标量文本 | 包含 |
-| `doesNotContain` | 标量文本 | 不包含 |
-| `=` | 标量或数组，取决于字段类型 | 等于 |
-| `!=` | 标量 | 不等于 |
-| `isEmpty` | 不传右值，或传 `null` | 为空 |
-| `isNotEmpty` | 不传右值，或传 `null` | 不为空 |
-| `>` | 数字、日期、日期时间或附件数量 | 大于 |
-| `>=` | 数字、日期或日期时间 | 大于等于 |
-| `<` | 数字、日期、日期时间或附件数量 | 小于 |
-| `<=` | 数字、日期或日期时间 | 小于等于 |
-| `isAnyOf` | 非空数组 | 是任一项 |
-| `isNoneOf` | 非空数组 | 不是任一项 |
-| `hasAnyOf` | 非空数组 | 包含任一项 |
-| `hasAllOf` | 非空数组 | 包含全部 |
-| `hasNoneOf` | 非空数组 | 不包含任一项 |
-| `isWithin` | `{ "begin": "...", "end": "..." }` | 在日期或日期时间区间内 |
-| `isNotWithin` | `{ "begin": "...", "end": "..." }` | 不在日期或日期时间区间内 |
-| `containsDate` | 日期字符串 | 日期区间包含某日 |
-| `doesNotContainDate` | 日期字符串 | 日期区间不包含某日 |
-| `fullyContains` | `{ "begin": "...", "end": "..." }` | 日期区间完全包含传入区间 |
-| `isContainedBy` | `{ "begin": "...", "end": "..." }` | 日期区间被传入区间完全包含 |
+| `field.contains('x')` | `contains` | 文本包含 |
+| `!field.contains('x')` | `doesNotContain` | 文本不包含 |
+| `field == value` | `=` | 等于 |
+| `field != value` | `!=` | 不等于 |
+| `field > value` | `>` | 大于 / 晚于 |
+| `field >= value` | `>=` | 大于等于 / 晚于或等于 |
+| `field < value` | `<` | 小于 / 早于 |
+| `field <= value` | `<=` | 小于等于 / 早于或等于 |
+| `field in [a, b]` | `isAnyOf` | 单值字段是任一项 |
+| `!(field in [a, b])` | `isNoneOf` | 单值字段不是任一项 |
+| `['a'].exists(v, v in field)` | `hasAnyOf` | 多值字段包含任一项 |
+| `['a', 'b'].all(v, v in field)` | `hasAllOf` | 多值字段包含全部 |
+| `!['a'].exists(v, v in field)` | `hasNoneOf` | 多值字段不包含任一项 |
+| `field.isWithin({"begin":"2026-04-01","end":"2026-04-30"})` | `isWithin` | 日期 / 日期时间在区间内 |
+| `field.isNotWithin({"begin":"2026-04-01","end":"2026-04-30"})` | `isNotWithin` | 日期 / 日期时间不在区间内 |
+| `field.containsDate('2026-04-15')` | `containsDate` | 日期区间包含某天 |
+| `field.doesNotContainDate('2026-04-15')` | `doesNotContainDate` | 日期区间不包含某天 |
+| `field.fullyContains({"begin":"2026-04-01","end":"2026-04-30"})` | `fullyContains` | 日期区间完整覆盖目标区间 |
+| `field.isContainedBy({"begin":"2026-04-01","end":"2026-04-30"})` | `isContainedBy` | 日期区间被目标区间包含 |
+| `field == null` | `isEmpty` | 为空 |
+| `field != null` | `isNotEmpty` | 不为空 |
+| `field == null || field == ''` | `isEmpty` | 文本为空 |
+| `field != null && field != ''` | `isNotEmpty` | 文本不为空 |
+| `field == null || size(field) == 0` | `isEmpty` | 数组为空 |
+| `field != null && size(field) > 0` | `isNotEmpty` | 数组不为空 |
 
 ## 字段类型矩阵
 
-字段类型详情 @FieldDesign.md
+字段类型详情见 @FieldDesign.md。
 
-| 字段类型                                                                          | 支持操作符 | 右值归一化 |
-|-------------------------------------------------------------------------------| --- | --- |
-| `Make.Field.Text` / `Make.Field.TextArea` / `Make.Field.ID` / `Make.Field.URL`| `contains`、`doesNotContain`、`=`、`!=`、`isEmpty`、`isNotEmpty` | 非空标量转字符串 |
-| `Make.Field.SingleSelect`                                                     | `=`、`!=`、`isAnyOf`、`isNoneOf`、`isEmpty`、`isNotEmpty` | 单值为字符串，多选项为去重字符串数组 |
-| `Make.Field.SingleUser` / `Make.Field.SingleDepartment`                       | `=`、`!=`、`isAnyOf`、`isNoneOf`、`isEmpty`、`isNotEmpty` | 人员或部门 ID 归一化为 `Long` 或去重 `Long[]` |
-| `Make.Field.MultiSelect` /                                                    | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | 去重字符串数组 |
-| `Make.Field.MultiUser` / `Make.Field.MultiDepartment`                         | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | 去重 `Long[]` |
-| `Make.Field.Number` / `Make.Field.Currency` / `Make.Field.Percent`            | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `BigDecimal` |
-| `Make.Field.Date`                                                             | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isWithin`、`isNotWithin`、`isEmpty`、`isNotEmpty` | 严格日期字符串，格式为 `yyyy-MM-dd` |
-| `Make.Field.DateTime`                                                         | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isWithin`、`isNotWithin`、`isEmpty`、`isNotEmpty` | 严格日期时间字符串，格式为 `yyyy-MM-dd HH:mm:ss` |
-| `Make.Field.DateRange`                                                        | `containsDate`、`doesNotContainDate`、`fullyContains`、`isContainedBy`、`=`、`isEmpty`、`isNotEmpty` | 日期或 `{ "begin": "yyyy-MM-dd", "end": "yyyy-MM-dd" }` |
-| `Make.Field.File`                                                             | `contains`、`doesNotContain`、`>`、`<`、`=`、`isEmpty`、`isNotEmpty` | 文件名文本或附件数量 |
-| `Make.Field.Lookup`                                                           | 暂不支持 | 会报字段类型暂不支持 |
+| 字段类型 | 支持操作符 | CEL 示例 |
+| --- | --- | --- |
+| `Make.Field.ID` | `contains`、`doesNotContain`、`=`、`!=`、`isEmpty`、`isNotEmpty` | `orderNo == 'SO-2026-001'` |
+| `Make.Field.Text` | `contains`、`doesNotContain`、`=`、`!=`、`isEmpty`、`isNotEmpty` | `projectName.contains('升级')` |
+| `Make.Field.TextArea` | `contains`、`doesNotContain`、`=`、`!=`、`isEmpty`、`isNotEmpty` | `projectDescription.contains('FAQ')` |
+| `Make.Field.URL` | `contains`、`doesNotContain`、`=`、`!=`、`isEmpty`、`isNotEmpty` | `website.contains('example.com')` |
+| `Make.Field.SingleSelect` | `=`、`!=`、`isAnyOf`、`isNoneOf`、`isEmpty`、`isNotEmpty` | `status in ['todo', 'doing']` |
+| `Make.Field.SingleUser` | `=`、`!=`、`isAnyOf`、`isNoneOf`、`isEmpty`、`isNotEmpty` | `owner == _currentUser`、`owner in _currentUserSubordinates` |
+| `Make.Field.SingleDepartment` | `=`、`!=`、`isAnyOf`、`isNoneOf`、`isEmpty`、`isNotEmpty` | `ownerDepartment == _currentUserDepartment` |
+| `Make.Field.MultiSelect` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `['urgent'].exists(v, v in tags)`、`tags == ['urgent', 'external']` |
+| `Make.Field.MultiUser` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `[_currentUser].exists(v, v in members)` |
+| `Make.Field.MultiDepartment` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `relatedDepartments.exists(v, v == _currentUserDepartment)` |
+| `Make.Field.Number` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `score >= 80` |
+| `Make.Field.Currency` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `budget >= 100000` |
+| `Make.Field.Percent` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `completionRate < 0.8` |
+| `Make.Field.Date` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isWithin`、`isNotWithin`、`isEmpty`、`isNotEmpty` | `startDate >= '2026-04-01'`、`startDate.isWithin({"begin":"2026-04-01","end":"2026-04-30"})` |
+| `Make.Field.DateTime` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isWithin`、`isNotWithin`、`isEmpty`、`isNotEmpty` | `createdAt >= '2026-04-22 09:00:00'` |
+| `Make.Field.DateRange` | `containsDate`、`doesNotContainDate`、`fullyContains`、`isContainedBy`、`=`、`isEmpty`、`isNotEmpty` | `deliveryPeriod.containsDate('2026-04-15')` |
+| `Make.Field.File` | `contains`、`doesNotContain`、`>`、`<`、`=`、`isEmpty`、`isNotEmpty` | `attachments.contains('proposal.pdf')`、`attachments > 2` |
+| `Make.Field.Lookup` | 按 `targetFieldKey` 的字段类型决定；不支持目标字段也是 Lookup | `profileName.contains('张')`、`courseScore >= 60` |
 
-注意：
+## 系统变量
 
-- `isEmpty` 和 `isNotEmpty` 不接受右值；如果右值不是 `null`，会报错。
-- 数组型右值必须是非空数组。
-- 日期区间对象必须同时包含非空 `begin` 和 `end`。
+系统变量只能作为右值使用，不能替代字段 key。
+
+| 变量 | 含义 | 示例 |
+| --- | --- | --- |
+| `_currentUser` | 当前调用者 userId | `owner == _currentUser` |
+| `_currentUserSubordinates` | 当前调用者的直接下属 userId 列表 | `owner in _currentUserSubordinates` |
+| `_currentUserManager` | 当前调用者一级领导 userId | `owner == _currentUserManager` |
+| `_currentUserManagerLevel2` | 当前调用者二级领导 userId | `owner == _currentUserManagerLevel2` |
+| `_currentUserManagerLevel3` | 当前调用者三级领导 userId | `owner == _currentUserManagerLevel3` |
+| `_currentUserDepartment` | 当前调用者主部门 departmentId | `ownerDepartment == _currentUserDepartment` |
+| `_currentUserDepartmentMembers` | 当前调用者主部门成员 userId 列表 | `members.exists(v, v in _currentUserDepartmentMembers)` |
+
+## 空值表达式
+
+| 字段逻辑类型 | 为空 | 不为空 |
+| --- | --- | --- |
+| 文本、ID、URL | `field == null || field == ''` | `field != null && field != ''` |
+| 数字、金额、百分比、日期、日期时间、单选、单用户、单部门 | `field == null` | `field != null` |
+| 多选、多用户、多部门、文件 | `field == null || size(field) == 0` | `field != null && size(field) > 0` |
+| 日期区间 | `field['begin'] == null || field['end'] == null` | `field['begin'] != null && field['end'] != null` |
+
+说明：
+
+- 单用户、单部门在响应展示上可能返回对象数组包装，但筛选逻辑值是单个 ID。
+- 多用户、多部门的筛选逻辑值是 ID 数组。
+
+## 日期区间字段
+
+日期区间字段可以使用 `begin` / `end` 下标表达区间边界，也可以使用日期区间方法。
+
+```text
+deliveryPeriod['begin'] == '2026-04-01' && deliveryPeriod['end'] == '2026-04-30'
+```
+
+```text
+deliveryPeriod.containsDate('2026-04-15')
+```
+
+```text
+deliveryPeriod.fullyContains({"begin":"2026-04-01","end":"2026-04-30"})
+```
+
+日期区间下标条件必须同时包含 `begin` 和 `end`，且只能使用 `begin` / `end` 下标。
+
+## Lookup 字段
+
+Record 列表支持按 `Make.Field.Lookup` 字段筛选。表达式引用当前 Entity 上的 Lookup 字段 key，服务端会根据 Lookup 字段配置中的 `relationKey` 和 `targetFieldKey` 找到对端 Entity 的目标字段，并按目标字段类型复用操作符、值归一化和 SQL 生成规则。
+
+```text
+profileName.contains('张')
+```
+
+```text
+courseScore >= 60
+```
+
+约束：
+
+- 表达式只能写 Lookup 字段自身的 key，不支持 `profileName.name`、`profile.name`、`targetEntity.field` 等跨对象路径。
+- Lookup 字段必须配置 `relationKey` 和 `targetFieldKey`；关联关系、目标 Entity、目标字段不存在时，服务端返回参数错误。
+- Lookup 的目标字段类型不能是 `Make.Field.Lookup`，不支持 Lookup 嵌套 Lookup。
+- 可用操作符取决于 `targetFieldKey` 的字段类型。例如目标字段是文本时支持 `contains`、`==`、`!=`、空值；目标字段是数字时支持比较操作符。
+- 同一个 `&&` 分组内、同一 relation 的多个 Lookup 条件要求命中同一条目标记录。
+- 不同 relation 的 Lookup 条件不会合并；不同 `||` 分组之间也不会合并。
+- Lookup 的 `isEmpty` / `isNotEmpty` 判断目标记录上 `targetFieldKey` 的值是否为空；没有关联目标记录时，不会命中 `lookupField == null` 这种空值筛选。
+- `LookupField.properties.filter` 是字段配置上的对端记录筛选条件；Record 列表的 `filter.expression` 是本次列表查询的业务筛选条件，两者不是同一个入参位置。
+
+## 候选列表接口
+
+User / Department 候选列表也使用 `Expression` 对象，但能力比 Record 列表更窄：
+
+- User 候选列表仅支持单个 `userName.contains('...')`。
+- Department 候选列表仅支持单个 `departmentName.contains('...')`。
+- 请求体不包含 `appKey` / `entityKey`。
+
+```json
+{
+  "filter": {
+    "expression": "userName.contains('张')"
+  }
+}
+```
+
+```json
+{
+  "filter": {
+    "expression": "departmentName.contains('产品研发')"
+  }
+}
+```
 
 ## 常见示例
 
@@ -172,139 +225,118 @@ budget >= 100000 AND budget <= 500000
 
 ```json
 {
-  "filter": [
-    {
-      "title": {
-        "contains": "升级"
-      }
-    }
-  ]
+  "filter": {
+    "expression": "projectName.contains('升级')"
+  }
 }
 ```
 
-### 单选任一
+### 单组 AND
 
 ```json
 {
-  "filter": [
-    {
-      "status": {
-        "isAnyOf": ["todo", "doing"]
-      }
-    }
-  ]
+  "filter": {
+    "expression": "projectName.contains('项目') && status in ['todo', 'doing']"
+  }
 }
 ```
 
-### 多选包含全部
+### 多组 OR
 
 ```json
 {
-  "filter": [
-    {
-      "tags": {
-        "hasAllOf": ["bug", "urgent"]
-      }
-    }
-  ]
+  "filter": {
+    "expression": "projectName.contains('项目') || budget >= 100000"
+  }
 }
 ```
 
-### 人员或部门
+### 多值字段
 
 ```json
 {
-  "filter": [
-    {
-      "owner": {
-        "=": 1001
-      },
-      "collaborationDepartments": {
-        "hasAnyOf": [3001, 3002]
-      }
-    }
-  ]
+  "filter": {
+    "expression": "['urgent', 'external'].all(v, v in tags)"
+  }
 }
 ```
 
-### 日期区间
+### 用户/部门系统变量
 
 ```json
 {
-  "filter": [
-    {
-      "dueDate": {
-        "isWithin": {
-          "begin": "2026-04-01",
-          "end": "2026-04-30"
-        }
-      }
-    }
-  ]
+  "filter": {
+    "expression": "owner == _currentUser || owner in _currentUserSubordinates"
+  }
 }
 ```
-
-### 日期范围字段
 
 ```json
 {
-  "filter": [
-    {
-      "planDate": {
-        "isContainedBy": {
-          "begin": "2026-04-01",
-          "end": "2026-04-30"
-        }
-      }
-    }
-  ]
+  "filter": {
+    "expression": "members.exists(v, v in _currentUserDepartmentMembers) && ownerDepartment == _currentUserDepartment"
+  }
 }
 ```
 
-### 附件文件名或数量
+### 日期范围
 
 ```json
 {
-  "filter": [
-    {
-      "attachments": {
-        "contains": "pdf"
-      }
-    },
-    {
-      "attachments": {
-        ">": 2
-      }
-    }
-  ]
+  "filter": {
+    "expression": "dueDate.isWithin({\"begin\":\"2026-04-01\",\"end\":\"2026-04-30\"})"
+  }
 }
 ```
 
-该示例表示：文件名包含 `pdf`，或附件数量大于 2。
+### Lookup 字段
+
+```json
+{
+  "filter": {
+    "expression": "profileName.contains('张') && profileAge >= 18"
+  }
+}
+```
+
+说明：如果 `profileName` 和 `profileAge` 来自同一个 relation，则同一个 `&&` 分组要求同一条关联目标记录同时满足姓名和年龄条件。
+
+### 空值
+
+```json
+{
+  "filter": {
+    "expression": "attachments == null || size(attachments) == 0"
+  }
+}
+```
 
 ## 错误场景速查
 
-| 场景                     | 当前行为 |
-|------------------------| --- |
-| `filter` 是对象而不是数组      | 反序列化失败，错误信息为 `filter必须是对象数组` |
-| `filter` 是空数组          | 参数错误，`filter` 不能为空 |
-| group 是空对象             | 参数错误，条件组不能为空 |
-| 字段不在 Entity 元数据中       | 参数错误，字段不存在 |
-| 字段类型是 `Make.Field.Lookup` | 参数错误，字段类型暂不支持 |
-| 操作符 token 不存在          | 参数错误，不支持的操作符 |
-| 操作符与字段类型不匹配            | 参数错误，字段类型与操作符不匹配 |
-| 文本右值是数组或对象             | 参数错误，筛选值类型错误 |
-| 数组操作符右值为空数组            | 参数错误，筛选值必须为非空数组 |
-| 日期格式不符合严格格式            | 参数错误，日期格式错误或日期时间格式错误 |
+| 场景 | 当前行为 |
+| --- | --- |
+| `filter` 是裸字符串、数组或旧对象 DSL | 参数错误或反序列化失败 |
+| `filter` 是 `{}` | 无有效表达式，不应生成；需要无筛选时请省略或传 `null` |
+| 字段不在 Entity 元数据中 | 参数错误，字段不存在 |
+| 字段 key 不是合法 CEL identifier | 表达式解析失败 |
+| 表达式包含嵌套 OR，例如 `(A || B) && C` | 参数错误，暂不支持嵌套条件 |
+| 操作符与字段类型不匹配 | 参数错误，字段类型与操作符不匹配 |
+| 文本右值是数组或对象 | 参数错误，筛选值类型错误 |
+| 数组操作符右值为空数组 | 参数错误，筛选值必须为非空数组 |
+| 日期格式不符合严格格式 | 参数错误，日期格式错误或日期时间格式错误 |
+| Lookup 字段缺少 `relationKey` / `targetFieldKey` | 参数错误 |
+| Lookup 目标字段仍是 Lookup | 参数错误，字段类型暂不支持 |
+| Lookup 表达式使用跨对象路径 | 表达式解析失败或字段不存在 |
 
-## 使用准则
+## 生成准则
 
-生成 `record.list` 查询时：
+生成 `MakeService.ListResources` 查询时：
 
-1. 需要筛选时，总是生成数组形式的 `filter`。
-2. 不需要筛选时，省略 `filter` 或传 `null`，不要生成 `{}` 或 `[]`。
-3. 需要 `OR` 时，增加多个 group。
-4. 需要 `AND` 时，把多个字段条件放在同一个 group。
-5. 需要同一字段上下限时，把多个操作符放在同一个字段对象内。
-6. 不要对 `Make.Field.Lookup` 字段生成筛选条件。
-
+1. 需要筛选时，总是生成 `{ "filter": { "expression": "..." } }`。
+2. 不需要筛选时，省略 `filter` 或传 `null`；不要生成 `{}`、`[]` 或空对象数组。
+3. 需要 `AND` 时，用 `&&` 拼接条件。
+4. 需要 `OR` 时，用 `||` 拼接外层条件；避免生成 `(A || B) && C`，必要时改写为 `(A && C) || (B && C)`。
+5. 单值枚举、单用户、单部门的多候选匹配使用 `field in [...]`。
+6. 多选、多用户、多部门使用 `exists` / `all` 模式。
+7. 只使用字段 key，不使用字段展示名或响应里的 `label`。
+8. 可以对 Lookup 字段生成筛选条件，但只能引用 Lookup 字段自身 key，并按目标字段类型选择操作符。

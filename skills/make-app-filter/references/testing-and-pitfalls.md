@@ -9,20 +9,26 @@ Filter model and operators:
 - default field chooses first supported operator
 - field change resets operator and value
 - unsupported fields are excluded
-- single select/user/department only expose equality operators
+- single select/user/department expose equality, list membership, and empty operators
 - multi select/user/department expose collection and empty operators
-- DateRange, File, Lookup, and unknown types are skipped by default
+- DateRange and File expose backend-supported operators
+- Lookup derives operators from `targetFieldKey` target field metadata
+- incomplete Lookup, nested Lookup, calculated/presentation-only, and unknown types are skipped
 
 Expression compiler:
 
 - string escaping
 - numeric comparisons
-- nested group parentheses
-- collection `has_any`, `not_contains`, `eq`, `neq`
+- DNF branch grouping and parentheses
+- collection `has_any`, `has_all`, `has_none`, `eq`, `neq`
+- scalar `is_any_of` and `is_none_of`
 - empty and not-empty for collection fields
+- DateRange `contains_date`, `not_contains_date`, `fully_contains`, `is_contained_by`, and equality
+- File name and attachment-count expressions
+- Lookup expressions use the Lookup field key and target-field value format
 - empty condition rows do not compile
 - invalid field identifiers do not compile
-- search group merges with advanced filter through `AND`
+- search group merges with advanced filter by DNF distribution, not raw `(A || B) && C`
 
 UI behavior:
 
@@ -64,7 +70,10 @@ Service and integration:
 - submitting on every keystroke instead of waiting for `确认`
 - closing the popover but keeping unconfirmed draft changes
 - sending `filter: []` or `{}` when no valid condition exists
-- showing File, DateRange, or Lookup in advanced filter without backend semantics
+- hiding File, DateRange, or resolvable Lookup even though backend filter semantics and host metadata are available
+- showing incomplete Lookup or nested Lookup in advanced filter
+- compiling Lookup as a cross-object path such as `profile.name`
+- merging keyword search and advanced filter as unsupported `(A || B) && C`
 - using display labels instead of ids for user/department filters
 - locally filtering already loaded rows instead of requesting backend-filtered records
 - creating a second header-only filter state that drifts from advanced filter

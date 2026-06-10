@@ -76,12 +76,14 @@ Default:
 - unsupported fields still may show sort UI if sorting is in scope
 - unsupported fields must not call `openWithField`
 
-Unsupported by ExpensePoc default:
+Default unsupported cases:
 
-- `Make.Field.File`
-- `Make.Field.DateRange`
-- `Make.Field.Lookup`
 - unknown field types
+- `Make.Field.Lookup` without complete `relationKey`, `targetFieldKey`, target entity metadata, or target field metadata
+- `Make.Field.Lookup` whose target field is another Lookup
+- calculated or presentation-only field types that the backend does not expose for `filter.expression`
+
+File and DateRange fields are supported by the current backend filter expression subset when the host provides the value editor and operator mapping from `operator-matrix.md`. Lookup fields are supported when the target field type can be resolved; the action still opens the current entity's Lookup field key, not a target-field path.
 
 ## Tests
 

@@ -54,15 +54,15 @@ It does not own general page layout (`makeui`), CanvasTable rendering internals 
 - After the first failed `确认`, every draft change must revalidate the latest draft and clear fixed errors immediately. A value select/input/date/number/user/department editor that becomes valid must lose its red error state without waiting for another `确认`.
 - Clicking outside the popover or clicking the trigger to close discards unconfirmed draft edits.
 - `清空所有` empties the draft. It clears applied filters only after the user clicks `确认`.
-- Search keyword and advanced filter compile separately; merge them with `AND`. Search itself is an `OR` group over searchable text-like fields.
+- Search keyword and advanced filter compile separately, then merge as DNF. Search itself is an `OR` group over searchable text-like fields; when an advanced filter also exists, distribute the `AND` instead of emitting `(searchA || searchB) && advanced`.
 
 ## Hard rules
 
 - New filter output uses `filter: { expression: string }`. Do not generate new old-style object-array filter payloads.
 - If no valid expression exists, omit `filter`. Do not send `filter: []`, `filter: {}`, or `{ expression: "" }`.
 - Field keys used in CEL must be valid identifiers: `/^[A-Za-z_][A-Za-z0-9_]*$/`. Skip or reject invalid field keys instead of emitting unsafe expressions.
-- Do not expose unsupported fields in advanced filter or table header "按该字段筛选". ExpensePoc defaults treat `Make.Field.File`, `Make.Field.DateRange`, `Make.Field.Lookup`, and unknown types as unsupported until the host backend documents safe semantics.
-- Single select, single user, and single department fields expose only equality operators by default. Multi select, multi user, and multi department fields expose collection operators and empty/not-empty.
+- Do not expose unsupported fields in advanced filter or table header "按该字段筛选". File, DateRange, and Lookup are supported by the current Make Data API only when the host field metadata is complete enough to choose safe operators; unknown, calculated, rollup/count, rich-text, cascading, and incomplete Lookup fields stay hidden or disabled.
+- Single select, single user, and single department fields expose equality, list membership, and empty/not-empty operators when candidate values are available. Multi select, multi user, and multi department fields expose collection and empty/not-empty operators.
 - User and department values are identities, not display names. Advanced filter user/department value editors must use the same host candidate APIs as forms and table cell editors: `/api/users` and `/api/departments` or host equivalents. Normalize users as `userId/userName` and departments as `departmentId/departmentName`.
 - Do not source advanced filter user/department options from field schema `options`, local demo arrays, current table rows, hardcoded fixtures, or display labels. Current applied values may be merged only to keep selected labels visible while the real candidate API is loading or temporarily empty.
 - Header menu filtering must append a condition to the advanced filter draft and open the same popover. It must not submit immediately or trigger record reload before `确认`.

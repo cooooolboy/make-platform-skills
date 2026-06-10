@@ -18,14 +18,30 @@ type AdvancedFilterOperator =
   | "lte"
   | "contains"
   | "not_contains"
+  | "is_any_of"
+  | "is_none_of"
   | "has_any"
+  | "has_all"
+  | "has_none"
+  | "is_within"
+  | "is_not_within"
+  | "contains_date"
+  | "not_contains_date"
+  | "fully_contains"
+  | "is_contained_by"
   | "is_empty"
   | "is_not_empty";
+
+type DateRangeValue = {
+  begin: string;
+  end: string;
+};
 
 type AdvancedFilterValue =
   | string
   | number
   | boolean
+  | DateRangeValue
   | Array<string | number | boolean>;
 
 type AdvancedFilterCondition = {
@@ -106,9 +122,18 @@ Default search behavior:
 - searchable field types: `Make.Field.ID`, `Make.Field.Text`, `Make.Field.TextArea`, `Make.Field.URL`
 - each searchable field becomes `field.contains(keyword)`
 - searchable fields are grouped with `OR`
-- search group and advanced filter group are grouped with `AND`
+- search group and advanced filter group are merged as DNF
 
 Do not include empty search text in the compiled expression.
+
+Do not emit `(A || B) && C`. Make Data API currently accepts DNF: outer `OR`, inner `AND`. When keyword search and advanced filter both exist, distribute the `AND`:
+
+```text
+(title.contains("客户") && status == "open")
+|| (description.contains("客户") && status == "open")
+```
+
+If both sides already have multiple `OR` branches, combine them as a cartesian product of clauses and keep a practical expansion limit in the host implementation. If the limit is exceeded, require the user to narrow the search fields or simplify the filter instead of sending unsupported nested boolean syntax.
 
 ## Reset on object switch
 
