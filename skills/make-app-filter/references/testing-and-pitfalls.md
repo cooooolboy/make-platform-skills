@@ -1,17 +1,24 @@
 # Testing and Pitfalls
 
-Use this reference before finishing advanced filter work.
+Use this reference before finishing package-backed advanced filter work.
 
-## Required tests
+## Required tests or deterministic checks
+
+Package source:
+
+- `apps/ui/package.json` depends on `@qfei-design/make-filter@^0.1.4` or newer
+- UI entry imports `@qfei-design/make-filter/styles.css`
+- local advanced-filter shim, if any, imports from `@qfei-design/make-filter`
+- host code does not contain copied operator matrix, CEL compiler/parser, validator, or `AdvancedFilterPanel` clone
 
 Filter model and operators:
 
-- default field chooses first supported operator
-- field change resets operator and value
+- default field chooses the package first supported operator
+- field change resets operator and value through package helpers
 - unsupported fields are excluded
-- single select/user/department only expose equality operators
+- single select supports package operators including `in`
 - multi select/user/department expose collection and empty operators
-- DateRange, File, Lookup, and unknown types are skipped by default
+- DateRange, File, Lookup, invalid field keys, and unknown types are skipped by default
 
 Expression compiler:
 
@@ -23,20 +30,19 @@ Expression compiler:
 - empty condition rows do not compile
 - invalid field identifiers do not compile
 - search group merges with advanced filter through `AND`
+- `compileListFilter` returns `undefined` for no valid expression
 
 UI behavior:
 
 - toolbar buttons remain in order: search, `筛选`, `刷新`
-- opening with no conditions inserts one default draft condition
-- popover renders as one white panel surface; root condition rows are not inside a second tinted/gray body container
-- nested condition groups use a single light neutral group surface, not a colored card inside another colored card
-- value editor and delete button are connected with no gap, no double border seam, and no rounded corner between them for select/input/number/date/user/department editors
+- opening with no conditions inserts one default draft condition through `beginDraft`
+- package panel renders inside a host-owned container
+- host Popover uses max height rather than fixed initial height
 - edits do not reload records before `确认`
 - `确认` commits and closes only when validation passes
 - validation failure marks invalid controls and keeps the popover open
-- required value editors are marked invalid for every editor type: text, number, select, multi-select, date/date-time, user, and department
+- required value editors are marked invalid for text, number, select, multi-select, date/date-time, user, and department
 - after a failed `确认`, typing or selecting a valid value clears that control's error state immediately while other invalid rows stay marked
-- field or operator changes recompute the row value and validation; operators that do not require a value clear stale value errors
 - outside click discards unconfirmed draft changes
 - `清空所有` clears applied filters only after confirmation
 - active trigger shows `已筛选 N 个条件`
@@ -44,12 +50,11 @@ UI behavior:
 Header linkage:
 
 - header suffix menu opens from the more icon
-- outside click closes the menu
-- scroll closes the menu
-- active header suffix icon is `always` while its menu is open
-- `按该字段筛选` closes the menu and opens advanced filter draft
+- unsupported fields hide `按该字段筛选`
+- clicking `按该字段筛选` calls package controller `openWithField(fieldKey)` or a wrapper
 - clicking header filter does not reload records before advanced filter confirmation
-- unsupported fields hide header filter action
+- outside click, table scroll, object switch, and unmount close the menu
+- active header suffix icon is `always` while its menu is open
 
 Service and integration:
 
@@ -58,23 +63,23 @@ Service and integration:
 - Service rejects blank filter query with 400
 - Service passes `filter.expression` to Make Data API
 - Service still handles legacy payloads only when the host project already needs compatibility
+- URL/deep-link `advancedFilter` echoes into package panel when valid
+- unsupported deep-link CEL remains backend-only fallback instead of fake UI rows
 
 ## Common regressions
 
+- copying the old local advanced-filter implementation instead of using `@qfei-design/make-filter`
+- forgetting package `styles.css`
 - submitting on every keystroke instead of waiting for `确认`
 - closing the popover but keeping unconfirmed draft changes
 - sending `filter: []` or `{}` when no valid condition exists
-- showing File, DateRange, or Lookup in advanced filter without backend semantics
+- showing File, DateRange, Lookup, invalid keys, or unknown fields in advanced filter without package support
 - using display labels instead of ids for user/department filters
 - locally filtering already loaded rows instead of requesting backend-filtered records
-- creating a second header-only filter state that drifts from advanced filter
+- creating a second header-only filter state that drifts from the package controller
 - opening the header menu resets table scroll position
 - table scroll leaves a floating header menu in the wrong place
 - unsupported fields still show `按该字段筛选`
-- error UI shows a global warning while the exact invalid control is not marked
-- value select/multi-select/date/user/department controls do not turn red after `确认`
+- host CSS forks package internals and breaks future package fixes
 - fixed value controls remain red after the user enters or selects a valid value
 - changing an operator to empty/not-empty leaves an old value error on the row
-- advanced filter body has two competing backgrounds and looks split into outer/inner panels
-- delete icon is rendered as a detached gray button instead of the attached final segment of the value control
-- one side of the value/delete pair is rounded while the adjacent seam is also rounded

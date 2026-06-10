@@ -1,6 +1,6 @@
 # Service Translation
 
-Use this reference when compiling filters and sending them to Service.
+Use this reference when sending package filter output to Service.
 
 ## Contract
 
@@ -14,9 +14,19 @@ New Make App code sends record filters as:
 }
 ```
 
-When using a GET route, JSON-encode the filter query value.
+Use package `compileListFilter`:
 
-Service should pass the same expression to Make Data API as `filter.expression`. Old object-array filter payloads may be kept for compatibility in legacy projects, but new generated code should not produce them.
+```ts
+const filter = compileListFilter({
+  fields,
+  searchText,
+  advancedFilter: appliedGroup,
+});
+
+const query = filter ? { filter } : {};
+```
+
+When using a GET route, JSON-encode the `filter` query value if the host API expects query strings.
 
 If no valid expression exists, omit `filter`.
 
@@ -29,50 +39,25 @@ Invalid empty values:
 
 ## CEL subset
 
-Default CEL output based on ExpensePoc:
+The package owns CEL output. Do not hand-concatenate expression strings in the host.
 
-| Operator | CEL shape |
-| --- | --- |
-| `eq` scalar | `field == value` |
-| `neq` scalar | `field != value` |
-| `gt` | `field > value` |
-| `gte` | `field >= value` |
-| `lt` | `field < value` |
-| `lte` | `field <= value` |
-| `contains` | `field.contains(value)` |
-| `not_contains` scalar | `!field.contains(value)` |
-| `has_any` collection | `field != null && [values].exists(x, x in field)` |
-| `not_contains` collection | `field == null || !([values].exists(x, x in field))` |
-| `eq` collection | `field != null && size(field) == N && [values].all(x, x in field)` |
-| `neq` collection | `field == null || size(field) != N || !([values].all(x, x in field))` |
-| `is_empty` collection | `field == null || size(field) == 0` |
-| `is_not_empty` collection | `field != null && size(field) > 0` |
+Important current shapes:
 
-Use JSON string escaping for literals. Number literals must be finite. Boolean literals compile to `true` or `false`.
+- scalar comparisons: `field == value`, `field != value`, `field > value`
+- text contains: `field.contains(value)`
+- collection `has_any`: `(field != null && [values].exists(x, x in field))`
+- collection empty checks are parenthesized before joining with other conditions
+- search OR groups are parenthesized before merging with advanced filter through `AND`
+
+Use `parseCelToAdvancedFilter` only for supported expression echo or deep-link compatibility. Unsupported CEL should remain backend-only fallback, not fake UI conditions.
 
 ## Safety rules
 
-- Field keys must match `/^[A-Za-z_][A-Za-z0-9_]*$/`.
-- Skip unsupported field/operator combinations instead of emitting unknown expressions.
-- Skip conditions with missing field, missing operator, or empty required value.
+- Field keys must match the package field-key pattern.
+- Unsupported field/operator combinations compile to no expression.
+- Conditions with missing field, operator, or required value compile to no expression.
 - DateRange, File, Lookup, and unknown field types are not compiled by default.
-- Do not emit scalar empty/not-empty with `size(field)` unless the backend explicitly supports it.
-
-## Search and advanced filter merge
-
-Compile keyword search separately:
-
-```text
-title.contains("客户") || description.contains("客户")
-```
-
-If both keyword search and advanced filter exist, combine with `AND`:
-
-```text
-(advanced expression) && (search expression)
-```
-
-Preserve parentheses for nested groups.
+- Do not emit scalar empty/not-empty with `size(field)` unless backend semantics are explicitly added to the package.
 
 ## Service validation
 
@@ -80,9 +65,9 @@ Service should:
 
 - parse JSON query params safely
 - accept `{ expression }` when non-empty
-- optionally normalize a raw non-blank CEL string to `{ expression }` for compatibility
+- optionally normalize a raw non-blank CEL string only for legacy compatibility
 - reject blank or malformed filter query with 400
 - validate sort separately; do not confuse filter `fieldKey` rules with sort rules
 - log only safe context, never tokens or raw signed URLs
 
-Use `make-app-service` for route implementation and adapter tests.
+Use `make-app-service` for route implementation, adapter logging, and Service tests.

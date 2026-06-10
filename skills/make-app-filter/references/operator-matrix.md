@@ -1,10 +1,26 @@
 # Operator Matrix
 
-Use this reference when mapping Make field metadata to advanced filter operators and value editors.
+Use this reference when mapping Make field metadata to package operators and value editors.
 
-## Default supported fields
+## Source of truth
 
-ExpensePoc default support:
+Use package APIs:
+
+- `getFilterableFields`
+- `getFieldFilterKind`
+- `getOperatorsForField`
+- `getDefaultOperator`
+- `getDefaultFilterValue`
+- `isAdvancedFilterFieldSupported`
+- `operatorNeedsValue`
+- `operatorUsesArrayValue`
+- `readFilterOptions`
+
+Do not duplicate the operator matrix in host code. If an old project keeps local helpers, they must delegate to the package and be covered by tests.
+
+## Current package baseline
+
+The package owns the exact matrix. The current Make baseline is:
 
 | Make field type | Filter kind | Operators | Value editor |
 | --- | --- | --- | --- |
@@ -15,65 +31,48 @@ ExpensePoc default support:
 | `Make.Field.Number` | number | `eq`, `neq`, `gt`, `gte`, `lt`, `lte` | number input |
 | `Make.Field.Currency` | number | `eq`, `neq`, `gt`, `gte`, `lt`, `lte` | number input |
 | `Make.Field.Percent` | number | `eq`, `neq`, `gt`, `gte`, `lt`, `lte` | number input |
-| `Make.Field.SingleSelect` | singleSelect | `eq`, `neq` | select |
+| `Make.Field.SingleSelect` | singleSelect | `eq`, `neq`, `in` | select |
 | `Make.Field.MultiSelect` | multiSelect | `has_any`, `not_contains`, `eq`, `neq`, `is_empty`, `is_not_empty` | multi select |
-| `Make.Field.SingleUser`, `Make.Field.User` | singlePerson | `eq`, `neq` | remote searchable user select |
-| `Make.Field.MultiUser` | multiPerson | `has_any`, `not_contains`, `eq`, `neq`, `is_empty`, `is_not_empty` | remote searchable multi-user select |
-| `Make.Field.SingleDepartment`, `Make.Field.Department` | singleDepartment | `eq`, `neq` | remote searchable department select |
-| `Make.Field.MultiDepartment` | multiDepartment | `has_any`, `not_contains`, `eq`, `neq`, `is_empty`, `is_not_empty` | remote searchable multi-department select |
+| `Make.Field.SingleUser`, `Make.Field.User` | singlePerson | `eq`, `neq` | remote user select |
+| `Make.Field.MultiUser` | multiPerson | `has_any`, `not_contains`, `eq`, `neq`, `is_empty`, `is_not_empty` | remote multi-user select |
+| `Make.Field.SingleDepartment`, `Make.Field.Department` | singleDepartment | `eq`, `neq` | remote department select |
+| `Make.Field.MultiDepartment` | multiDepartment | `has_any`, `not_contains`, `eq`, `neq`, `is_empty`, `is_not_empty` | remote multi-department select |
 | `Make.Field.Date` | date | `eq`, `neq`, `lt`, `gt` | date picker |
-| `Make.Field.DateTime` | date | `eq`, `neq`, `lt`, `gt` | date/time picker if supported by UI library |
+| `Make.Field.DateTime` | dateTime | `eq`, `neq`, `lt`, `gt` | date-time picker |
 
-Default unsupported fields:
+Unsupported by default:
 
 - `Make.Field.File`
 - `Make.Field.DateRange`
 - `Make.Field.Lookup`
 - unknown field types
+- fields with invalid CEL identifiers
 
-Hide unsupported fields from field selectors and hide the table header "按该字段筛选" action for them. Do not generate partial or guessed filter semantics for unsupported fields.
-
-## Operator labels
-
-Default Chinese labels:
-
-- text: `包含`, `不包含`, `等于`, `不等于`
-- number: `等于`, `不等于`, `大于`, `大于等于`, `小于`, `小于等于`
-- single select: `是`, `不是`
-- multi select: `包含任一`, `不包含`, `等于`, `不等于`, `为空`, `不为空`
-- single person/department: `等于`, `不等于`
-- multi person: `人员包含`, `人员均不包含`, `等于`, `不等于`, `为空`, `不为空`
-- multi department: `部门包含`, `部门均不包含`, `等于`, `不等于`, `为空`, `不为空`
-- date/date-time: `等于`, `不等于`, `早于`, `晚于`
-
-## Default operator and value
-
-When a field changes:
-
-1. select the first operator from that field's operator list
-2. reset value based on field kind and operator
-
-Default value rules:
-
-- operators `is_empty` and `is_not_empty` need no value
-- array-value operators use `[]`
-- collection `eq`, `neq`, and collection `not_contains` use `[]`
-- number fields use `undefined`
-- other scalar fields use `""`
+Hide unsupported fields from field selectors and hide header "按该字段筛选" for them.
 
 ## Value identity rules
 
-- Select values should use option values, not display labels.
-- User values should use `userId`; display labels use `userName`.
-- Department values should use `departmentId`; display labels use `departmentName`.
+- Select values use option values, not display labels.
+- User values use `userId`; display labels use `userName`.
+- Department values use `departmentId`; display labels use `departmentName`.
 - Multi-value fields use arrays of identities.
 - Do not submit formatted table/detail display strings as filter values.
+- Preserve non-string scalar option values such as numbers or booleans.
 
 ## Candidate sources
 
-User and department selector controls must use remote candidate sources. Keep the behavior contract when route names are provided through host equivalent routes:
+User and department selectors must use remote candidate sources:
 
 - users: `GET /api/users?keyword=&page=&size=` or host equivalent
 - departments: `GET /api/departments?keyword=&page=&size=` or host equivalent
 
-Use remote search; do not filter stale local demo arrays, field schema options, current table rows, or hardcoded fixtures for production filters. Current applied values may be merged only to keep selected labels visible while remote candidates load.
+Pass normalized options through package `candidateSources`:
+
+```ts
+{
+  users: { options, loading, onSearch },
+  departments: { options, loading, onSearch }
+}
+```
+
+Use remote search. Do not filter stale local demo arrays, field schema options, current table rows, or hardcoded fixtures for production filters. Current applied values may be merged only to keep selected labels visible while remote candidates load.
