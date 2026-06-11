@@ -1,49 +1,13 @@
 # Filter Model
 
-Use this reference when designing advanced filter state and interactions.
+Use this reference when applying package filter state, draft behavior, search merge, and URL/deep-link echo.
 
-## Filter IR
+## Source of truth
 
-Default Filter IR:
+Use `@qfei-design/make-filter` for the Filter IR and helpers:
 
-```ts
-type AdvancedFilterLogic = "and" | "or";
-
-type AdvancedFilterOperator =
-  | "eq"
-  | "neq"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "contains"
-  | "not_contains"
-  | "has_any"
-  | "is_empty"
-  | "is_not_empty";
-
-type AdvancedFilterValue =
-  | string
-  | number
-  | boolean
-  | Array<string | number | boolean>;
-
-type AdvancedFilterCondition = {
-  id: string;
-  fieldKey: string;
-  operator: AdvancedFilterOperator;
-  value?: AdvancedFilterValue;
-};
-
-type AdvancedFilterGroup = {
-  id: string;
-  logic: AdvancedFilterLogic;
-  children: Array<AdvancedFilterGroup | AdvancedFilterCondition>;
-};
-```
-
-Use stable generated ids for React keys and condition updates. Keep immutable helpers for:
-
+- `AdvancedFilterGroup`
+- `AdvancedFilterCondition`
 - `createEmptyFilterGroup`
 - `createDefaultCondition`
 - `appendConditionToGroup`
@@ -51,64 +15,86 @@ Use stable generated ids for React keys and condition updates. Keep immutable he
 - `updateConditionInGroup`
 - `removeNodeFromGroup`
 - `updateGroupLogic`
+- `cloneFilterGroup`
+- `validateAdvancedFilter`
+- `countActiveFilterConditions`
+
+Do not hand-write these helpers in a Make App host. A migration shim is allowed only when it delegates to the package.
 
 ## Draft and submit behavior
 
-Advanced filter uses draft editing:
+Use `useAdvancedFilterController` for draft lifecycle:
 
 - applied value lives in page state
-- opening the popover copies applied value into draft
-- if applied value has no children and filterable fields exist, add one default empty condition to the draft
+- opening the host popover calls `beginDraft`
+- opening with no conditions and available fields inserts one default draft condition
 - editing, adding, removing, and clearing affect only draft
-- `确认` validates draft and commits it
-- outside click or trigger re-click closes the popover and resets draft to the applied value
+- `confirm` validates draft and commits only when valid
+- closing without commit calls `resetDraft`
 - validation failure keeps the popover open
+- `openWithField(fieldKey)` appends one draft condition for header filtering
 
 Do not reload records while the user is editing draft conditions.
 
 ## Validation lifecycle
 
-Validation is control-specific and draft-aware:
+The package returns control-level errors keyed by condition id. The host must pass `validationErrors` into `AdvancedFilterPanel`.
 
-- `确认` validates every draft condition and returns errors keyed by condition id, with separate `field`, `operator`, and `value` flags.
-- The row may get an invalid class for layout/testing, but the red border belongs only to the invalid control.
-- A required value editor must receive its own error state when `operatorNeedsValue(operator)` is true and the value is empty.
-- This includes every value editor type: text input, number input, select, multi-select, date picker, date-time picker, user selector, and department selector.
-- After the first failed `确认`, each draft change revalidates the whole latest draft or at least the changed condition against the latest tree.
-- When a user types a value, selects an option, changes a date, changes field, changes operator, adds/removes a row, or clears a row, stale errors must be removed immediately for controls that are now valid.
-- Other rows that are still invalid remain marked; do not clear all errors just because one row changed.
-- Operators that do not need values, such as empty/not-empty, must clear any stale `value` error for that condition.
-- Closing the popover without commit, opening a fresh draft, clearing all, object switch, and successful confirm reset validation state.
+Required behavior:
 
-Do not keep a `validationErrors` snapshot that only changes on the next `确认`. That causes fixed controls to stay red and makes users think valid input is still invalid.
+- invalid field/operator/value controls show their own error state
+- required value controls cover text, number, select, multi-select, date, date-time, user, and department editors
+- after the first failed `确认`, draft changes clear fixed control errors immediately while keeping other invalid rows marked
+- operators that do not need values clear stale value errors
+- successful confirm, reset, object switch, and fresh open reset validation state
+
+Do not add a host-only `validationErrors` snapshot that only updates on the next confirm.
 
 ## Active summary
 
-Only complete conditions count as active.
+Use package summary/count helpers or a shim that delegates to them.
 
-Default labels:
+Default trigger labels:
 
 - no active conditions: `筛选`
 - active conditions: `已筛选 N 个条件`
 
-Default active trigger style is green-tinted, matching ExpensePoc:
-
-- border: `#8fd19e`
-- background: `#eaf7ed`
-- text: `#226b36`
+Default active trigger style remains green-tinted from the current Make UI baseline.
 
 ## Search merge
 
-Toolbar keyword search is separate from advanced filter.
+Toolbar keyword search is separate from advanced filter UI state. Use `compileListFilter`:
 
-Default search behavior:
+```ts
+const filter = compileListFilter({
+  fields,
+  searchText,
+  advancedFilter: appliedGroup,
+});
+```
 
-- searchable field types: `Make.Field.ID`, `Make.Field.Text`, `Make.Field.TextArea`, `Make.Field.URL`
-- each searchable field becomes `field.contains(keyword)`
-- searchable fields are grouped with `OR`
-- search group and advanced filter group are grouped with `AND`
+Searchable defaults are package-owned. At the current baseline, text-like fields such as ID, Text, TextArea, and URL are searched with `contains`, grouped with `OR`, then combined with advanced filter through `AND`.
 
-Do not include empty search text in the compiled expression.
+Do not manually concatenate CEL strings in the host.
+
+## URL and deep-link echo
+
+If the host supports URL filter params, prefer this shape:
+
+```json
+{
+  "advancedFilter": { "id": "root", "logic": "and", "children": [] },
+  "expression": "status == \"active\""
+}
+```
+
+Rules:
+
+- `advancedFilter` is the preferred UI echo source.
+- `expression` may be included as a startup fallback while schema fields are still loading.
+- When only a supported CEL expression exists, use `parseCelToAdvancedFilter` to echo it into the panel.
+- If parsing returns unsupported, keep the expression as backend-only fallback and do not render fake UI conditions.
+- After user edits search or advanced filter manually, clear one-off external/backend-only filter state unless the product explicitly wants it preserved.
 
 ## Reset on object switch
 
@@ -118,4 +104,4 @@ When the current object/entity key changes:
 - clear search draft and applied search text
 - close any advanced filter popover
 - close any table header menu
-- reset table object-level transient state through the table integration rules
+- reset table object-level transient state through `canvas-table-integration`

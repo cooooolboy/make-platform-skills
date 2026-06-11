@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make UI"
+  short_description: "Build and review Make App frontend UI"
+  default_prompt: "Use $makeui to build a Make App object-list UI with proper layout and handoffs."

@@ -1,6 +1,6 @@
 ---
 name: makeui
-description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, current-user header menu, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, or canvas-table internals.
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, current-user header menu, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, and Make advanced filters to use `@qfei-design/make-filter` through `make-app-filter`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, canvas-table internals, or advanced-filter package internals.
 ---
 
 # makeui
@@ -9,7 +9,7 @@ Current skill revision: 0.3.40.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
-`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, current-user header menu placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permissions, persistence, business modeling, domain mapping, or `canvas-table` internals.
+`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, current-user header menu placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permissions, persistence, business modeling, domain mapping, `canvas-table` internals, or advanced-filter package internals.
 
 ## Quick start
 
@@ -22,7 +22,8 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 7. For a new Make POC UI, use the ExpensePoc-style componentized source tree by default: `src/pages`, `src/components`, `src/hooks`, `src/lib/service-api`, `src/router`, and `src/types`, with complex table/workflow components split into nested `config`, `editing`, `editors`, `hooks`, `renderers`, and `types` modules.
 8. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
 9. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
-10. Read only the needed reference files from the map below.
+10. If filtering, advanced filtering, table filtering, or header filtering is requested or already present, route the integrated filtering behavior to `make-app-filter`; `makeui` only places the toolbar trigger area and preserves the table region needed by CanvasTable header linkage.
+11. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -37,6 +38,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 | Component library choice, field-type UI controls, detail value display | `references/component-usage.md` |
 | Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
 | Make record table display or cell editing | Use `canvas-table-integration` |
+| Advanced filter panel, condition builder, filter expression, header field filter | Use `make-app-filter` |
 | Authentication, login, logout handler, token, session behavior | Use `make-app-auth`; `makeui` only owns the current-user menu surface and placement |
 | Build output, Service runtime, packaging, publish readiness | Use `make-app-runtime`; `makeui` does not own runtime contracts |
 
@@ -47,6 +49,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Do not add or modify authentication/login, token, OAuth, cookie, logout behavior, session mechanics, `/api/make/**`, domain, gateway, deployment, Docker/K8s, Node runtime, package-manager, build-output, or Service runtime rules in `makeui`.
 - Do not define business API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source behavior for UI selectors. Route names must yield to host project docs and the owning Service/API skill when the host documents a different transport.
 - If the task needs auth/login/logout/session behavior, use `make-app-auth`. If the task needs build output, Service runtime, packaging, or publish-readiness rules, use `make-app-runtime`.
+- If the task needs 筛选, advanced filtering, table filtering, filter builders, `filter.expression`, or header "按该字段筛选", use `make-app-filter`. `makeui` must not implement or fork `@qfei-design/make-filter` logic, and must not ship a Make record-list filtering UI without the paired CanvasTable header linkage owned by `make-app-filter` plus `canvas-table-integration`.
 - `makeui` may consume host-provided object/field metadata for UI rendering, but must not decide how that metadata is fetched, stored, authenticated, or deployed.
 
 ### UI metadata and states
@@ -77,6 +80,8 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Do not insert a summary/title card between the workspace header and table for default object lists.
 - Do not add pagination, views, import/export, grouping, sorting, column settings, selection, or Kanban/split views unless requested.
 - Make record tables must use `@qfei-design/canvas-table` via `canvas-table-integration`; do not replace them with UI-library tables.
+- Make filtering must use `@qfei-design/make-filter` via `make-app-filter`; do not generate local filter model helpers, operator matrices, validators, CEL compiler/parser, or custom advanced-filter panels in `makeui`.
+- If filtering is in scope, `makeui` only keeps toolbar placement: search/filter/refresh on the left. The filter trigger opens the host container for package `AdvancedFilterPanel`; package pre-flight, `styles.css`, candidate sources, `compileListFilter`, Service `filter.expression`, CanvasTable header `按该字段筛选`, and `openWithField` linkage are owned by `make-app-filter` with CanvasTable mechanics from `canvas-table-integration`.
 - Generated Make App shells and object-list pages must not create body-level or whole-page scrolling. Keep the root shell fixed to viewport height and put every overflow in the owning region: long sidebar navigation scrolls only inside the sidebar, table data scrolls only inside the CanvasTable/table region, Drawer content scrolls only inside the Drawer body, and route-page content scrolls only inside the content region. Do not let `body`, the app root, the shell, or the list page become the scroll container for normal object-list browsing.
 - CanvasTable wrapper and host must fill the available content width and remaining height; use a flex height chain or accurate `calc()` fallback instead of fixed table dimensions.
 - CanvasTable defaults to `showSN` sequence numbers and a hover-revealed row-head detail icon through `bodyRowHeadSuffixOptions`, unless the user explicitly says the table does not need it.
@@ -102,3 +107,4 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Permission checks and approval flows
 - Business data modeling or DSL changes
 - `@qfei-design/canvas-table` implementation or cell-edit lifecycle
+- `@qfei-design/make-filter` implementation, operator matrix, validator, CEL compiler/parser, or panel internals
