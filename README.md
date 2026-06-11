@@ -115,6 +115,7 @@ npx skills update make-app-filter
 - 使用包内 core、React panel、controller、AntD adapter 和 `styles.css`；禁止复制或手写本地筛选模型、操作符矩阵、校验器、CEL compiler/parser 或高级筛选面板
 - 根据 Make 字段类型使用包内筛选操作符和值编辑器
 - 通过包内 `compileListFilter` 把搜索和高级筛选合并为 Service 可消费的 `filter.expression`
+- File、DateRange、Lookup 和 DNF 合并能力受包能力声明控制；宿主项目不得手写 CEL 编译器或绕过 `@qfei-design/make-filter` 补筛选语义
 - 做 CanvasTable 表头更多菜单与高级筛选的联动：点击“按该字段筛选”调用同一个 package controller 追加草稿条件并打开高级筛选
 - 不允许只做高级筛选或只做表头筛选；Make 记录列表里的筛选能力要么完整交付，要么不交付
 - 约束空筛选、未完成条件、unsupported 字段、人员/部门筛选值和测试

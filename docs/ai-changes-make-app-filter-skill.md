@@ -29,3 +29,9 @@
 - 变更摘要：同步 `make-app-filter` 与当前 `filter.expression` 能力，补齐 DateRange、File、Lookup 支持边界，并修正搜索 OR 与高级筛选 AND 必须展开为 DNF。
 - 涉及文件：`skills/make-app-filter/SKILL.md` 及 `references/filter-model.md`、`operator-matrix.md`、`service-translation.md`、`header-table-linkage.md`、`testing-and-pitfalls.md`。
 - 关键逻辑：Lookup 只能使用当前 Entity 的 Lookup 字段 key，操作符和值格式按 `targetFieldKey` 目标字段类型决定；缺少目标元数据或嵌套 Lookup 时仍隐藏。
+
+## 2026-06-11 17:41 CST
+
+- 变更摘要：在 `@qfei-design/make-filter` 包集成口径下补充 package capability gate，避免 host 手写 File、DateRange、Lookup 或 DNF 编译逻辑。
+- 涉及文件：`skills/make-app-filter/SKILL.md` 及 `references/package-integration.md`、`operator-matrix.md`、`service-translation.md`、`header-table-linkage.md`、`testing-and-pitfalls.md`。
+- 关键逻辑：后端支持 File、DateRange、Lookup，但前端只在包能力声明和字段元数据完整时展示；搜索与高级筛选输出必须符合 DNF。

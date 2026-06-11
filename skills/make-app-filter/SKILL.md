@@ -26,7 +26,7 @@ This skill owns the consumer-side package integration contract, advanced-filter 
 6. Use package APIs for filter core, panel, controller, adapter, validation, and CEL compile/parse. Do not copy or hand-write these capabilities in the host.
 7. Keep host responsibilities outside the package: toolbar trigger, Popover/Drawer/Modal container, scroll sizing, applied state, candidate APIs, Service request adapter, and CanvasTable header filter UI/menu.
 8. Wire header "按该字段筛选" to the same package controller/panel; do not create separate header-only state or a local filter implementation.
-9. Before finishing, verify tests or deterministic checks for package source usage, empty filter omission, search merge, draft confirm/discard, candidate sources, header linkage, unsupported fields, and Service payload shape.
+9. Before finishing, verify tests or deterministic checks for package source usage, package capability gates, empty filter omission, DNF search merge, draft confirm/discard, candidate sources, header linkage, unsupported fields, and Service payload shape.
 
 ## Package pre-flight
 
@@ -74,11 +74,13 @@ When working directly in the package repo, use the same root-relative paths. If 
 - New integrations must import `@qfei-design/make-filter/styles.css` once. Host CSS may style the outer overlay/container, but must not fork package internals unless fixing a host-specific containment issue.
 - New filter output uses `filter: { expression: string }`. If `compileListFilter` returns `undefined`, omit `filter`.
 - Do not send `filter: []`, `filter: {}`, `{ expression: "" }`, or blank raw filter strings.
+- Package capability is the frontend gate. Backend supports File, DateRange, and Lookup in `filter.expression`, but a host may expose them only when the installed package docs/capabilities and field-support APIs declare safe operators, value editors, and DNF-safe compilation.
 - Do not filter Make record lists locally. List filtering goes through Service/backend filter APIs.
 - Filter fields come from normalized runtime object/field metadata. Do not read `apps/dsl/**`, copied YAML, row samples, or hardcoded demo data as runtime filter metadata.
 - User and department filter values are identities, not display names. Candidate sources must use host UI-Service routes such as `/api/users` and `/api/departments` or documented equivalents.
 - Do not source user/department options from field schema `options`, current table rows, local arrays, or display labels. Current applied values may be merged only to keep labels visible while remote candidates load.
-- Unsupported fields must be hidden from field selectors and header "按该字段筛选"; do not guess backend semantics for File, DateRange, Lookup, unknown fields, or invalid field keys.
+- Unsupported fields must be hidden from field selectors and header "按该字段筛选". This includes unknown fields, invalid CEL identifiers, fields unsupported by package capabilities, incomplete Lookup fields, Lookup-to-Lookup fields, and calculated/presentation-only fields such as Rollup, Count, Formula, RichText, and Cascading.
+- If the installed package does not declare File, DateRange, Lookup, or DNF search merge support, stop and require a package upgrade or package capability update. Do not copy operator matrices, hand-write CEL compilers, or patch these semantics in the host app.
 - Header menu filtering is a host integration. It appends a draft condition through the package controller and opens the same toolbar filter panel. It must not submit immediately, reload records, or create a separate header-only state.
 - Table scrolling, object switching, outside click, or unmount must close any header menu and restore the header suffix icon to hover-only state.
 
@@ -86,7 +88,7 @@ When working directly in the package repo, use the same root-relative paths. If 
 
 - Filtering is optional product capability. Generate it only when requested or already established by the project.
 - Once filtering is in scope, default to the complete ExpensePoc package baseline: toolbar `筛选` trigger, bottom-left popover, host-owned container, package `AdvancedFilterPanel`, package draft controller, `确认`, `清空所有`, active label `已筛选 N 个条件`, field-type controls, CanvasTable header menu `按该字段筛选`, header `openWithField(fieldKey)` linkage, and Service `filter.expression` payload.
-- The host keeps search text separate from advanced filter state. Compile both through `compileListFilter({ fields, searchText, advancedFilter })`.
+- The host keeps search text separate from advanced filter state. Compile both through `compileListFilter({ fields, searchText, advancedFilter })`; the resulting expression must be DNF-safe and must not contain raw `(A || B) && C` structure.
 - Clicking outside the popover or trigger-closing discards unconfirmed draft changes by calling the package controller reset flow.
 - `清空所有` clears the draft and affects applied filters only after `确认`.
 - Object/entity switch clears applied advanced filter, search state, popover state, header menu state, and table object-level transient state.

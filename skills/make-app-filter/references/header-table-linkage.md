@@ -78,13 +78,16 @@ Default:
 - unsupported fields still may show sort UI if sorting is in scope
 - unsupported fields must not call `openWithField`
 
-Unsupported by default:
+Default unsupported cases:
 
-- `Make.Field.File`
-- `Make.Field.DateRange`
-- `Make.Field.Lookup`
 - unknown field types
 - invalid field keys
+- fields not declared by package capabilities or package support helpers
+- `Make.Field.Lookup` without complete `relationKey`, `targetFieldKey`, target entity metadata, or target field metadata
+- `Make.Field.Lookup` whose target field is also `Make.Field.Lookup`
+- calculated or presentation-only field types that the backend does not expose for `filter.expression`
+
+File and DateRange fields may show `按该字段筛选` when the installed package declares operators and value editors for them. Lookup fields may show it only when package support can resolve the target field type; the action still calls `openWithField` with the current entity's Lookup field key, not a target-field path.
 
 ## Tests
 
@@ -94,6 +97,7 @@ Header linkage tests should cover:
 - supported field opens menu and shows `按该字段筛选`
 - clicking the action calls `openWithField(fieldKey)` or `onFilterByField(fieldKey)` and closes the menu
 - unsupported field hides `按该字段筛选`
+- File, DateRange, and resolvable Lookup fields show `按该字段筛选` when package capabilities support them
 - open menu keeps active column suffix icon `always`
 - outside click closes menu and restores `hover`
 - table scroll closes menu and restores `hover`

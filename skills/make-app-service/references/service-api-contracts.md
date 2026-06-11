@@ -80,7 +80,8 @@ Rules:
 - Do not serve record routes from `makecli`, local makecli config, makecli stdout, generated fixtures, or local DSL/YAML in published runtime.
 - List and detail are separate contracts. Use Make single-record reads for detail when available.
 - Validate `sort` shape. Prefer `{ fieldKey, order }`; reject ambiguous legacy `{ field, order }` in new contracts.
-- Validate `filter` shape before passing to Make. Prefer `{ expression }` for CEL-style filters.
+- Validate `filter` shape before passing to Make. New contracts accept only `{ expression }` for record-list filters; omit empty filters and reject `filter: []`, `filter: {}`, blank strings, raw CEL strings, and old object-array filter payloads.
+- Service must pass `filter.expression` through without rewriting DNF structure. UI/package code owns CEL generation; Service owns validation, JSON parsing, and safe forwarding.
 - Do not infer returned fields from arbitrary UI row keys. The UI should request fields by schema keys when it needs a smaller payload.
 - Create/update payloads carry raw submit values, not formatted display labels.
 

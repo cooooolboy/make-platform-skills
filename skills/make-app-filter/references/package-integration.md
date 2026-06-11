@@ -26,6 +26,20 @@ Never import from `src`, `dist`, or package-internal files.
 - optional Ant Design adapter
 - internal panel stylesheet
 
+## Package capability gate
+
+Backend `filter.expression` supports File, DateRange, and Lookup semantics, but Make App hosts must expose only capabilities declared by the installed package. Before showing a field or relying on a compiled expression, read the package docs/capabilities listed in `SKILL.md` and check package helpers such as `getFilterableFields`, `getOperatorsForField`, and `isAdvancedFilterFieldSupported`.
+
+Required package capabilities for the current Make target baseline:
+
+- DNF-safe `compileListFilter` output for keyword search plus advanced filter; it must not emit unsupported `(A || B) && C`.
+- Date/DateTime range operators such as `is_within` and `is_not_within`.
+- DateRange operators such as `contains_date`, `not_contains_date`, `fully_contains`, `is_contained_by`, equality, and empty checks.
+- File operators for file-name contains/not-contains and attachment-count comparisons.
+- Lookup support that compiles the current entity's Lookup field key and derives operators from `targetFieldKey`.
+
+If the installed package lacks any needed capability, stop and require a package upgrade or package capability update. Do not implement missing operators, validators, or CEL compilation in the host.
+
 ## Host provides
 
 - normalized Make field metadata

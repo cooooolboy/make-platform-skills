@@ -16,20 +16,27 @@ Filter model and operators:
 - default field chooses the package first supported operator
 - field change resets operator and value through package helpers
 - unsupported fields are excluded
-- single select supports package operators including `in`
-- multi select/user/department expose collection and empty operators
-- DateRange, File, Lookup, invalid field keys, and unknown types are skipped by default
+- single select/user/department expose package scalar membership and empty operators when supported
+- multi select/user/department expose package collection and empty operators
+- DateRange and File expose backend-supported operators only when package capabilities support them
+- Lookup derives operators from `targetFieldKey` target field metadata
+- incomplete Lookup, nested Lookup, invalid field keys, package-unsupported, calculated/presentation-only, and unknown types are skipped
 
 Expression compiler:
 
 - string escaping
 - numeric comparisons
-- nested group parentheses
-- collection `has_any`, `not_contains`, `eq`, `neq`
-- empty and not-empty for collection fields
+- DNF branch grouping and parentheses
+- scalar `is_any_of` and `is_none_of`
+- collection `has_any`, `has_all`, `has_none`, `eq`, `neq`
+- empty and not-empty for scalar, text, collection, DateRange, and File fields
+- Date/DateTime `is_within` and `is_not_within`
+- DateRange `contains_date`, `not_contains_date`, `fully_contains`, `is_contained_by`, and equality
+- File name and attachment-count expressions
+- Lookup expressions use the Lookup field key and target-field value format
 - empty condition rows do not compile
 - invalid field identifiers do not compile
-- search group merges with advanced filter through `AND`
+- search group merges with advanced filter by DNF distribution, not raw `(A || B) && C`
 - `compileListFilter` returns `undefined` for no valid expression
 
 UI behavior:
@@ -60,6 +67,7 @@ Service and integration:
 
 - UI sends `filter: { expression }`
 - empty expression omits `filter`
+- package capability checks prevent host-side hand-written File, DateRange, Lookup, or DNF patches
 - Service rejects blank filter query with 400
 - Service passes `filter.expression` to Make Data API
 - Service still handles legacy payloads only when the host project already needs compatibility
@@ -73,7 +81,11 @@ Service and integration:
 - submitting on every keystroke instead of waiting for `确认`
 - closing the popover but keeping unconfirmed draft changes
 - sending `filter: []` or `{}` when no valid condition exists
+- hiding File, DateRange, or resolvable Lookup even though package capabilities and host metadata support them
 - showing File, DateRange, Lookup, invalid keys, or unknown fields in advanced filter without package support
+- showing incomplete Lookup or Lookup-to-Lookup fields
+- compiling Lookup as a cross-object path such as `profile.name`
+- merging keyword search and advanced filter as unsupported `(A || B) && C`
 - using display labels instead of ids for user/department filters
 - locally filtering already loaded rows instead of requesting backend-filtered records
 - creating a second header-only filter state that drifts from the package controller
