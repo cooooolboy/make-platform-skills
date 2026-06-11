@@ -1,15 +1,15 @@
 # Header Table Linkage
 
-Use this reference when connecting CanvasTable header menus to advanced filter.
+Use this reference when connecting CanvasTable header menus to the package-backed advanced filter.
 
 ## Default behavior
 
-When a CanvasTable record list has advanced filter enabled, add a header more menu by default unless the user explicitly says header filtering is not needed. The menu should include `按该字段筛选` for supported fields.
+When filtering is in scope for a Make record-list page, add both the toolbar advanced filter and the CanvasTable header filter linkage. The menu should include `按该字段筛选` only for package-supported fields. Do not report filtering complete if the toolbar package panel is implemented but the header linkage is missing, or if the header menu exists without the package-backed toolbar panel.
 
 Clicking `按该字段筛选` must:
 
 1. close the header menu
-2. call the advanced filter imperative API, for example `advancedFilterRef.current?.openWithField(fieldKey)`
+2. call the same toolbar advanced filter controller, usually `controller.openWithField(fieldKey)` or a ref wrapper around it
 3. append one draft condition using the clicked field
 4. open the same toolbar advanced filter popover
 5. wait for the user to fill a value and click `确认`
@@ -27,7 +27,9 @@ Use `canvas-table-integration` for exact `suffixRender` API details. The consume
 - after menu closes, restore the icon to `hover`
 - refresh header cells after the active menu column changes
 
-The more icon should be a lightweight 14px SVG-style button in the table header suffix slot. ExpensePoc uses a rounded rectangle with three dots.
+The advanced filter package does not implement CanvasTable `suffixRender`.
+It also does not render the header filter UI or menu; those are host
+responsibilities implemented with `canvas-table-integration`.
 
 ## Menu placement and style
 
@@ -68,7 +70,7 @@ Do not call table-wide refresh or scroll reset just to open the menu. Refresh on
 
 ## Field support
 
-The header menu must ask the advanced filter field-support predicate before showing `按该字段筛选`.
+Use package `getFilterableFields` or `isAdvancedFilterFieldSupported` after host-specific candidate-source checks.
 
 Default:
 
@@ -76,23 +78,24 @@ Default:
 - unsupported fields still may show sort UI if sorting is in scope
 - unsupported fields must not call `openWithField`
 
-Default unsupported cases:
+Unsupported by default:
 
+- `Make.Field.File`
+- `Make.Field.DateRange`
+- `Make.Field.Lookup`
 - unknown field types
-- `Make.Field.Lookup` without complete `relationKey`, `targetFieldKey`, target entity metadata, or target field metadata
-- `Make.Field.Lookup` whose target field is another Lookup
-- calculated or presentation-only field types that the backend does not expose for `filter.expression`
-
-File and DateRange fields are supported by the current backend filter expression subset when the host provides the value editor and operator mapping from `operator-matrix.md`. Lookup fields are supported when the target field type can be resolved; the action still opens the current entity's Lookup field key, not a target-field path.
+- invalid field keys
 
 ## Tests
 
 Header linkage tests should cover:
 
+- the same filtering feature includes both toolbar `AdvancedFilterPanel` and CanvasTable header `按该字段筛选`
 - supported field opens menu and shows `按该字段筛选`
-- clicking the action calls `onFilterByField(fieldKey)` and closes the menu
+- clicking the action calls `openWithField(fieldKey)` or `onFilterByField(fieldKey)` and closes the menu
 - unsupported field hides `按该字段筛选`
 - open menu keeps active column suffix icon `always`
 - outside click closes menu and restores `hover`
 - table scroll closes menu and restores `hover`
+- clicking header filter does not reload records before package controller confirmation
 - non-target tables do not get header menu triggers when the host only wants this on specific objects

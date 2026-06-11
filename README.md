@@ -19,13 +19,13 @@ Codex 判断优先级：
 1. 用户明确点名某个 skill 时，优先使用该 skill。
 2. 用户没有点名时，按问题关键词从下表选择最匹配的 skill。
 3. 一个需求跨多个领域时，可以组合多个 skill，但只在主责 skill 中写具体规则，其他 skill 只写“转交/配合”提示。
-4. 不要把登录、打包发布、DSL 建模、Make CLI 操作、CanvasTable 内部规则写进 `makeui`；`makeui` 只负责页面布局、样式和 UI 组件组织。
+4. 不要把登录、打包发布、DSL 建模、Make CLI 操作、CanvasTable 内部规则或高级筛选包内部规则写进 `makeui`；`makeui` 只负责页面布局、样式和 UI 组件组织。
 
 | 用户问题 / 关键词 | 使用 skill | 边界 |
 | --- | --- | --- |
 | 页面、布局、App Shell、侧边栏、顶部栏、列表页、新建/编辑/详情、Drawer、表单布局、响应式、UI 状态 | `makeui` | 只负责 UI 怎么展示，不负责认证、打包、Service、业务 API 设计和发布 |
 | CanvasTable、表格渲染、字段类型展示、表格编辑、序号列、行头详情图标、`showSN`、`bodyRowHeadSuffixOptions` | `canvas-table-integration` | 只负责 `@qfei-design/canvas-table` 消费侧接入，不负责页面 Shell 和业务 API |
-| 高级筛选、筛选条件组、AND/OR、字段类型操作符、filter expression、筛选值归一化、表头按字段筛选联动 | `make-app-filter` | 只负责筛选模型、筛选控件行为、表头筛选联动和筛选合同，不负责页面 Shell、表格渲染、Service 实现、认证或发布 |
+| 筛选、高级筛选、表格筛选、表头筛选、筛选条件组、AND/OR、字段类型操作符、filter expression、筛选值归一化、表头按字段筛选联动、`@qfei-design/make-filter` | `make-app-filter` | 负责完整筛选能力：`@qfei-design/make-filter` 消费侧接入、高级筛选控件行为、CanvasTable 表头筛选联动和筛选合同；不负责页面 Shell、表格渲染 API 细节、Service 实现、认证或发布 |
 | Service 接口、`apps/service` API、UI-Service 合同、`apps/docs/api.md`、schema/records/users/departments/lookup/file 代理接口、Make Data API adapter、Service Make adapter 环境变量和配置语义 | `make-app-service` | 只负责 Service API、薄编排和 Make adapter 配置语义，不负责 UI、认证、打包发布、端口/构建产物、DSL 建模、Make CLI、CanvasTable |
 | 登录、认证、Token、统一登录、OAuth、Cookie、Session、logout、401/403、`/api/make/**` 鉴权请求 | `make-app-auth` | 只负责认证和鉴权请求，不负责 UI 布局和打包发布 |
 | 打包、发布、镜像入口、K8s、Service 启动失败、`apps/ui/dist`、`apps/service/dist/server.js`、Service 端口 `3000`、workspace/package.json、`X-Forwarded-Host` | `make-app-runtime` | 只负责运行态和打包发布契约，不负责 Service API、认证实现或 Make adapter 配置语义 |
@@ -36,7 +36,7 @@ Codex 判断优先级：
 常见组合：
 
 - 做一个对象列表页：`makeui` + `canvas-table-integration`
-- 做高级筛选或表头按字段筛选：`make-app-filter` + `makeui` + `canvas-table-integration`
+- 做筛选、高级筛选、表格筛选或表头按字段筛选：`make-app-filter` + `makeui` + `canvas-table-integration`，必须同时完成 package 高级筛选和 CanvasTable 表头筛选联动
 - 做筛选 Service 合同或 filter.expression 透传：`make-app-filter` + `make-app-service`
 - 做 UI 需要的 Service 接口：`make-app-service` + `makeui`
 - 做一个登录后的页面：`makeui` + `make-app-auth`
@@ -102,7 +102,7 @@ npx skills update makeui
 - 不负责打包发布、Service runtime、镜像入口和构建产物；这些交给 `make-app-runtime`
 
 ### make-app-filter
-指导生成、重构或审查 Make App 高级筛选能力，覆盖筛选条件模型、字段类型操作符、筛选值归一化、ExpensePoc 风格高级筛选面板、CanvasTable 表头“按该字段筛选”联动和 `filter.expression` 合同。
+指导生成、重构或审查 Make App 完整筛选能力。只要用户提出“筛选 / 高级筛选 / 表格筛选 / 表头筛选 / 按字段筛选”，就必须同时完成 `@qfei-design/make-filter` 高级筛选接入和宿主 CanvasTable 表头筛选联动，覆盖包安装与文档读取、筛选条件模型、字段类型操作符、筛选值归一化、Package `AdvancedFilterPanel`、CanvasTable 表头“按该字段筛选”联动和 `filter.expression` 合同。
 
 #### 升级 skill
 ```bash
@@ -110,10 +110,13 @@ npx skills update make-app-filter
 ```
 
 **使用场景**
-- 设计或修改高级筛选弹窗、筛选条件组、`且 / 或` 关系和确认提交交互
-- 根据 Make 字段类型生成筛选操作符和值编辑器
-- 把搜索和高级筛选合并为 Service 可消费的 `filter.expression`
-- 做 CanvasTable 表头更多菜单与高级筛选的联动：点击“按该字段筛选”追加草稿条件并打开高级筛选
+- 设计或修改完整筛选能力：高级筛选弹窗、筛选条件组、`且 / 或` 关系、确认提交交互和 CanvasTable 表头“按该字段筛选”入口
+- 接入或升级 `@qfei-design/make-filter@^0.1.4`，并读取包内 `package.ai.json`、`docs/agent-usage.md`、`recipes.json`、`capabilities.json`、`PUBLIC_API.md`
+- 使用包内 core、React panel、controller、AntD adapter 和 `styles.css`；禁止复制或手写本地筛选模型、操作符矩阵、校验器、CEL compiler/parser 或高级筛选面板
+- 根据 Make 字段类型使用包内筛选操作符和值编辑器
+- 通过包内 `compileListFilter` 把搜索和高级筛选合并为 Service 可消费的 `filter.expression`
+- 做 CanvasTable 表头更多菜单与高级筛选的联动：点击“按该字段筛选”调用同一个 package controller 追加草稿条件并打开高级筛选
+- 不允许只做高级筛选或只做表头筛选；Make 记录列表里的筛选能力要么完整交付，要么不交付
 - 约束空筛选、未完成条件、unsupported 字段、人员/部门筛选值和测试
 - 不负责页面 Shell 和工具栏整体布局；这些交给 `makeui`
 - 不负责 CanvasTable 渲染和 suffixRender API 细节；这些交给 `canvas-table-integration`
