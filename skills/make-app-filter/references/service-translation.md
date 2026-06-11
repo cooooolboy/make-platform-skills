@@ -41,24 +41,13 @@ Invalid empty values:
 
 The package owns CEL output. Do not hand-concatenate expression strings in the host.
 
-Important expected shapes from package output:
+Important current shapes:
 
 - scalar comparisons: `field == value`, `field != value`, `field > value`
-- scalar list membership: `field in [values]`, `!(field in [values])`
 - text contains: `field.contains(value)`
-- collection operators: `[values].exists(v, v in field)`, `[values].all(v, v in field)`, `![values].exists(v, v in field)`
-- date/date-time ranges: `field.isWithin({"begin":"2026-04-01","end":"2026-04-30"})`, `field.isNotWithin({...})`
-- DateRange methods: `field.containsDate("2026-04-15")`, `field.doesNotContainDate(...)`, `field.fullyContains({...})`, `field.isContainedBy({...})`
-- File fields: `attachments.contains("proposal.pdf")`, `attachments > 2`, `attachments == 1`
-- Lookup fields: `profileName.contains("张")`, `courseScore >= 60`; compile the Lookup field key, never a target-field path
-- empty checks use the field-type shapes from AgenticDSL, such as scalar `field == null`, text `field == null || field == ""`, collection `field == null || size(field) == 0`, and DateRange `field['begin'] == null || field['end'] == null`
-
-Search and advanced filter merge must be DNF-safe. Do not emit `(A || B) && C`; distribute the `AND` into outer `OR` branches before sending to Make Data API:
-
-```text
-(title.contains("客户") && status == "open")
-|| (description.contains("客户") && status == "open")
-```
+- collection `has_any`: `(field != null && [values].exists(x, x in field))`
+- collection empty checks are parenthesized before joining with other conditions
+- search OR groups are parenthesized before merging with advanced filter through `AND`
 
 Use `parseCelToAdvancedFilter` only for supported expression echo or deep-link compatibility. Unsupported CEL should remain backend-only fallback, not fake UI conditions.
 
@@ -67,10 +56,8 @@ Use `parseCelToAdvancedFilter` only for supported expression echo or deep-link c
 - Field keys must match the package field-key pattern.
 - Unsupported field/operator combinations compile to no expression.
 - Conditions with missing field, operator, or required value compile to no expression.
-- DateRange, File, and Lookup compile only when package capabilities declare support. If a host needs them but the installed package cannot compile them, stop and require a package upgrade or capability update.
-- Unknown field types, invalid field keys, incomplete Lookup metadata, Lookup-to-Lookup targets, and calculated/presentation-only field types compile to no expression.
-- Do not emit scalar empty/not-empty with `size(field)`.
-- Do not emit Lookup cross-object paths such as `profile.name`, `profileName.name`, or `targetEntity.field`.
+- DateRange, File, Lookup, and unknown field types are not compiled by default.
+- Do not emit scalar empty/not-empty with `size(field)` unless backend semantics are explicitly added to the package.
 
 ## Service validation
 

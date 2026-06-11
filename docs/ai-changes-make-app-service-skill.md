@@ -23,8 +23,8 @@
 - `make-app-service` 不负责 DSL 建模、Make CLI 部署或 CanvasTable 渲染。
 - Service adapter 只消费已有认证或运行态上下文，不在本 skill 中定义 auth/session 转发或发布代理契约。
 
-## 2026-06-11 17:47 CST
+## 2026-06-11 18:08 CST
 
-- 变更摘要：同步 Service 侧 filter 合同，明确新生成记录列表只接受 `{ expression }`，空筛选省略，旧数组/空对象/裸字符串 payload 拒绝。
+- 变更摘要：回退提交 `6e7f6a25` 中 Service 侧 filter 合同同步内容，撤销新生成记录列表只接受 `{ expression }` 的新增说明。
 - 涉及文件：`README.md`、`skills/make-app-service/references/service-api-contracts.md`、`make-data-adapter.md`、`testing-and-safety.md`。
-- 关键逻辑：Service 只做形状校验、JSON 解析和安全透传，不重写 DNF；`compileListFilter` 和包能力门禁仍由 `make-app-filter` 负责。
+- 关键逻辑：恢复 Service adapter 原有记录读取说明，不再保留本次被回退提交新增的旧 payload 拒绝和 DNF 透传约束。

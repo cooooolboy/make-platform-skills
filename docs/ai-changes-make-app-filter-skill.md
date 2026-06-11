@@ -30,8 +30,8 @@
 - 涉及文件：`skills/make-app-filter/SKILL.md` 及 `references/filter-model.md`、`operator-matrix.md`、`service-translation.md`、`header-table-linkage.md`、`testing-and-pitfalls.md`。
 - 关键逻辑：Lookup 只能使用当前 Entity 的 Lookup 字段 key，操作符和值格式按 `targetFieldKey` 目标字段类型决定；缺少目标元数据或嵌套 Lookup 时仍隐藏。
 
-## 2026-06-11 17:41 CST
+## 2026-06-11 18:08 CST
 
-- 变更摘要：在 `@qfei-design/make-filter` 包集成口径下补充 package capability gate，避免 host 手写 File、DateRange、Lookup 或 DNF 编译逻辑。
+- 变更摘要：回退提交 `6e7f6a25` 中 `make-app-filter` 关于 `@qfei-design/make-filter` 包能力门禁和扩展合同的同步内容。
 - 涉及文件：`skills/make-app-filter/SKILL.md` 及 `references/package-integration.md`、`operator-matrix.md`、`service-translation.md`、`header-table-linkage.md`、`testing-and-pitfalls.md`。
-- 关键逻辑：后端支持 File、DateRange、Lookup，但前端只在包能力声明和字段元数据完整时展示；搜索与高级筛选输出必须符合 DNF。
+- 关键逻辑：恢复到回退前一版高级筛选说明，撤销 host 不手写 File、DateRange、Lookup 或 DNF 编译逻辑等新增约束。
