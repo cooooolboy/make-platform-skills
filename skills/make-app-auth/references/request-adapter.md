@@ -4,7 +4,7 @@ Use this reference when generating or reviewing Make backend request code.
 
 ## Rule
 
-All frontend requests to Make backend must go through one shared adapter that wraps `auth.api`. This includes schema/meta loading, record list/get/create/update/delete, cell updates, attachment/file APIs, lookup resolution, user candidates, department candidates, and other `/api/make/**` calls.
+All frontend requests to Make backend must go through one shared adapter that wraps `auth.api`. In direct-gateway mode this includes schema/meta loading, record list/get/create/update/delete, cell updates, attachment/file APIs, lookup resolution, user candidates, department candidates, and other `/api/make/**` calls. In Service-fronted mode the same UI adapter calls Service-owned `/app/**` paths through `gatewayBaseUrl=/api`.
 
 Do not call raw `window.fetch('/api/make/...')`. Do not scatter unhandled `auth.api` calls across UI components, drawers, tables, field editors, or route loaders.
 
@@ -31,6 +31,8 @@ export async function listRecords(payload: unknown) {
 Service-fronted mode example. Use this only after `service-fronted-mode.md` confirms the `UI -> Service -> make-gateway` contract:
 
 ```ts
+// With createMakeAppAuth({ gatewayBaseUrl: '/api', ... }),
+// this reaches browser path /api/app/schema.
 export async function loadSchema() {
   return auth.api.get('/app/schema', makeRequestInit);
 }
