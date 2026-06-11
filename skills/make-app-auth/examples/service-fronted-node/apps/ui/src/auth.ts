@@ -1,7 +1,7 @@
 import { createMakeAppAuth } from '@qfeius/make-app-auth';
 
 export const auth = createMakeAppAuth({
-  gatewayBaseUrl: '/api/make',
+  gatewayBaseUrl: '/api',
   unifiedLogin: true,
   apiAuthRedirect: true
 });

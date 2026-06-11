@@ -17,10 +17,11 @@ If the repository has no Service test setup, add the smallest test harness consi
 
 Route tests should cover:
 
-- `/health` and `/api/config` do not expose secrets
+- `/api/health`, local/probe `/health` when present, and `/api/config` do not expose secrets
+- Service-fronted published routes use `/api/**`: at minimum test `/api/auth/**` proxy paths and `/api/app/**` or the documented business paths; prefix-free compatibility routes alone are not enough
 - schema routes return normalized schema and fields
 - record list parses `fields`, `filter`, `sort`, `pagination`
-- record list/detail call the Make adapter path for gateway `/data/v1/record` and forward the required login/session context
+- record list/detail call the Make adapter path for gateway `/make/data/v1/record` and forward the required login/session context
 - invalid query/body returns 400 and does not call Make adapter
 - create/update/delete/cell-update call the adapter with the documented payload
 - detail uses the single-record adapter
@@ -34,10 +35,11 @@ Config tests should cover:
 - `MAKE_APP_KEY` is required for Make-backed Services and is not replaced by an invented production default
 - `MAKE_API_BASE_URL` takes precedence over `MAKE_SERVER_URL`
 - `MAKE_SERVER_URL` works as a compatibility fallback
-- `MAKE_AUTH_BASE_URL` and `MAKE_BUSINESS_BASE_URL` fall back to the normalized Make API base URL when absent
-- base URLs are trimmed and trailing slashes are removed
-- internal make-gateway base URLs include `/make`, for example `http://make-gateway.make-dev/make`
-- bare internal gateway hosts such as `http://make-gateway.make-dev` are rejected or normalized to include `/make` before adapters consume them
+- gateway origins are trimmed and trailing slashes are removed
+- internal make-gateway base URLs are strict gateway origins, for example `http://make-gateway.make-dev`
+- `MAKE_API_BASE_URL=http://make-gateway.make-dev/make` and `MAKE_API_BASE_URL=http://make-gateway.make-dev/api/make` are rejected for new generated Service config
+- Make Meta/Data adapters add the fixed `/make` service scope when building upstream URLs
+- no Service runtime config or `.env.example` field is added for the fixed Make Meta/Data scope
 - Service upstream base URLs reject `/api/make`; that prefix is only for browser or ingress access
 - missing `MAKE_API_BASE_URL` and `MAKE_SERVER_URL` fails config loading with a non-secret error
 - `/api/config` does not expose `appKey`, Make base URLs, tokens, cookies, service keys, or deployment-internal details
@@ -46,7 +48,7 @@ Adapter tests should cover:
 
 - Make Meta/Data requests include the configured `appKey` when the backend API requires it
 - route handlers do not accept `appKey` from UI query/body/header input
-- record reads use `/data/v1/record`
+- record reads use `/make/data/v1/record`
 - request wrappers preserve required inbound login context for gateway, such as `Cookie` for cookie/unified-login apps and host-approved auth headers when applicable
 - no record/candidate/lookup/file/custom route shells out to `makecli` or reads makecli command output as runtime data
 - Make response envelope `code !== 200`
@@ -64,17 +66,19 @@ Adapter tests should cover:
 Before reporting Service work as ready:
 
 - `apps/docs/api.md` matches changed routes and response shapes
+- `apps/docs/api.md` documents the published browser-facing `/api/**` Service paths for Make Deploy Service-fronted Apps, not only local prefix-free paths
 - generated Make POC Service code is not left as a flat `apps/service/src` tree; it uses route/app registration, `make-client/`, `services/`, `utils/`, config/logger, and colocated tests or host-equivalent layered folders
 - route handlers remain thin: validation, delegation, error mapping, safe logs, and response sending only
 - Make request construction, schema normalization, lookup/file orchestration, and custom workflows live in adapters/services/helpers instead of route-local files
 - no runtime code reads local DSL/YAML as required schema/data source
 - no published runtime route uses `makecli`, `npx makecli`, local makecli config, or makecli stdout as a data source
-- Make-backed record reads go through gateway `/data/v1/record` and preserve the established login/session context
+- Make-backed record reads go through gateway `/make/data/v1/record` and preserve the established login/session context
 - no route leaks raw Make response envelopes unless documented
 - invalid client input is rejected before Make calls
 - no tokens, cookies, service keys, or signed URLs appear in logs or public config
-- Make adapter base URLs come from normalized Service config and are not hard-coded in routes or adapters
-- Service internal gateway requests use `/make/meta/**`, `/make/data/**`, or `/make/auth/**`, not bare-host `/meta|data|auth/**` and not `/api/make/**`
+- Make adapter gateway origins come from normalized Service config, and `/make` is an explicit Make Meta/Data adapter constant rather than a route-local string hack or env override
+- Service internal gateway requests use gateway-origin plus explicit service scope, such as `/make/meta/**` or `/make/data/**`, not bare-host `/meta|data|auth/**` and not `/api/make/**`
+- UI/Service integration tests prove `auth.api("/app/**")` reaches `/api/app/**` when `gatewayBaseUrl` is `/api`; do not ship a published App whose UI requests `/app/**` directly under the UI static route
 - candidate endpoints use real host/Make data sources, not demo arrays
 - lookup updates preserve unrelated relations
 - file upload requires persisted record identity
@@ -105,5 +109,5 @@ When route docs changed, also run any UI/service integration tests that consume 
 - signed download URL query was logged
 - Service route mixed auth/session handling with business API code
 - Service route called `makecli` for runtime records, which fails in online containers
-- Service adapter dropped the request `Cookie` / login context before calling gateway `/data/v1/record`
+- Service adapter dropped the request `Cookie` / login context before calling gateway `/make/data/v1/record`
 - runtime build or port rules were added here instead of `make-app-runtime`

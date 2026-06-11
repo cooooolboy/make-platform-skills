@@ -4,7 +4,7 @@ Use `@qfeius/make-app-auth` for Make App authentication and Make backend request
 
 ## Responsibility Boundary
 
-The SDK owns auth bootstrap, unified-login browser state, cookies, redirects, logout, and `/api/make/**` request helpers.
+The SDK owns auth bootstrap, unified-login browser state, cookies, redirects, logout, and scoped request helpers such as direct gateway `/api/make/**` or Service-fronted `/api/**`.
 
 App code owns page state, user-facing messages, and business feature logic.
 
@@ -86,11 +86,11 @@ if (boot.status === 'authenticated') {
 
 ## Business Requests
 
-Use `auth.api` for Make backend calls. The SDK handles `/api/make`, cookies, JSON request bodies, and unified auth errors.
+Use `auth.api` for Make backend calls. In direct gateway mode, the SDK handles `/api/make`, cookies, JSON request bodies, and unified auth errors.
 
 `gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling this value already exists as `makecli` `server-url` (`makecli configure get server-url`, default `https://dev-make.qtech.cn/api/make`). Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
 
-For a deployed same-origin unified-login App, prefer the SDK default `/api/make`. Browser code must not read `~/.make/config` directly.
+For a deployed same-origin direct-gateway unified-login App, prefer the SDK default `/api/make`. For a Service-fronted published App behind Make Deploy's default `/api -> service`, `/ -> ui` route split, configure `gatewayBaseUrl: "/api"` and keep business calls as `auth.api("/app/**")`. Browser code must not read `~/.make/config` directly.
 
 `gatewayBaseUrl` is not the unified login, Org, or account-center URL.
 
@@ -109,7 +109,7 @@ auth.api.request(path, init);
 
 For shared adapter, 401/403, request headers, and no-scattered-`auth.api` rules, read `request-adapter.md`.
 
-For Service-fronted Apps where UI calls App Service and Service calls make-gateway, read `service-fronted-mode.md`.
+For Service-fronted Apps where UI calls App Service and Service calls make-gateway, read `service-fronted-mode.md`; do not reuse direct-gateway `/api/make` as the App Service prefix.
 
 For published/vibe Apps, auth integration is not complete until the agent or platform has verified the domain entry path, current-context challenge/context path, callback/session completion, and at least one authenticated business request through the generated adapter. Run `scripts/audit-auth-contract.mjs <project-root> --published` when a generated project tree is available. Do not make the user discover these failures by opening DevTools after publish.
 
@@ -123,7 +123,7 @@ For published/vibe Apps, auth integration is not complete until the agent or pla
 - Unified-login state/challenge expiration renders a relogin prompt instead of automatically redirecting again.
 - Authenticated unified-login state exposes a visible logout action wired to `auth.logout()`, preferably in the top-header current-user menu defined by `makeui`.
 - Logout does not consume or rewrite `orgSsoLogoutUrl` in App code; the SDK calls make-gateway logout and follows gateway `redirectUri`, which should be an App return URL rather than an account-center or Org logout URL.
-- Service-fronted unified-login Apps proxy `/api/make/auth/current-context`, `/api/make/auth/session/complete`, and logout through Service without swallowing redirect or cookie headers.
+- Service-fronted unified-login Apps proxy `/api/auth/current-context`, `/api/auth/session/complete`, and logout through Service without swallowing redirect or cookie headers.
 
 ## Never Generate
 
