@@ -42,6 +42,7 @@ This skill only supports unified login for generated and reviewed Make Apps. Mis
 - Service-fronted Apps must preserve the `UI -> Service -> make-gateway` contract; do not let UI bypass Service for meta/data calls.
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`.
+- Browser resource requests such as `<img src>`, `<object data>`, and plain `<a href>` cannot attach custom `Authorization` headers. If a Make file download requires a bearer token, UI must use a same-origin Service download proxy URL, and the Service must validate the current App session before using any deployment-injected download token.
 - `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the `makecli` `server-url` value; do not create a second environment concept for the same URL.
 - `gatewayBaseUrl` is not the unified login or account-center URL. Prefer the SDK default `/api/make` for deployed same-origin Apps.
 - Do not configure or hard-code unified login, Org, or account-center URLs in generated App code; make-gateway returns those URLs.

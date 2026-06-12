@@ -182,6 +182,12 @@ Rules:
 - preserve content type and extension where possible
 - download proxy should stream backend status/content-type/content-disposition where safe
 - redact download query strings in logs
+- do not return JSON for file download bodies unless the UI contract explicitly downloads metadata only; image/PDF previews need binary bytes or a stream
+- if the Make Data download endpoint requires `Authorization`, do not expose that endpoint directly to UI or use it as `<img src>`. Browser resource tags cannot attach custom headers.
+- in Service-fronted unified-login apps, verify the browser App session with make-gateway, for example `GET ${makeAuthBaseUrl}/auth/current-context` using forwarded Cookie and host context, before using any Service-side download token
+- use a deployment-injected token such as `MAKE_API_TOKEN` only inside the Service download adapter and only for the download edge case; do not substitute it for normal schema, record, candidate, lookup, upload, or delete requests that should use the forwarded login context
+- remove or overwrite inbound browser `Authorization` before attaching the Service download token so client headers cannot override the server credential
+- keep download tokens out of `/api/config`, UI environment variables, logs, error messages, and tests snapshots
 
 ## Forwarded headers
 

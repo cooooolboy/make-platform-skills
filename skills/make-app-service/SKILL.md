@@ -86,6 +86,7 @@ Keep route handlers small. Put Make/backend calls in adapter modules, cross-rout
 - User and department candidates come from Service routes such as `GET /api/users` and `GET /api/departments` or the host equivalent; do not use local demo arrays in generated Service.
 - Lookup option APIs must resolve target object/field from schema metadata and return `{ options, total }`. Do not expose full target records to selector UIs by default.
 - File routes proxy upload/delete/download through Service. UI should not expose raw backend file URLs when a Service download proxy is available.
+- Browser resource tags such as `<img src>` cannot attach `Authorization`. When Make file downloads require a bearer token, keep the URL browser-facing through a Service download proxy, verify the current App session first, and let only the Service adapter attach the deployment-injected token. Do not put Make tokens or raw `/data/v1/download/**` URLs in UI state, public config, JSX, or logs.
 - Add boundary logs at route/adapter entry, success, and failure. Redact tokens, cookies, Authorization, API keys, signed download query strings, and unnecessary personal data.
 - Tests are required for route contracts, invalid input, adapter payloads, Make error mapping, and any schema/value normalization added by this skill.
 

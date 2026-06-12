@@ -44,6 +44,8 @@ Apply the same adapter path to schema/meta, list, get, create, update, delete, f
 
 Do not use `/app/**` in direct gateway mode. Do not use `/data/**` or `/meta/**` from UI in Service-fronted mode.
 
+For passive browser resource loading, `auth.api` cannot wrap `<img src>`, `<object data>`, or a plain file link. In Service-fronted apps, normalize Make file values to a Service-owned download proxy URL before rendering them, for example `/api/make/app/files/download/**` or the host equivalent. Do not render raw `/data/v1/download/**`, `/make/data/v1/download/**`, or `/api/make/data/v1/download/**` values.
+
 Custom headers are allowed through the SDK request options:
 
 ```js
