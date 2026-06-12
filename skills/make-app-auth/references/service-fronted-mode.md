@@ -49,6 +49,26 @@ The Service auth proxy must forward browser auth context:
 
 Do not convert the gateway response into a JSON envelope for auth routes.
 
+## Attachment Download Proxy
+
+In Service-fronted apps, file previews and downloads must stay on Service-owned browser paths:
+
+```text
+browser img/link -> /api/app/files/download/** -> App Service -> make-gateway /make/data/v1/download/**
+```
+
+Do not use raw Make download paths such as `/data/v1/download/**`, `/make/data/v1/download/**`, or `/api/make/data/v1/download/**` as UI `src`, `href`, or file metadata URLs when a Service proxy exists.
+
+When the Make download endpoint requires `Authorization`, the browser still must not receive the token. The Service download route must:
+
+- derive forwarded host/proto with the same helper used by auth/business gateway calls
+- require the browser App session Cookie
+- verify the session first through make-gateway, for example `${makeAuthBaseUrl}/auth/current-context`
+- use the deployment-injected download token only after the session check passes
+- remove or overwrite any inbound browser `Authorization` before attaching the Service token
+- return the upstream binary bytes or stream with safe `Content-Type` and `Content-Disposition`
+- keep tokens, cookies, Authorization, and signed query strings out of logs and `/api/config`
+
 ## Host Context Helper
 
 Generated Service-fronted Apps must centralize host/proto forwarding in one helper and use it for both auth routes and business routes. Do not trust or pass through client-supplied `X-Forwarded-Host`; derive it from inbound `Host`.

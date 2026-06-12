@@ -28,6 +28,9 @@ Route tests should cover:
 - user and department candidates return `{ users,total }` and `{ departments,total }`
 - lookup options reject non-lookup fields and return `{ options,total }`
 - file upload/delete/download call the file adapter with safe path/body mapping
+- file download proxy returns binary bytes or a stream with content type/disposition preserved where safe
+- when a Service-side download token is configured, unauthenticated download requests fail before the Make download adapter is called
+- when a Service-side download token is configured, authenticated download requests validate the App session through make-gateway before the adapter attaches the token
 - custom orchestration routes cover success, unsupported input, and Make failure
 
 Config tests should cover:
@@ -59,6 +62,7 @@ Adapter tests should cover:
 - filter/sort translation
 - file multipart body field names
 - download path stripping and query redaction
+- download adapter strips inbound browser `Authorization` before attaching a Service-side file download token
 - schema variant normalization
 
 ## Safety review checklist
@@ -76,6 +80,7 @@ Before reporting Service work as ready:
 - no route leaks raw Make response envelopes unless documented
 - invalid client input is rejected before Make calls
 - no tokens, cookies, service keys, or signed URLs appear in logs or public config
+- no Make Data raw download URL is used directly as an image/PDF preview URL in UI; previews point to the Service download proxy
 - Make adapter gateway origins come from normalized Service config, and `/make` is an explicit Make Meta/Data adapter constant rather than a route-local string hack or env override
 - Service internal gateway requests use gateway-origin plus explicit service scope, such as `/make/meta/**` or `/make/data/**`, not bare-host `/meta|data|auth/**` and not `/api/make/**`
 - UI/Service integration tests prove `auth.api("/app/**")` reaches `/api/app/**` when `gatewayBaseUrl` is `/api`; do not ship a published App whose UI requests `/app/**` directly under the UI static route
@@ -107,6 +112,8 @@ When route docs changed, also run any UI/service integration tests that consume 
 - `qfei_relation` partial update cleared unrelated lookup relations
 - file route forwarded `fieldKey` when backend expects `field`
 - signed download URL query was logged
+- image preview used raw Make `/data/v1/download/**` URL and failed because `<img src>` cannot attach `Authorization`
+- Service-side file download token was used without first validating the browser App session
 - Service route mixed auth/session handling with business API code
 - Service route called `makecli` for runtime records, which fails in online containers
 - Service adapter dropped the request `Cookie` / login context before calling gateway `/make/data/v1/record`

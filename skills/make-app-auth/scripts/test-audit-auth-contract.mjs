@@ -166,6 +166,43 @@ try {
   const spoofedForwardedHostOutput = runAudit(spoofedForwardedHostRoot, { expectFailure: true });
   assert.match(spoofedForwardedHostOutput, /forwarded_host_passthrough_present/);
 
+  const rawDownloadUrlRoot = createFixture('raw-download-url', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export function ReceiptPreview() {
+        return <img src="/api/make/data/v1/download/ExpensePoc/receipt.jpg" />;
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        if (!headers.get('x-forwarded-host')) {
+          const host = source.get('host');
+          if (host) headers.set('x-forwarded-host', host);
+        }
+        if (!headers.get('x-forwarded-proto')) headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        if (req.url.includes('/api/auth/session/complete')) {
+          return fetch('http://make-gateway/make/auth/session/complete', { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  const rawDownloadUrlOutput = runAudit(rawDownloadUrlRoot, { expectFailure: true });
+  assert.match(rawDownloadUrlOutput, /service_fronted_raw_download_resource/);
+
   const oldServicePrefixRoot = createFixture('old-service-prefix', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
