@@ -4,7 +4,7 @@ Use this reference when generating or reviewing Make backend request code.
 
 ## Rule
 
-All frontend requests to Make backend must go through one shared adapter that wraps `auth.api`. This includes schema/meta loading, record list/get/create/update/delete, cell updates, attachment/file APIs, lookup resolution, user candidates, department candidates, and other `/api/make/**` calls.
+All frontend requests to Make backend must go through one shared adapter that wraps `auth.api`. In direct-gateway mode this includes schema/meta loading, record list/get/create/update/delete, cell updates, attachment/file APIs, lookup resolution, user candidates, department candidates, and other `/api/make/**` calls. In Service-fronted mode the same UI adapter calls Service-owned `/app/**` paths through `gatewayBaseUrl=/api`.
 
 Do not call raw `window.fetch('/api/make/...')`. Do not scatter unhandled `auth.api` calls across UI components, drawers, tables, field editors, or route loaders.
 
@@ -31,6 +31,8 @@ export async function listRecords(payload: unknown) {
 Service-fronted mode example. Use this only after `service-fronted-mode.md` confirms the `UI -> Service -> make-gateway` contract:
 
 ```ts
+// With createMakeAppAuth({ gatewayBaseUrl: '/api', ... }),
+// this reaches browser path /api/app/schema.
 export async function loadSchema() {
   return auth.api.get('/app/schema', makeRequestInit);
 }
@@ -44,7 +46,7 @@ Apply the same adapter path to schema/meta, list, get, create, update, delete, f
 
 Do not use `/app/**` in direct gateway mode. Do not use `/data/**` or `/meta/**` from UI in Service-fronted mode.
 
-For passive browser resource loading, `auth.api` cannot wrap `<img src>`, `<object data>`, or a plain file link. In Service-fronted apps, normalize Make file values to a Service-owned download proxy URL before rendering them, for example `/api/make/app/files/download/**` or the host equivalent. Do not render raw `/data/v1/download/**`, `/make/data/v1/download/**`, or `/api/make/data/v1/download/**` values.
+For passive browser resource loading, `auth.api` cannot wrap `<img src>`, `<object data>`, or a plain file link. In Service-fronted apps, normalize Make file values to a Service-owned download proxy URL before rendering them, for example `/api/app/files/download/**` or the host equivalent. Do not render raw `/data/v1/download/**`, `/make/data/v1/download/**`, or `/api/make/data/v1/download/**` values.
 
 Custom headers are allowed through the SDK request options:
 

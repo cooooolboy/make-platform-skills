@@ -108,11 +108,17 @@ if (inferredMode === 'service-fronted') {
   if (hasRawMakeDownloadLiteral(uiText) && !hasServiceDownloadProxyLiteral(uiText)) {
     warnings.push('service_fronted_download_proxy_not_obvious: UI mentions raw Make download paths but no Service download proxy path was found');
   }
-  if (!/\/api\/make\/auth\b/.test(serviceText)) {
-    failures.push('auth_proxy_missing: Service-fronted App must proxy /api/make/auth/** to make-gateway');
+  if (hasServiceFrontedOldApiMakePrefix(projectText)) {
+    failures.push('service_fronted_old_api_make_prefix: Service-fronted published Apps use /api/auth/** and /api/app/**, not /api/make/auth/** or /api/make/app/**');
   }
-  if (!/\/api\/make\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
-    warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/make/app/** or UI /app/** calls');
+  if (hasServiceFrontedGatewayBaseMakePrefix(uiText)) {
+    failures.push('service_fronted_gateway_base_wrong: Service-fronted UI must configure gatewayBaseUrl as /api so auth.api("/app/**") reaches /api/app/**');
+  }
+  if (!hasServiceFrontedAuthProxy(serviceText)) {
+    failures.push('auth_proxy_missing: Service-fronted App must proxy /api/auth/** to make-gateway');
+  }
+  if (!/\/api\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
+    warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/app/** or UI /app/** calls');
   }
   if (/session\/complete/.test(serviceText) && !/redirect\s*:\s*[`'"]manual[`'"]/.test(serviceText) && !/maxRedirects\s*:\s*0/.test(serviceText)) {
     failures.push('session_complete_redirect_not_manual: session/complete proxy must preserve gateway 302/Set-Cookie/Location');
@@ -208,7 +214,7 @@ function readJoined(files) {
 function inferMode() {
   if (
     serviceFiles.length > 0 &&
-    (/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText) || /\/api\/make\/app\b/.test(projectText))
+    (/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText) || /\/api\/app\b/.test(projectText) || /\/api\/make\/app\b/.test(projectText))
   ) {
     return 'service-fronted';
   }
@@ -246,7 +252,7 @@ function hasUiDirectGatewayCalls(text) {
 
 function findRawMakeDownloadResourceUrls(files) {
   const hits = [];
-  const resourceLiteral = /\b(src|href|data)\s*=\s*\{?\s*([`'"])([^`'"]*(?:\/api\/make\/data\/v1\/download|\/make\/data\/v1\/download|(?<![\w-])\/data\/v1\/download)[^`'"]*)\2\s*\}?/g;
+  const resourceLiteral = /\b(src|href|data)\s*=\s*\{?\s*([`'"])([^`'"]*(?:\/api\/make\/data\/v1\/download|\/api\/data\/v1\/download|\/make\/data\/v1\/download|(?<![\w-])\/data\/v1\/download)[^`'"]*)\2\s*\}?/g;
 
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf8');
@@ -264,11 +270,11 @@ function findRawMakeDownloadResourceUrls(files) {
 }
 
 function hasRawMakeDownloadLiteral(text) {
-  return /(?:\/api\/make\/data\/v1\/download|\/make\/data\/v1\/download|(?<![\w-])\/data\/v1\/download)/.test(text);
+  return /(?:\/api\/make\/data\/v1\/download|\/api\/data\/v1\/download|\/make\/data\/v1\/download|(?<![\w-])\/data\/v1\/download)/.test(text);
 }
 
 function hasServiceDownloadProxyLiteral(text) {
-  return /(?:\/api\/make\/app\/files\/download|\/api\/files\/download|\/app\/files\/download)/.test(text);
+  return /(?:\/api\/app\/files\/download|\/api\/files\/download|\/app\/files\/download)/.test(text);
 }
 
 function hasRecoverableAuthExpiredHandling(text) {
@@ -280,6 +286,18 @@ function hasRecoverableAuthExpiredHandling(text) {
 function hasInternalGatewayApiPrefix(text) {
   return /make-gateway\/api\/make\b/i.test(text)
     || /fetch\(\s*[`'"]\/api\/make\/(?:auth|meta|data)\b/i.test(text);
+}
+
+function hasServiceFrontedGatewayBaseMakePrefix(text) {
+  return /gatewayBaseUrl\s*:\s*[`'"]\/api\/make[`'"]/.test(text);
+}
+
+function hasServiceFrontedOldApiMakePrefix(text) {
+  return /\/api\/make\/(?:auth|app)\b/.test(text);
+}
+
+function hasServiceFrontedAuthProxy(text) {
+  return /\/api\/auth\b/.test(text) || (/\/api\b/.test(text) && /\/auth\b/.test(text));
 }
 
 function hasForwardedHostPassthrough(text) {

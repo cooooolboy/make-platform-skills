@@ -122,7 +122,8 @@ The Service API may be a local dev proxy or deployed app backend. Preserve the h
 
 Default guidance:
 
-- keep `/health` and `/api/config` public
+- keep `/api/health` and `/api/config` public for published App Service access; `/health` may remain for local or k8s-probe compatibility
+- for Make Deploy's default route split, mount published browser-facing Service APIs under `/api/**`. Prefix-free `/app/**` and `/auth/**` routes are local compatibility only unless the deploy HTTPRoute exposes them.
 - protect Make-backed `/api/*` routes when the host project has a Service API key or auth middleware
 - for Make-backed record/data routes, forward the established request login context to Make gateway through the adapter; do not replace this with makecli or local credentials
 - keep CORS scoped to documented UI origins in local development
@@ -138,7 +139,7 @@ Service code should:
 - read Make adapter config from `apps/service/src/config.ts` or the host equivalent
 - expose a pure `loadConfig(env = process.env)` or host-equivalent function so config behavior can be unit tested without mutating global process state
 - trim env strings and normalize trailing slashes before adapters consume base URLs
-- normalize or validate internal make-gateway base URLs so Service upstream calls stay under `/make/**`, not a bare gateway host and not `/api/make/**`
+- normalize or validate internal make-gateway base URLs as strict gateway origins, then let Make Meta/Data adapters add the fixed `/make/**` service scope
 - avoid hard-coded Make domains in route handlers
 - keep secrets out of public config
 - treat `makecli` as unavailable in online Service runtime; runtime adapters use gateway/API calls, not local CLI commands
@@ -146,13 +147,12 @@ Service code should:
 Default new-project config semantics:
 
 - `appKey`: read deployment-injected `env.MAKE_APP_KEY`. Make-backed Services that call Make Meta/Data APIs must fail config loading when it is missing. Do not invent, hard-code, or read `appKey` from UI requests in generated production code.
-- `makeApiBaseUrl`: read `env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL`, trim it, and remove trailing slashes. `MAKE_API_BASE_URL` is preferred; `MAKE_SERVER_URL` is a compatibility alias.
-- `makeAuthBaseUrl`: read `env.MAKE_AUTH_BASE_URL`, otherwise fall back to `makeApiBaseUrl`.
-- `makeBusinessBaseUrl`: read `env.MAKE_BUSINESS_BASE_URL`, otherwise fall back to `makeApiBaseUrl`.
+- `makeGatewayBaseUrl`: read `env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL`, trim it, and remove trailing slashes. `MAKE_API_BASE_URL` is preferred; `MAKE_SERVER_URL` is a compatibility alias. This value is a gateway origin, for example `http://make-gateway.make-dev`, not a path-scoped Make API base.
+- Make Meta/Data scope: fixed to `/make` inside adapter URL construction. Do not put this path segment in Service runtime config or `.env.example`.
 - `makeSchemaPath`: read `env.MAKE_SCHEMA_PATH`, otherwise use `/meta/v1/schema`.
 - When `MAKE_APP_KEY` is missing, or both `MAKE_API_BASE_URL` and `MAKE_SERVER_URL` are missing in a Make-backed Service, throw a clear non-secret config error during `loadConfig`.
-- When these base URLs point at an internal make-gateway service, the normalized value must include `/make`, for example `http://make-gateway.make-dev/make`. A bare value such as `http://make-gateway.make-dev` must be rejected with a clear config error or normalized to `http://make-gateway.make-dev/make` before adapters see it.
-- Reject internal Service upstream base URLs that include the browser-facing `/api/make` scope. `/api/make/**` belongs to browser or ingress access; Service-to-gateway upstream calls use `/make/**`.
+- Reject `MAKE_API_BASE_URL` / `MAKE_SERVER_URL` values that include a service scope such as `/make`, `/api/make`, `/meta`, `/data`, or `/auth`. New generated Services keep the env var as the gateway origin because the same Service may call other gateway services with different scopes.
+- Reject internal Service upstream calls that use the browser-facing `/api/make` scope. `/api/make/**` belongs to browser or ingress access; Service-to-gateway upstream calls use gateway-origin plus the owning adapter's service scope.
 
 Recommended shape:
 
@@ -162,9 +162,7 @@ The `port` field may appear in the same `config.ts` because Service runtime sett
 export type ServiceConfig = {
   appKey: string;
   port: number;
-  makeApiBaseUrl: string;
-  makeAuthBaseUrl: string;
-  makeBusinessBaseUrl: string;
+  makeGatewayBaseUrl: string;
   makeSchemaPath: string;
 };
 
@@ -172,7 +170,7 @@ export const loadConfig = (
   env: NodeJS.ProcessEnv = process.env,
 ): ServiceConfig => {
   const appKey = env.MAKE_APP_KEY?.trim();
-  const makeApiBaseUrl = stripTrailingSlash(
+  const makeGatewayBaseUrl = stripTrailingSlash(
     env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL || "",
   );
 
@@ -180,29 +178,25 @@ export const loadConfig = (
     throw new Error("MAKE_APP_KEY is required");
   }
 
-  if (!makeApiBaseUrl) {
+  if (!makeGatewayBaseUrl) {
     throw new Error("MAKE_API_BASE_URL or MAKE_SERVER_URL is required");
   }
 
-  const normalizedMakeApiBaseUrl = normalizeInternalMakeGatewayBase(makeApiBaseUrl);
+  const normalizedMakeGatewayBaseUrl = normalizeGatewayOrigin(makeGatewayBaseUrl);
 
   return {
     appKey,
     port: readPortFromRuntimeRule(env.PORT),
-    makeApiBaseUrl: normalizedMakeApiBaseUrl,
-    makeAuthBaseUrl: normalizeInternalMakeGatewayBase(
-      env.MAKE_AUTH_BASE_URL || normalizedMakeApiBaseUrl,
-    ),
-    makeBusinessBaseUrl: normalizeInternalMakeGatewayBase(
-      env.MAKE_BUSINESS_BASE_URL || normalizedMakeApiBaseUrl,
-    ),
+    makeGatewayBaseUrl: normalizedMakeGatewayBaseUrl,
     makeSchemaPath: readTextEnv(env.MAKE_SCHEMA_PATH, "/meta/v1/schema"),
   };
 };
 ```
 
-`normalizeInternalMakeGatewayBase` can be a host-equivalent helper, but its contract is fixed: trim, remove trailing slashes, keep or add `/make` for internal make-gateway bases, and reject `/api/make` for Service upstream calls. Existing projects may keep equivalent names such as `baseUrl`, `serverUrl`, or `makeBaseUrl`, but they must preserve the same precedence and failure behavior. A local-only fallback app key is acceptable only when the host project has explicitly documented it for tests or local development; deployed readiness still requires `MAKE_APP_KEY`.
+`normalizeGatewayOrigin` can be a host-equivalent helper, but its contract is fixed for new generated code: trim, remove trailing slashes, require an origin-style URL, reject `/make`, `/api/make`, `/meta`, `/data`, `/auth`, and other service scopes in `MAKE_API_BASE_URL`, and leave service path construction to adapters. Existing projects may keep equivalent names such as `baseUrl`, `serverUrl`, or `makeBaseUrl`, but they must preserve the same precedence and failure behavior. `/make` is fixed in the Make Meta/Data adapter boundary, not config loading. A local-only fallback app key is acceptable only when the host project has explicitly documented it for tests or local development; deployed readiness still requires `MAKE_APP_KEY`.
 
 `GET /api/config` must expose only public UI config. Do not return `appKey`, Make base URLs, tokens, cookies, service keys, signed URLs, or deployment-internal route details.
+
+For Service-fronted unified-login Apps, route registration should include the published auth proxy path (`/api/auth/**`) and business paths (`/api/app/**` or the documented `/api/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route.
 
 If the task is to change `apps/service/src/config.ts` structure for port, build, start, or runtime artifact reasons, use `make-app-runtime`.

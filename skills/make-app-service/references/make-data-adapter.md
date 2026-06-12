@@ -6,7 +6,7 @@ Use this reference when implementing Service adapters that call Make platform AP
 
 The adapter layer owns Make/backend-specific details:
 
-- base URL and path construction from runtime config
+- gateway-origin config and adapter-owned path construction
 - deployment-injected `appKey` from `config.appKey`
 - `X-Make-Target`
 - consuming already-prepared auth or forwarded request context from the host auth/runtime layer without inventing auth policy
@@ -25,7 +25,7 @@ Use a shared request wrapper for Make calls.
 
 The wrapper should:
 
-- build the URL from normalized config and a relative path
+- build the URL from normalized gateway origin, the fixed Make service scope `/make`, and a relative path
 - attach or encode `config.appKey` according to the Make Meta/Data API contract
 - attach required Make headers
 - attach forwarded login/session context required by Make gateway, including `Cookie` for cookie/unified-login apps and host-approved auth headers from the incoming request
@@ -55,23 +55,24 @@ Adapters consume normalized Service config. Route handlers should pass adapter p
 
 Default base selection:
 
-- schema/meta calls follow Meta API design and use `makeApiBaseUrl` plus `makeSchemaPath` unless the host adapter documents a more specific schema base.
-- auth forwarding calls use `makeAuthBaseUrl`, falling back to `makeApiBaseUrl`.
-- business/data calls follow Data API design and use `makeBusinessBaseUrl`, falling back to `makeApiBaseUrl`.
+- `MAKE_API_BASE_URL` / `MAKE_SERVER_URL` configure the gateway origin only, for example `http://make-gateway.make-dev`.
+- schema/meta calls follow Meta API design and use gateway origin plus the fixed Make service path segment `/make` plus `makeSchemaPath`.
+- business/data calls follow Data API design and use gateway origin plus the fixed Make service path segment `/make` plus Data API paths.
+- `/make` is an internal adapter path segment, not a runtime config field.
+- auth forwarding belongs to `make-app-auth`; when Service-fronted auth proxy code needs the gateway, it should also join the gateway origin with its documented service scope instead of changing `MAKE_API_BASE_URL`.
 - candidate, lookup, record, and file adapters use the relevant normalized base from config, not inline environment reads.
 - all Make Meta/Data calls that require an app key must use `config.appKey` from `MAKE_APP_KEY`; route handlers must not accept `appKey` from UI query/body/header input.
-- record reads use the Make gateway/Data API path `/data/v1/record` under the normalized business/data base URL. Do not replace this with makecli reads, local files, demo data, or direct UI-supplied record payloads.
+- record reads use the Make gateway/Data API path `/make/data/v1/record` after joining the strict gateway origin with the Make service scope. Do not replace this with makecli reads, local files, demo data, or direct UI-supplied record payloads.
 
-For Service-to-internal-make-gateway calls, the normalized base URL must already include the gateway `/make` path scope:
+For Service-to-internal-make-gateway calls, the normalized base URL is the gateway origin. The adapter adds the fixed Make platform `/make` path scope:
 
 ```text
-MAKE_API_BASE_URL=http://make-gateway.make-dev/make
-GET ${makeApiBaseUrl}/meta/v1/schema
-POST ${makeBusinessBaseUrl}/data/v1/record
-GET ${makeAuthBaseUrl}/auth/current-context
+MAKE_API_BASE_URL=http://make-gateway.make-dev
+GET ${gatewayOrigin}/make/meta/v1/schema
+POST ${gatewayOrigin}/make/data/v1/record
 ```
 
-Do not set an internal gateway base to a bare host such as `http://make-gateway.make-dev` and then append `/meta/v1/**` or `/data/v1/**`. Do not use the browser-facing `/api/make` prefix for Service upstream calls; `/api/make/**` is only the external same-origin gateway entry used by browsers or ingress.
+Do not set `MAKE_API_BASE_URL` to a path-scoped value such as `http://make-gateway.make-dev/make` or `http://make-gateway.make-dev/api/make`. Do not append `/meta/v1/**` or `/data/v1/**` directly to the gateway origin. Do not use the browser-facing `/api/make` prefix for Service upstream calls; `/api/make/**` is only the external same-origin gateway entry used by browsers or ingress.
 
 Do not hard-code concrete Make dev/test/prod domains, namespace-local gateway hostnames, or environment-to-domain maps in adapters. K8s, backend, operations, Make tooling, or deployed runtime config inject the actual base URL.
 
@@ -103,7 +104,7 @@ type MakeRecordAdapter = {
 
 Rules:
 
-- list, detail, and lookup target-record reads must call the Make gateway/Data API record endpoint `/data/v1/record`
+- list, detail, and lookup target-record reads must call the Make gateway/Data API record endpoint `/make/data/v1/record`
 - request wrappers must forward the inbound login/session context expected by Make gateway; do not drop cookies or the host-approved auth context when Service calls the gateway
 - do not implement list/detail by invoking `makecli` or by reading local makecli credentials/config at request time
 - list response normalizes total count; if backend total is missing, use returned record count as fallback
@@ -146,7 +147,7 @@ Rules:
 
 - `value` is target `recordID`
 - label comes from the target display field, with a safe fallback only when documented
-- target record reads still go through `/data/v1/record` with forwarded login context, not makecli
+- target record reads still go through `/make/data/v1/record` with forwarded login context, not makecli
 - reject unsupported relation direction, non-lookup fields, and missing target metadata with 400
 - do not leak full target records into dropdown APIs by default
 
