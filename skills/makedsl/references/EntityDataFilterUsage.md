@@ -116,7 +116,7 @@ name.contains('项目') || budget >= 100000
 | `Make.Field.SingleDepartment` | `=`、`!=`、`isAnyOf`、`isNoneOf`、`isEmpty`、`isNotEmpty` | `ownerDepartment == _currentUserDepartment` |
 | `Make.Field.MultiSelect` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `['urgent'].exists(v, v in tags)`、`tags == ['urgent', 'external']` |
 | `Make.Field.MultiUser` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `[_currentUser].exists(v, v in members)` |
-| `Make.Field.MultiDepartment` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `relatedDepartments.exists(v, v == _currentUserDepartment)` |
+| `Make.Field.MultiDepartment` | `hasAnyOf`、`hasAllOf`、`hasNoneOf`、`=`、`isEmpty`、`isNotEmpty` | `[_currentUserDepartment].exists(v, v in relatedDepartments)` |
 | `Make.Field.Number` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `score >= 80` |
 | `Make.Field.Currency` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `budget >= 100000` |
 | `Make.Field.Percent` | `=`、`!=`、`>`、`>=`、`<`、`<=`、`isEmpty`、`isNotEmpty` | `completionRate < 0.8` |
@@ -128,17 +128,22 @@ name.contains('项目') || budget >= 100000
 
 ## 系统变量
 
-系统变量只能作为右值使用，不能替代字段 key。
+系统变量只能作为右值使用，不能替代字段 key。标量变量用于 `field == _currentUser`、`field in [_currentUser]`；列表变量用于 `field in _currentUserSubordinates` 或 `members.exists(v, v in _currentUserDepartmentMembers)`。
 
 | 变量 | 含义 | 示例 |
 | --- | --- | --- |
 | `_currentUser` | 当前调用者 userId | `owner == _currentUser` |
+| `_currentOrg` | 当前组织 orgId | `orgId == _currentOrg` |
+| `_today` | 按应用时区计算的当前日期，格式 `yyyy-MM-dd` | `dueDate < _today` |
+| `_now` | 按应用时区计算的当前时间，格式 `yyyy-MM-dd HH:mm:ss` | `createdAt <= _now` |
 | `_currentUserSubordinates` | 当前调用者的直接下属 userId 列表 | `owner in _currentUserSubordinates` |
 | `_currentUserManager` | 当前调用者一级领导 userId | `owner == _currentUserManager` |
 | `_currentUserManagerLevel2` | 当前调用者二级领导 userId | `owner == _currentUserManagerLevel2` |
 | `_currentUserManagerLevel3` | 当前调用者三级领导 userId | `owner == _currentUserManagerLevel3` |
 | `_currentUserDepartment` | 当前调用者主部门 departmentId | `ownerDepartment == _currentUserDepartment` |
 | `_currentUserDepartmentMembers` | 当前调用者主部门成员 userId 列表 | `members.exists(v, v in _currentUserDepartmentMembers)` |
+
+`_today` 支持天级偏移：`_today + duration("7d")`、`_today - duration("3d")`。`duration` 仅支持 `d` 天级单位，不支持 `h`、`m` 等非天级单位。
 
 ## 空值表达式
 
@@ -289,6 +294,16 @@ User / Department 候选列表也使用 `Expression` 对象，但能力比 Recor
 }
 ```
 
+### 日期变量和天级偏移
+
+```json
+{
+  "filter": {
+    "expression": "deliveryDate <= _today + duration(\"7d\") && deliveryDate > _today"
+  }
+}
+```
+
 ### Lookup 字段
 
 ```json
@@ -315,7 +330,7 @@ User / Department 候选列表也使用 `Expression` 对象，但能力比 Recor
 
 | 场景 | 当前行为 |
 | --- | --- |
-| `filter` 是裸字符串、数组或旧对象 DSL | 参数错误或反序列化失败 |
+| `filter` 是裸字符串、数组或旧对象 DSL | 不应生成；部分入口可能兼容裸字符串为 `Expression`，生成侧不可依赖；数组或旧对象 DSL 为参数错误或反序列化失败 |
 | `filter` 是 `{}` | 无有效表达式，不应生成；需要无筛选时请省略或传 `null` |
 | 字段不在 Entity 元数据中 | 参数错误，字段不存在 |
 | 字段 key 不是合法 CEL identifier | 表达式解析失败 |
@@ -340,3 +355,5 @@ User / Department 候选列表也使用 `Expression` 对象，但能力比 Recor
 6. 多选、多用户、多部门使用 `exists` / `all` 模式。
 7. 只使用字段 key，不使用字段展示名或响应里的 `label`。
 8. 可以对 Lookup 字段生成筛选条件，但只能引用 Lookup 字段自身 key，并按目标字段类型选择操作符。
+9. 系统变量只作为右值生成；标量变量用于等值或单元素列表，列表变量用于 `in` / `exists` 匹配。
+10. 需要相对日期时只生成 `_today +/- duration("Nd")`，不要生成小时、分钟等非天级偏移。

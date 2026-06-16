@@ -621,7 +621,7 @@ Request Body
 - `fields` 可选；为空时返回当前接口可产出的全部字段
 - `filter` 可选；省略、传 `null` 或 `filter.expression` 为空白表示不筛选
 - `filter` 必须是 `Expression` 对象，仅支持单个 `userName.contains('...')` 条件
-- 裸字符串、数组、旧对象 DSL、非字符串右值均为非法参数
+- 不要生成裸字符串；服务端对裸字符串的兼容行为不可依赖。数组、旧对象 DSL、非字符串右值均为非法参数
 - 当前接口不支持排序；即使传入 `sort`，服务端也会忽略并保持下游返回顺序
 - `pagination.page` 从 `1` 开始；不传 `pagination` 时默认 `page=1`、`size=10`
 
@@ -685,7 +685,7 @@ Request Body
 - `fields` 可选；为空时返回当前接口可产出的全部字段
 - `filter` 可选；省略、传 `null` 或 `filter.expression` 为空白表示不筛选
 - `filter` 必须是 `Expression` 对象，仅支持单个 `departmentName.contains('...')` 条件
-- 裸字符串、数组、旧对象 DSL、非字符串右值均为非法参数
+- 不要生成裸字符串；服务端对裸字符串的兼容行为不可依赖。数组、旧对象 DSL、非字符串右值均为非法参数
 - 当前接口不支持排序；即使传入 `sort`，服务端也会忽略并保持下游返回顺序
 - `pagination.page` 从 `1` 开始；不传 `pagination` 时默认 `page=1`、`size=10`
 - `leader` 仅在 `fields` 为空或显式包含 `leader` 时返回；未显式请求 `leader` 时不会触发负责人补齐查询

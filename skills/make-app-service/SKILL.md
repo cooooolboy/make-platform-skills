@@ -1,6 +1,6 @@
 ---
 name: make-app-service
-description: Use when generating, refactoring, reviewing, or debugging Make App `apps/service` API code and UI-Service contracts. Covers Service route design, `apps/docs/api.md`, componentized/layered Service source structure, `make-client` adapters, `services` orchestration modules, `utils` helpers, schema normalization APIs, record CRUD APIs through Make gateway `/make/data/v1/record`, user/department/lookup/file proxy APIs, Make Meta/Data API adapters, Make adapter runtime config such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, strict gateway-origin config with fixed Make service scope `/make`, request login-context forwarding to gateway, Service error envelopes, request validation, logging, and Service API tests. Does not cover UI layout, authentication implementation, build output, Docker/K8s runtime, DSL modeling, Make CLI deployment, or canvas-table internals.
+description: "Use when generating, refactoring, reviewing, or debugging Make App apps/service API code and UI-Service contracts. Covers Service route design, apps/docs/api.md, layered source structure, make-client adapters, schema normalization APIs, record CRUD through Make gateway /make/data/v1/record, record list filter parsing and { expression } pass-through, user/department/lookup/file proxy APIs, Make adapter config, request login-context forwarding, validation, logging, and Service API tests. Does not cover UI layout, auth implementation, build output, runtime, DSL modeling, Make CLI deployment, or canvas-table internals."
 ---
 
 # make-app-service

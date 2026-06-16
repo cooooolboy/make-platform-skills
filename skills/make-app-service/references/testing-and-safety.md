@@ -21,6 +21,7 @@ Route tests should cover:
 - Service-fronted published routes use `/api/**`: at minimum test `/api/auth/**` proxy paths and `/api/app/**` or the documented business paths; prefix-free compatibility routes alone are not enough
 - schema routes return normalized schema and fields
 - record list parses `fields`, `filter`, `sort`, `pagination`
+- record list sends Make filters as `{ expression }`, omits empty filters, and rejects malformed filter query/body values before calling the adapter
 - record list/detail call the Make adapter path for gateway `/make/data/v1/record` and forward the required login/session context
 - invalid query/body returns 400 and does not call Make adapter
 - create/update/delete/cell-update call the adapter with the documented payload
@@ -59,7 +60,7 @@ Adapter tests should cover:
 - non-2xx HTTP response
 - headers and target names
 - pagination defaults
-- filter/sort translation
+- filter/sort translation, including `{ expression }` pass-through and empty-filter omission
 - file multipart body field names
 - download path stripping and query redaction
 - download adapter strips inbound browser `Authorization` before attaching a Service-side file download token

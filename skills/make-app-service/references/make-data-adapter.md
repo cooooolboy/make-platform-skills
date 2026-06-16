@@ -111,7 +111,8 @@ Rules:
 - detail uses the backend single-record operation when available
 - create returns `recordID` only when that is the UI contract; otherwise document the exact response shape
 - update/delete return stable success shape to routes
-- skip empty filters only when the backend rejects them and document the behavior
+- record list filters should be passed to Make as an `Expression` object, usually `{ expression }`; omit empty filters before calling Make unless the host explicitly documents a different compatibility contract
+- do not translate new UI filters to arrays, `{}`, blank raw strings, or old object DSL; raw non-blank CEL strings are only a legacy normalization path when the host already needs it
 - do not mutate formatted UI display labels into submit payloads
 
 ## User and department adapters
