@@ -102,6 +102,12 @@ if (inferredMode === 'service-fronted') {
   if (hasUiDirectGatewayCalls(uiText)) {
     failures.push('service_fronted_ui_bypass: UI calls /data/** or /meta/** through auth.api; UI should call Service-owned /app/** paths');
   }
+  for (const hit of findRawMakeDownloadResourceUrls(uiFiles)) {
+    failures.push(`service_fronted_raw_download_resource: ${relative(hit.file)} uses ${hit.attribute} with raw Make download URL ${hit.url}; use a Service-owned download proxy URL`);
+  }
+  if (hasRawMakeDownloadLiteral(uiText) && !hasServiceDownloadProxyLiteral(uiText)) {
+    warnings.push('service_fronted_download_proxy_not_obvious: UI mentions raw Make download paths but no Service download proxy path was found');
+  }
   if (hasServiceFrontedOldApiMakePrefix(projectText)) {
     failures.push('service_fronted_old_api_make_prefix: Service-fronted published Apps use /api/auth/** and /api/app/**, not /api/make/auth/** or /api/make/app/**');
   }
@@ -242,6 +248,33 @@ function hasTokenMode(text) {
 
 function hasUiDirectGatewayCalls(text) {
   return /auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/(?:data|meta)\b/.test(text);
+}
+
+function findRawMakeDownloadResourceUrls(files) {
+  const hits = [];
+  const resourceLiteral = /\b(src|href|data)\s*=\s*\{?\s*([`'"])([^`'"]*(?:\/api\/make\/data\/v1\/download|\/api\/data\/v1\/download|\/make\/data\/v1\/download|(?<![\w-])\/data\/v1\/download)[^`'"]*)\2\s*\}?/g;
+
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    let match;
+    while ((match = resourceLiteral.exec(text))) {
+      hits.push({
+        file,
+        attribute: match[1],
+        url: match[3],
+      });
+    }
+  }
+
+  return hits;
+}
+
+function hasRawMakeDownloadLiteral(text) {
+  return /(?:\/api\/make\/data\/v1\/download|\/api\/data\/v1\/download|\/make\/data\/v1\/download|(?<![\w-])\/data\/v1\/download)/.test(text);
+}
+
+function hasServiceDownloadProxyLiteral(text) {
+  return /(?:\/api\/app\/files\/download|\/api\/files\/download|\/app\/files\/download)/.test(text);
 }
 
 function hasRecoverableAuthExpiredHandling(text) {

@@ -150,6 +150,9 @@ Rules:
 - Normalize multipart filenames when the backend cannot handle non-ASCII filenames.
 - Do not expose raw signed backend download URLs when a Service download proxy exists.
 - Strip or redact signed query strings in logs.
+- Attachment previews must use a browser-compatible Service proxy URL, for example the host's `/api/files/download/*` or `/api/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
+- When the upstream Make download endpoint needs a bearer token, document that the Service validates the current App session before proxying the binary download with a Service-side token; unauthenticated requests should return 401 and failed auth checks should return a stable 5xx/contracted error.
+- `/api/config` and any UI-facing file metadata response must not expose Make download tokens.
 
 ## Custom orchestration routes
 
