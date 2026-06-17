@@ -82,6 +82,7 @@ This skill only supports unified login for generated and reviewed Make Apps. Mis
 - Service-fronted unified-login mode: `references/service-fronted-mode.md`
 - 401, 403, and logout behavior: `references/logout-and-401.md`
 - Auth incident diagnosis: `references/troubleshooting.md`
+- Minimal Service-fronted sample project: `examples/service-fronted-node/`; use only as a reference shape after reading `references/service-fronted-mode.md`.
 
 ## Deterministic Checks
 

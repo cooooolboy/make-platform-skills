@@ -16,6 +16,23 @@ Choose editor components in this order:
 2. existing UI component library already installed in the host project
 3. native controls as a fallback
 
+For Make schema-driven cell editing, this priority must produce concrete editor controls from the project / host component library, not a generic text-input fallback for every field:
+
+| Field group | Preferred host component |
+| --- | --- |
+| Text / URL | Input / 文本输入框 |
+| TextArea | TextArea / 多行输入框 |
+| Number / Currency / Percent | InputNumber / NumberInput / 数字输入框 |
+| Date / DateTime | DatePicker / 日期选择器 |
+| DateRange | RangePicker / 日期区间选择器 |
+| SingleSelect / MultiSelect | Select / 选择器, using schema options |
+| SingleUser / MultiUser | existing user picker / people selector backed by host candidate APIs |
+| SingleDepartment / MultiDepartment | existing department picker backed by host candidate APIs |
+| File | existing upload / attachment manager |
+| ID / Lookup | read-only by default unless the backend explicitly supports editing |
+
+If the host project uses Ant Design, the ExpensePoc baseline is Input for text, InputNumber with `variant="borderless"` and `controls={false}` for numbers, DatePicker or RangePicker with controlled `open`, and Select with controlled `open` and `getPopupContainer` pointing at the editor popup root. Other component libraries should use equivalent controls and behavior.
+
 ## 3. What to inspect first
 
 Before choosing components, inspect:

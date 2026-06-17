@@ -320,17 +320,22 @@ Fix:
 
 Symptom:
 
+- non-popup text, textarea, number, URL, select, user, department, date, or date-range editors show a nested border / 二次边框 inside the CanvasTable active editing border
 - edited text, textarea, or number cells show an extra input border, radius, margin, or blank inset
 - select, user, department, date, or date-range triggers show a second blue border inside the canvas-table active-cell outline
 - the component does not fill the active cell height or width
+- the active cell contains visible helper/hint/help text, range tips such as `0-5`, or `Form.Item` validation copy below or beside the editor
 
 Fix:
 
+- treat the CanvasTable active edit border as the only in-cell editing border for normal editors
 - set the editor container and actual editor component to `width: 100%` and `height: 100%`
 - use borderless or visually merged editor variants
 - remove component-level focus border and focus `box-shadow` from the in-cell trigger; keep the popup/dropdown panel styling separate
 - do not wrap cell editors in `Form.Item`, cards, or bordered panels
 - keep only small inner text padding when needed; do not create an extra outer box
+- do not render helper/hint/help text inside the active cell editor; use `aria-label`, `title`, placeholder text, tooltip, or an external validation surface instead
+- do not clamp the editor root to a fixed narrow width; it must fill the active cell rather than sizing itself to a smaller input box
 
 ## 27. Attachment editor uses form-card chrome
 

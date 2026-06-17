@@ -1,9 +1,6 @@
 ---
 name: makecli
-description: "Use when the user asks to manage Make platform resources — create/deploy apps, entities, relations, records, or use makecli CLI commands. Also triggered by requests like \"部署\", \"apply\", \"查看应用\", \"创建记录\", or \"/makecli\"."
-version: 0.2.0
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills
+description: "Use when the user asks to manage Make platform resources with makecli — create/deploy apps, entities, relations, records, inspect resources, or run makecli CLI commands. Also triggered by requests like \"部署\", \"apply\", \"查看应用\", \"创建记录\", or \"/makecli\". Does not own DSL schema design (use makedsl), frontend UI (makeui), auth (make-app-auth), Service/API code (make-app-service), runtime packaging (make-app-runtime), OCR integration (make-integration), or canvas-table behavior."
 ---
 
 # makecli — Make Platform CLI
