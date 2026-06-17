@@ -1,6 +1,6 @@
 ---
 name: make-app-filter
-description: Use when integrating, generating, refactoring, or reviewing Make App filtering with `@qfei-design/make-filter` and CanvasTable header linkage. Covers natural-language requests such as 筛选, 高级筛选, 条件筛选, 表格筛选, 表头筛选, 列头筛选, or 按字段筛选; package pre-flight; advanced filter IR; field-type operators; toolbar filter popovers; `AdvancedFilterPanel`; `useAdvancedFilterController`; AntD adapter; host-owned CanvasTable header filter UI linkage; Service `filter.expression` payloads; URL/deep-link filter echo; candidate values; and tests. Requires Make filtering to be delivered as one integrated feature: package-backed advanced filter plus host-owned CanvasTable header filter linkage. Does not cover general page layout, table rendering internals, CanvasTable header menu API details, Service route implementation, auth, runtime packaging, DSL modeling, or Make CLI deployment.
+description: "Use when integrating, generating, refactoring, or reviewing Make App record-list filtering with @qfei-design/make-filter, CanvasTable header linkage, and Service filter.expression payloads. Triggered by 筛选, 高级筛选, 条件筛选, 表格/表头/列头/按字段筛选, CEL/DNF expressions, system variables, empty filters, field-type operators, DateRange/File/Lookup support, candidate values, URL echo, and tests. Does not own page shell/layout, CanvasTable rendering internals, Service route implementation, auth, runtime packaging, DSL modeling, Make CLI execution, or table cell editing."
 ---
 
 # make-app-filter
@@ -26,7 +26,8 @@ This skill owns the consumer-side package integration contract, advanced-filter 
 6. Use package APIs for filter core, panel, controller, adapter, validation, and CEL compile/parse. Do not copy or hand-write these capabilities in the host.
 7. Keep host responsibilities outside the package: toolbar trigger, Popover/Drawer/Modal container, scroll sizing, applied state, candidate APIs, Service request adapter, and CanvasTable header filter UI/menu.
 8. Wire header "按该字段筛选" to the same package controller/panel; do not create separate header-only state or a local filter implementation.
-9. Before finishing, verify tests or deterministic checks for package source usage, empty filter omission, search merge, draft confirm/discard, candidate sources, header linkage, unsupported fields, and Service payload shape.
+9. Align with the backend Record list filter contract: Service sends `filter: { expression }`, blank expressions mean no filter, expressions must stay in the supported CEL/DNF subset, and field support must match runtime metadata plus package public APIs.
+10. Before finishing, verify tests or deterministic checks for package source usage, empty filter omission, search merge, draft confirm/discard, candidate sources, header linkage, package/backend field-support drift, and Service payload shape.
 
 ## Package pre-flight
 
@@ -62,6 +63,7 @@ When working directly in the package repo, use the same root-relative paths. If 
 | CanvasTable header more menu and advanced filter linkage | `references/header-table-linkage.md` |
 | Service filter contract and CEL expression payload | `references/service-translation.md` |
 | Tests, smoke checks, common regressions | `references/testing-and-pitfalls.md` |
+| Backend Record filter contract, CEL subset, DateRange/File/Lookup/system variables | Use `makedsl`; read its EntityDataFilterUsage reference |
 | Toolbar placement and surrounding page layout | Use `makeui` |
 | CanvasTable `suffixRender` mechanics | Use `canvas-table-integration` |
 | Service route implementation and adapter tests | Use `make-app-service` |
@@ -73,12 +75,14 @@ When working directly in the package repo, use the same root-relative paths. If 
 - New integrations must import package APIs from `@qfei-design/make-filter`, `@qfei-design/make-filter/react`, and optional `@qfei-design/make-filter/adapters/antd`.
 - New integrations must import `@qfei-design/make-filter/styles.css` once. Host CSS may style the outer overlay/container, but must not fork package internals unless fixing a host-specific containment issue.
 - New filter output uses `filter: { expression: string }`. If `compileListFilter` returns `undefined`, omit `filter`.
-- Do not send `filter: []`, `filter: {}`, `{ expression: "" }`, or blank raw filter strings.
+- The backend Record list handler reads only `filter.expression` from the `Expression` object and treats missing, `null`, or blank expressions as no filter.
+- Do not send `filter: []`, `filter: {}`, `{ expression: "" }`, blank raw filter strings, or old object-array DSL.
 - Do not filter Make record lists locally. List filtering goes through Service/backend filter APIs.
 - Filter fields come from normalized runtime object/field metadata. Do not read `apps/dsl/**`, copied YAML, row samples, or hardcoded demo data as runtime filter metadata.
 - User and department filter values are identities, not display names. Candidate sources must use host UI-Service routes such as `/api/users` and `/api/departments` or documented equivalents.
 - Do not source user/department options from field schema `options`, current table rows, local arrays, or display labels. Current applied values may be merged only to keep labels visible while remote candidates load.
-- Unsupported fields must be hidden from field selectors and header "按该字段筛选"; do not guess backend semantics for File, DateRange, Lookup, unknown fields, or invalid field keys.
+- Backend Record filters support DateRange, File, and Lookup semantics, but the UI may expose a field only when `@qfei-design/make-filter` public APIs support that field/operator combination. If backend docs and package capabilities differ, stop to upgrade/fix the package or report the mismatch; do not hand-write CEL or guess package internals.
+- Unsupported package fields must be hidden from field selectors and header "按该字段筛选"; do not call `openWithField` for unknown fields, invalid field keys, or package-unsupported field/operator combinations.
 - Header menu filtering is a host integration. It appends a draft condition through the package controller and opens the same toolbar filter panel. It must not submit immediately, reload records, or create a separate header-only state.
 - Table scrolling, object switching, outside click, or unmount must close any header menu and restore the header suffix icon to hover-only state.
 
@@ -96,4 +100,4 @@ When working directly in the package repo, use the same root-relative paths. If 
 - With `makeui`: use `makeui` for toolbar placement, page shell, and surrounding layout; this skill owns filter behavior and package integration.
 - With `canvas-table-integration`: use that skill for CanvasTable `suffixRender` and header menu mechanics; this skill owns how the host "按该字段筛选" action talks to the package-backed advanced-filter controller.
 - With `make-app-service`: this skill defines filter query shape; Service route validation, adapter logging, and Make request details stay in service.
-- With `makedsl`: use DSL/Data API references only to confirm backend filter support. Do not generate DSL from this skill.
+- With `makedsl`: read `EntityDataFilterUsage.md` to confirm backend filter semantics such as DNF, system variables, DateRange/File/Lookup, empty filter handling, and error cases. Do not generate DSL from this skill.

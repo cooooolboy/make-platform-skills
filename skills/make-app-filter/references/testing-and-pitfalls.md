@@ -18,15 +18,19 @@ Filter model and operators:
 - unsupported fields are excluded
 - single select supports package operators including `in`
 - multi select/user/department expose collection and empty operators
-- DateRange, File, Lookup, invalid field keys, and unknown types are skipped by default
+- DateRange, File, and Lookup follow package public support; if backend docs support them but the installed package does not, the UI hides them and reports the mismatch instead of compiling host-only CEL
+- invalid field keys and unknown types are skipped
 
 Expression compiler:
 
 - string escaping
 - numeric comparisons
 - nested group parentheses
+- DNF output: outer `OR`, inner `AND`; `(A || B) && C` is distributed or rejected before request
 - collection `has_any`, `not_contains`, `eq`, `neq`
 - empty and not-empty for collection fields
+- DateRange/File/Lookup expressions are covered when supported by the package
+- system variables are emitted only as right-hand values
 - empty condition rows do not compile
 - invalid field identifiers do not compile
 - search group merges with advanced filter through `AND`
@@ -60,7 +64,7 @@ Service and integration:
 
 - UI sends `filter: { expression }`
 - empty expression omits `filter`
-- Service rejects blank filter query with 400
+- Service omits or normalizes missing/null/blank `filter.expression` according to the documented route contract, and rejects malformed filter query input with 400
 - Service passes `filter.expression` to Make Data API
 - Service still handles legacy payloads only when the host project already needs compatibility
 - URL/deep-link `advancedFilter` echoes into package panel when valid
@@ -72,8 +76,9 @@ Service and integration:
 - forgetting package `styles.css`
 - submitting on every keystroke instead of waiting for `确认`
 - closing the popover but keeping unconfirmed draft changes
-- sending `filter: []` or `{}` when no valid condition exists
-- showing File, DateRange, Lookup, invalid keys, or unknown fields in advanced filter without package support
+- sending `filter: []`, `{}`, `{ expression: "" }`, blank raw strings, or old object-array DSL when no valid condition exists
+- hiding DateRange, File, or Lookup because old docs said backend did not support them, without checking current package and backend capabilities
+- showing File, DateRange, Lookup, invalid keys, or unknown fields in advanced filter without package public support
 - using display labels instead of ids for user/department filters
 - locally filtering already loaded rows instead of requesting backend-filtered records
 - creating a second header-only filter state that drifts from the package controller

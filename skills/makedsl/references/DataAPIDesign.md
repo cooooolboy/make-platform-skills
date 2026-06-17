@@ -14,7 +14,7 @@ Entity 可以理解是一张 Table, Record 可以理解是一个 Row, 也就是 
 - `qfei_relation` 的数组项格式固定为 `{ "entityKey": "<关联 Entity key>", "id": "<关联 recordID>" }`
 - 禁止在一个`Entity`中定义与另一个`Entity`语义相同的字段。
 - 禁止通过自定义关联Id字段来描述两个`Entity`的关系，如果在一个`Entity`中需要展示另一个`Entity`的字段数据，则必须使用 `LookupField` 实现。规则详见 @FieldDesign.md
-- 禁止通过前端实现 `Record` 数据列表过滤功能，必须使用后端接口`MakeService.ListResources`的`filter`参数，详见：@EntityDataFilterUsage.md
+- 禁止通过前端实现 `Record` 数据列表过滤功能，必须使用后端接口 `MakeService.ListResources` 的 `filter.expression` 参数，详见：@EntityDataFilterUsage.md
 - 人员、部门类型字段在写入时必须提交字符串类型 ID；单选字段写入字符串，多选字段写入字符串数组，例如 `"owner": "19035"`、`"members": ["19034", "19035"]`、`"ownerDepartment": "2226"`、`"relatedDepartments": ["2227", "2228"]`
 - 在列表页编辑单列字段数据时必须使用 `批量更新一列数据` 接口
 
@@ -458,7 +458,9 @@ Request Body
     "locationPath",
     "attachments"
   ],
-  "filter": {},
+  "filter": {
+    "expression": "projectName.contains('项目') && status in ['todo', 'doing']"
+  },
   "sort": [
     { "fieldKey": "createdAt", "order": "desc" },
     { "fieldKey": "orderNo", "order": "asc" }
@@ -472,6 +474,12 @@ Request Body
 - `sort.fieldKey` 使用字段 key，不是字段名称
 - `pagination.page` 从 `1` 开始
 - 如果不传 `fields`，返回结果默认包含全部字段
+- `filter` 使用 `Expression` 对象；省略、`null` 或 `filter.expression` 为空白表示不限筛选
+- `filter.expression` 直接引用当前 Entity 的字段 key；字段不存在、字段类型不支持或表达式不在支持的 CEL 子集内时，服务端返回参数错误
+- `Make.Field.Lookup` 字段可以出现在 Record 列表筛选中，表达式仍引用 Lookup 字段自身的 key，例如 `profileName.contains('张')`
+- Lookup 筛选会根据字段配置中的 `relationKey` 和 `targetFieldKey` 找到对端 Entity 的目标字段，并按目标字段类型校验操作符和值格式；Lookup 的目标字段不能再是 Lookup 字段
+- Lookup 筛选通过关联关系下推到 SQL：`FK` 和 `JOIN_TABLE` 关系都会编译为对目标表的 `EXISTS` 条件；同一个 `&&` 分组内、同一 relation 的多个 Lookup 条件要求命中同一条目标记录
+- Lookup 字段的空值/非空值筛选判断的是已关联目标记录上的 `targetFieldKey` 值；没有关联记录时不会命中 `lookupField == null` 这类空值筛选
 
 Response Body
 
@@ -597,13 +605,9 @@ Request Body
 ```json
 {
   "fields": ["userId", "userName", "avatar"],
-  "filter": [
-    {
-      "userName": {
-        "contains": "张"
-      }
-    }
-  ],
+  "filter": {
+    "expression": "userName.contains('张')"
+  },
   "sort": [
     { "fieldKey": "userName", "order": "asc" }
   ],
@@ -615,9 +619,9 @@ Request Body
 
 - Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `appKey` / `entityKey`
 - `fields` 可选；为空时返回当前接口可产出的全部字段
-- `filter` 可选；省略或传 `null` 表示不筛选
-- `filter` 必须是对象数组，仅支持单个 `userName.contains` 条件
-- `filter: []`、对象形式 `filter: {}`、非字符串右值、空白字符串右值均为非法参数
+- `filter` 可选；省略、传 `null` 或 `filter.expression` 为空白表示不筛选
+- `filter` 必须是 `Expression` 对象，仅支持单个 `userName.contains('...')` 条件
+- 不要生成裸字符串；服务端对裸字符串的兼容行为不可依赖。数组、旧对象 DSL、非字符串右值均为非法参数
 - 当前接口不支持排序；即使传入 `sort`，服务端也会忽略并保持下游返回顺序
 - `pagination.page` 从 `1` 开始；不传 `pagination` 时默认 `page=1`、`size=10`
 
@@ -665,13 +669,9 @@ Request Body
 ```json
 {
   "fields": ["departmentId", "departmentName", "memberCount", "platform", "leader"],
-  "filter": [
-    {
-      "departmentName": {
-        "contains": "产品研发"
-      }
-    }
-  ],
+  "filter": {
+    "expression": "departmentName.contains('产品研发')"
+  },
   "sort": [
     { "fieldKey": "departmentName", "order": "asc" }
   ],
@@ -683,9 +683,9 @@ Request Body
 
 - Request Body 仅包含 `fields`、`filter`、`sort`、`pagination`，不包含 `appKey` / `entityKey`
 - `fields` 可选；为空时返回当前接口可产出的全部字段
-- `filter` 可选；省略或传 `null` 表示不筛选
-- `filter` 必须是对象数组，仅支持单个 `departmentName.contains` 条件
-- `filter: []`、对象形式 `filter: {}`、非字符串右值、空白字符串右值均为非法参数
+- `filter` 可选；省略、传 `null` 或 `filter.expression` 为空白表示不筛选
+- `filter` 必须是 `Expression` 对象，仅支持单个 `departmentName.contains('...')` 条件
+- 不要生成裸字符串；服务端对裸字符串的兼容行为不可依赖。数组、旧对象 DSL、非字符串右值均为非法参数
 - 当前接口不支持排序；即使传入 `sort`，服务端也会忽略并保持下游返回顺序
 - `pagination.page` 从 `1` 开始；不传 `pagination` 时默认 `page=1`、`size=10`
 - `leader` 仅在 `fields` 为空或显式包含 `leader` 时返回；未显式请求 `leader` 时不会触发负责人补齐查询
@@ -929,3 +929,6 @@ Response Body
 说明：
 - `isDeleted` 表示此条关联数据是否已经被删除
 - `data[*].value` 返回的数据结构参考 `常规字段类型返回结构示例`
+- Record 列表可以按 Lookup 字段筛选，但筛选表达式必须使用 Lookup 字段 key，不支持 `lookupField.targetField`、`targetEntity.field` 或其它跨对象路径写法
+- Lookup 字段的筛选操作符由 `targetFieldKey` 对应的目标字段类型决定，例如目标字段是文本时可使用 `contains` / `==`，目标字段是数字时可使用 `>` / `>=`
+- Lookup 字段只负责展示和筛选当前记录，不负责写入关系；关系写入仍通过 `data.qfei_relation`

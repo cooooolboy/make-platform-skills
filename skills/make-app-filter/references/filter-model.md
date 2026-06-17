@@ -1,13 +1,65 @@
 # Filter Model
 
-Use this reference when applying package filter state, draft behavior, search merge, and URL/deep-link echo.
+Use this reference when designing advanced filter state and interactions.
 
-## Source of truth
+## Filter IR
 
-Use `@qfei-design/make-filter` for the Filter IR and helpers:
+Default Filter IR:
 
-- `AdvancedFilterGroup`
-- `AdvancedFilterCondition`
+```ts
+type AdvancedFilterLogic = "and" | "or";
+
+type AdvancedFilterOperator =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "contains"
+  | "not_contains"
+  | "is_any_of"
+  | "is_none_of"
+  | "has_any"
+  | "has_all"
+  | "has_none"
+  | "is_within"
+  | "is_not_within"
+  | "contains_date"
+  | "not_contains_date"
+  | "fully_contains"
+  | "is_contained_by"
+  | "is_empty"
+  | "is_not_empty";
+
+type DateRangeValue = {
+  begin: string;
+  end: string;
+};
+
+type AdvancedFilterValue =
+  | string
+  | number
+  | boolean
+  | DateRangeValue
+  | Array<string | number | boolean>;
+
+type AdvancedFilterCondition = {
+  id: string;
+  fieldKey: string;
+  operator: AdvancedFilterOperator;
+  value?: AdvancedFilterValue;
+};
+
+type AdvancedFilterGroup = {
+  id: string;
+  logic: AdvancedFilterLogic;
+  children: Array<AdvancedFilterGroup | AdvancedFilterCondition>;
+};
+```
+
+Use stable generated ids for React keys and condition updates. Keep immutable helpers for:
+
 - `createEmptyFilterGroup`
 - `createDefaultCondition`
 - `appendConditionToGroup`
@@ -15,86 +67,73 @@ Use `@qfei-design/make-filter` for the Filter IR and helpers:
 - `updateConditionInGroup`
 - `removeNodeFromGroup`
 - `updateGroupLogic`
-- `cloneFilterGroup`
-- `validateAdvancedFilter`
-- `countActiveFilterConditions`
-
-Do not hand-write these helpers in a Make App host. A migration shim is allowed only when it delegates to the package.
 
 ## Draft and submit behavior
 
-Use `useAdvancedFilterController` for draft lifecycle:
+Advanced filter uses draft editing:
 
 - applied value lives in page state
-- opening the host popover calls `beginDraft`
-- opening with no conditions and available fields inserts one default draft condition
+- opening the popover copies applied value into draft
+- if applied value has no children and filterable fields exist, add one default empty condition to the draft
 - editing, adding, removing, and clearing affect only draft
-- `confirm` validates draft and commits only when valid
-- closing without commit calls `resetDraft`
+- `确认` validates draft and commits it
+- outside click or trigger re-click closes the popover and resets draft to the applied value
 - validation failure keeps the popover open
-- `openWithField(fieldKey)` appends one draft condition for header filtering
 
 Do not reload records while the user is editing draft conditions.
 
 ## Validation lifecycle
 
-The package returns control-level errors keyed by condition id. The host must pass `validationErrors` into `AdvancedFilterPanel`.
+Validation is control-specific and draft-aware:
 
-Required behavior:
+- `确认` validates every draft condition and returns errors keyed by condition id, with separate `field`, `operator`, and `value` flags.
+- The row may get an invalid class for layout/testing, but the red border belongs only to the invalid control.
+- A required value editor must receive its own error state when `operatorNeedsValue(operator)` is true and the value is empty.
+- This includes every value editor type: text input, number input, select, multi-select, date picker, date-time picker, user selector, and department selector.
+- After the first failed `确认`, each draft change revalidates the whole latest draft or at least the changed condition against the latest tree.
+- When a user types a value, selects an option, changes a date, changes field, changes operator, adds/removes a row, or clears a row, stale errors must be removed immediately for controls that are now valid.
+- Other rows that are still invalid remain marked; do not clear all errors just because one row changed.
+- Operators that do not need values, such as empty/not-empty, must clear any stale `value` error for that condition.
+- Closing the popover without commit, opening a fresh draft, clearing all, object switch, and successful confirm reset validation state.
 
-- invalid field/operator/value controls show their own error state
-- required value controls cover text, number, select, multi-select, date, date-time, user, and department editors
-- after the first failed `确认`, draft changes clear fixed control errors immediately while keeping other invalid rows marked
-- operators that do not need values clear stale value errors
-- successful confirm, reset, object switch, and fresh open reset validation state
-
-Do not add a host-only `validationErrors` snapshot that only updates on the next confirm.
+Do not keep a `validationErrors` snapshot that only changes on the next `确认`. That causes fixed controls to stay red and makes users think valid input is still invalid.
 
 ## Active summary
 
-Use package summary/count helpers or a shim that delegates to them.
+Only complete conditions count as active.
 
-Default trigger labels:
+Default labels:
 
 - no active conditions: `筛选`
 - active conditions: `已筛选 N 个条件`
 
-Default active trigger style remains green-tinted from the current Make UI baseline.
+Default active trigger style is green-tinted, matching ExpensePoc:
+
+- border: `#8fd19e`
+- background: `#eaf7ed`
+- text: `#226b36`
 
 ## Search merge
 
-Toolbar keyword search is separate from advanced filter UI state. Use `compileListFilter`:
+Toolbar keyword search is separate from advanced filter.
 
-```ts
-const filter = compileListFilter({
-  fields,
-  searchText,
-  advancedFilter: appliedGroup,
-});
+Default search behavior:
+
+- searchable field types: `Make.Field.ID`, `Make.Field.Text`, `Make.Field.TextArea`, `Make.Field.URL`
+- each searchable field becomes `field.contains(keyword)`
+- searchable fields are grouped with `OR`
+- search group and advanced filter group are merged as DNF
+
+Do not include empty search text in the compiled expression.
+
+Do not emit `(A || B) && C`. Make Data API currently accepts DNF: outer `OR`, inner `AND`. When keyword search and advanced filter both exist, distribute the `AND`:
+
+```text
+(title.contains("客户") && status == "open")
+|| (description.contains("客户") && status == "open")
 ```
 
-Searchable defaults are package-owned. At the current baseline, text-like fields such as ID, Text, TextArea, and URL are searched with `contains`, grouped with `OR`, then combined with advanced filter through `AND`.
-
-Do not manually concatenate CEL strings in the host.
-
-## URL and deep-link echo
-
-If the host supports URL filter params, prefer this shape:
-
-```json
-{
-  "advancedFilter": { "id": "root", "logic": "and", "children": [] },
-  "expression": "status == \"active\""
-}
-```
-
-Rules:
-
-- `advancedFilter` is the preferred UI echo source.
-- `expression` may be included as a startup fallback while schema fields are still loading.
-- When only a supported CEL expression exists, use `parseCelToAdvancedFilter` to echo it into the panel.
-- If parsing returns unsupported, keep the expression as backend-only fallback and do not render fake UI conditions.
-- After user edits search or advanced filter manually, clear one-off external/backend-only filter state unless the product explicitly wants it preserved.
+If both sides already have multiple `OR` branches, combine them as a cartesian product of clauses and keep a practical expansion limit in the host implementation. If the limit is exceeded, require the user to narrow the search fields or simplify the filter instead of sending unsupported nested boolean syntax.
 
 ## Reset on object switch
 
@@ -104,4 +143,4 @@ When the current object/entity key changes:
 - clear search draft and applied search text
 - close any advanced filter popover
 - close any table header menu
-- reset table object-level transient state through `canvas-table-integration`
+- reset table object-level transient state through the table integration rules
