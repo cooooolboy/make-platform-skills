@@ -78,11 +78,16 @@ Default:
 - unsupported fields still may show sort UI if sorting is in scope
 - unsupported fields must not call `openWithField`
 
-Unsupported by default:
+Backend-supported but package-gated fields:
 
 - `Make.Field.File`
 - `Make.Field.DateRange`
 - `Make.Field.Lookup`
+
+Make Data supports these field types in Record list `filter.expression`, but the header menu may show `按该字段筛选` only when the installed filter package exposes matching field/operator support. If the package does not support them yet, hide the action and report the package/backend capability mismatch instead of adding a header-only workaround.
+
+Always unsupported:
+
 - unknown field types
 - invalid field keys
 
