@@ -93,6 +93,9 @@ if (published) {
   if (!/apiAuthRedirect\s*:\s*true/.test(projectText)) {
     warnings.push('published_api_auth_redirect_missing: generated unified-login Apps should set apiAuthRedirect:true with SDK >= 0.1.2');
   }
+  if (hasUnsupportedSdkReadyStatus(uiText)) {
+    failures.push('unsupported_sdk_ready_status: @qfeius/make-app-auth init returns authenticated/redirecting/unauthenticated/forbidden/failed, not ready');
+  }
   if (!hasRecoverableAuthExpiredHandling(uiText)) {
     failures.push('recoverable_auth_expired_missing: generated unified-login Apps must handle state_expired/challenge_expired by showing a relogin prompt');
   }
@@ -108,17 +111,23 @@ if (inferredMode === 'service-fronted') {
   if (hasRawMakeDownloadLiteral(uiText) && !hasServiceDownloadProxyLiteral(uiText)) {
     warnings.push('service_fronted_download_proxy_not_obvious: UI mentions raw Make download paths but no Service download proxy path was found');
   }
-  if (hasServiceFrontedOldApiMakePrefix(projectText)) {
-    failures.push('service_fronted_old_api_make_prefix: Service-fronted published Apps use /api/auth/** and /api/app/**, not /api/make/auth/** or /api/make/app/**');
+  if (hasServiceFrontedApiOnlyPrefix(projectText)) {
+    failures.push('service_fronted_missing_make_prefix: Service-fronted published Apps use /api/make/auth/** and normally /api/make/app/**, not /api/auth/** or /api/app/**');
   }
-  if (hasServiceFrontedGatewayBaseMakePrefix(uiText)) {
-    failures.push('service_fronted_gateway_base_wrong: Service-fronted UI must configure gatewayBaseUrl as /api so auth.api("/app/**") reaches /api/app/**');
+  if (!hasServiceFrontedGatewayBaseMakePrefix(uiText)) {
+    failures.push('service_fronted_gateway_base_wrong: Service-fronted UI must configure gatewayBaseUrl as /api/make so auth.api("/app/**") reaches /api/make/app/**');
   }
-  if (!hasServiceFrontedAuthProxy(serviceText)) {
-    failures.push('auth_proxy_missing: Service-fronted App must proxy /api/auth/** to make-gateway');
+  if (!hasServiceFrontedNamespaceProxy(serviceText, 'auth') || !hasServiceFrontedNamespaceProxy(serviceText, 'oauth')) {
+    failures.push('auth_proxy_missing: Service-fronted App must proxy /api/make/auth/** and /api/make/oauth/** as namespace-level routes to make-gateway');
   }
-  if (!/\/api\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
-    warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/app/** or UI /app/** calls');
+  if (hasBroadMakeGatewayPassthrough(serviceText)) {
+    failures.push('service_fronted_catch_all_passthrough: Service-fronted App must not proxy broad /api/make/** traffic to make-gateway; keep auth/oauth namespace proxies and explicit /api/make/app/** business routes');
+  }
+  if (hasBroadServiceAppBusinessPassthrough(serviceText)) {
+    failures.push('service_fronted_app_catch_all_passthrough: Service-fronted App must not proxy broad /api/make/app/** traffic to raw Make data/meta paths; keep Service-owned business routes explicit');
+  }
+  if (!/\/api\/make\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
+    warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/make/app/** or UI /app/** calls');
   }
   if (/session\/complete/.test(serviceText) && !/redirect\s*:\s*[`'"]manual[`'"]/.test(serviceText) && !/maxRedirects\s*:\s*0/.test(serviceText)) {
     failures.push('session_complete_redirect_not_manual: session/complete proxy must preserve gateway 302/Set-Cookie/Location');
@@ -274,13 +283,17 @@ function hasRawMakeDownloadLiteral(text) {
 }
 
 function hasServiceDownloadProxyLiteral(text) {
-  return /(?:\/api\/app\/files\/download|\/api\/files\/download|\/app\/files\/download)/.test(text);
+  return /(?:\/api\/make\/app\/files\/download|\/api\/files\/download|\/app\/files\/download)/.test(text);
 }
 
 function hasRecoverableAuthExpiredHandling(text) {
   return /state_expired/.test(text)
     && /challenge_expired/.test(text)
     && /auth\.login\(\s*\{\s*redirect\s*:\s*true\s*\}\s*\)/.test(text);
+}
+
+function hasUnsupportedSdkReadyStatus(text) {
+  return /\b(?:result|boot|initResult|authResult)\.status\s*={2,3}\s*[`'"]ready[`'"]/.test(text);
 }
 
 function hasInternalGatewayApiPrefix(text) {
@@ -292,12 +305,49 @@ function hasServiceFrontedGatewayBaseMakePrefix(text) {
   return /gatewayBaseUrl\s*:\s*[`'"]\/api\/make[`'"]/.test(text);
 }
 
-function hasServiceFrontedOldApiMakePrefix(text) {
-  return /\/api\/make\/(?:auth|app)\b/.test(text);
+function hasServiceFrontedApiOnlyPrefix(text) {
+  return /\/api\/(?:auth|oauth|app)\b/.test(text);
 }
 
-function hasServiceFrontedAuthProxy(text) {
-  return /\/api\/auth\b/.test(text) || (/\/api\b/.test(text) && /\/auth\b/.test(text));
+function hasServiceFrontedNamespaceProxy(text, namespace) {
+  const browserPath = `/api/make/${namespace}`;
+  const internalPath = `/make/${namespace}`;
+  const escapedBrowserPath = escapeRegExp(browserPath);
+  const escapedInternalPath = escapeRegExp(internalPath);
+
+  const hasNamespaceRoute = new RegExp(
+    String.raw`(?:app|router|server)\.(?:use|all|any)\s*\(\s*[\`'"]${escapedBrowserPath}(?:\/(?:\*|\*\*))?\/?[\`'"]`,
+    'i'
+  ).test(text) || new RegExp(
+    String.raw`\.startsWith\(\s*[\`'"]${escapedBrowserPath}\/?[\`'"]\s*\)`,
+    'i'
+  ).test(text);
+
+  if (!hasNamespaceRoute) {
+    return false;
+  }
+
+  const hasDirectInternalPath = new RegExp(escapedInternalPath).test(text);
+  const stripsExternalApiPrefix = /replace\(\s*(?:\/\^\\?\/api|[`'"]\/api[`'"])/i.test(text);
+  const hasGatewayMakeBase = /make-gateway[\s\S]{0,160}\/make/i.test(text) || /MAKE_[A-Z_]*BASE_URL[\s\S]{0,160}\/make/.test(text);
+  return hasDirectInternalPath || (stripsExternalApiPrefix && hasGatewayMakeBase);
+}
+
+function hasBroadMakeGatewayPassthrough(text) {
+  return /(?:app|router|server)\.(?:use|all|any|get|post|put|patch|delete)\s*\(\s*[`'"]\/api\/make(?:\/(?:\*|\*\*))?[`'"][\s\S]{0,500}(?:fetch|proxy|httpProxy|createProxyMiddleware)[\s\S]{0,240}(?:make-gateway|\/make)/i.test(text)
+    || /if\s*\([^)]*\.startsWith\(\s*[`'"]\/api\/make\/?[`'"]\s*\)[^)]*\)\s*\{[\s\S]{0,500}(?:fetch|proxy|proxyMake\w+)[\s\S]{0,240}(?:make-gateway|\/make)[\s\S]{0,240}replace\(\s*(?:\/\^\\?\/api|[`'"]\/api(?:\/make)?[`'"])/i.test(text);
+}
+
+function hasBroadServiceAppBusinessPassthrough(text) {
+  const hasBroadAppRoute = /(?:app|router|server)\.(?:use|all|any|get|post|put|patch|delete)\s*\(\s*[`'"]\/api\/make\/app(?:\/(?:\*|\*\*))?[`'"]/i.test(text)
+    || /\.startsWith\(\s*[`'"]\/api\/make\/app\/?[`'"]\s*\)/i.test(text);
+  const rewritesToRawMakePath = /replace\(\s*[\s\S]{0,160}\/api\/make\/app[\s\S]{0,160}\/(?:data|meta)/i.test(text)
+    || /proxyMakeBusiness\([\s\S]{0,160}replace\(\s*[\s\S]{0,160}\/api\/make\/app/i.test(text);
+  return hasBroadAppRoute && rewritesToRawMakePath;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function hasForwardedHostPassthrough(text) {

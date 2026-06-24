@@ -29,7 +29,7 @@ Default structure:
 - normalize each raw cell value once through a pure field-display adapter before rendering
 - route normalized display groups to focused canvas renderers: `text`, `tag`, `user`, `attachment`, `lookup`, and generic fallback
 - keep option, user, department, file, and lookup candidate loading in hooks/data sources; never fetch from a cell renderer
-- for generated Make App table editing/search selectors, use the host candidate source. The ExpensePoc default UI-Service contract is `GET /api/users?keyword=&page=&size=` -> `{ users, total }` and `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`; if the host documents a different route, use its equivalent route while preserving the same response semantics. Normalize results before passing options to table editors
+- for generated Make App table editing/search selectors, use the published UI-Service candidate contract: `GET /api/make/app/users?keyword=&page=&size=` -> `{ users, total }` and `GET /api/make/app/departments?keyword=&page=&size=` -> `{ departments, total }`. Normalize results before passing options to table editors
 - keep `showSN` sequence numbers and the hover-revealed row detail entry through `bodyRowHeadSuffixOptions`
 - treat object/entity/schema key as table identity. Switching to another object must reset scroll to the top-left and clear old table interaction state; data refresh within the same object may preserve scroll
 

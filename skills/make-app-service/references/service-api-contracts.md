@@ -15,7 +15,18 @@ Before changing code:
 
 Do not leave undocumented routes as the only integration path for generated UI.
 
-For Make Deploy Service-fronted Apps, published browser-facing Service routes live under `/api/**` because the default HTTPRoute sends `/api` to App Service and `/` to UI. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
+For Make Deploy Service-fronted Apps, published browser-facing auth/oauth routes live under `/api/make/auth/**` and `/api/make/oauth/**`, and Service business routes live under `/api/make/app/**`. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
+
+## Routing model
+
+Use an explicit routing model instead of a broad gateway fallback:
+
+- gateway-owned transparent namespaces: `/api/make/auth/**` and `/api/make/oauth/**`
+- Service-owned business namespace: `/api/make/app/**`
+- public Service routes: `/api/health`, `/health`, and `/api/config`
+- unmatched `/api/make/**`: fail closed with a clear 404/501 response such as `SERVICE_ROUTE_NOT_REGISTERED`
+
+Do not implement a production catch-all such as `/api/make/** -> make-gateway /make/**`. It hides route-contract bugs, exposes undeclared gateway endpoints through the App Service, and bypasses Service validation, normalization, logging, and file-download protections.
 
 ## Public routes
 
@@ -29,22 +40,25 @@ Public config must not expose `appKey`, tokens, Make API base URLs, session cook
 
 ## Auth proxy routes
 
-For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose the browser-facing proxy paths:
+For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose namespace-level browser-facing proxy paths:
 
-- `GET/POST /api/auth/**` -> transparent proxy to make-gateway internal `/make/auth/**`
+- `ANY /api/make/auth/**` -> transparent proxy to make-gateway internal `/make/auth/**`
+- `ANY /api/make/oauth/**` -> transparent proxy to make-gateway internal `/make/oauth/**`
 
 Rules:
 
+- Proxy the namespace, not only a known endpoint list. Routes such as `/api/make/auth/current-context`, `/api/make/auth/session/complete`, logout, and future auth endpoints must use the same path-preserving proxy.
 - Preserve upstream status, `Set-Cookie`, `Location`, and body for auth proxy responses.
-- Strip only the browser-facing `/api` prefix before calling make-gateway; do not forward `/api/auth/**` or `/api/make/auth/**` to the internal gateway.
-- If local development keeps `/auth/**`, also test the published `/api/auth/**` path.
+- Strip the browser-facing `/api` prefix before calling make-gateway, so `/api/make/auth/**` becomes internal `/make/auth/**` and `/api/make/oauth/**` becomes internal `/make/oauth/**`; do not forward the external `/api/make/**` path to the internal gateway.
+- Log safe route mappings such as `browserPathname -> upstreamPathname -> status`. Do not log query strings by default. If a host explicitly needs query visibility, use an allowlist and always redact auth-sensitive parameters such as `login_ticket`, `code`, `state`, `token`, `ticket`, `redirect_uri`, and signed download parameters.
+- If local development keeps `/auth/**` or `/oauth/**`, also test the published `/api/make/auth/**` and `/api/make/oauth/**` paths.
 
 ## Schema routes
 
 Default:
 
-- `GET /api/schema` -> normalized `MakeAppSchema`
-- `GET /api/entities/:entityKey/fields` -> normalized `MakeFieldSchema[]`
+- `GET /api/make/app/schema` -> normalized `MakeAppSchema`
+- `GET /api/make/app/entities/:entityKey/fields` -> normalized `MakeFieldSchema[]`
 
 Rules:
 
@@ -57,26 +71,27 @@ Rules:
 
 Default:
 
-- `GET /api/entities/:entityKey/records`
+- `GET /api/make/app/entities/:entityKey/records`
   - query: `fields`, `filter`, `sort`, `pagination`
   - complex values should be JSON strings unless the host contract says otherwise
   - response: `{ records, total }`
-- `GET /api/entities/:entityKey/records/:recordID` -> record
-- `POST /api/entities/:entityKey/records`
+- `GET /api/make/app/entities/:entityKey/records/:recordID` -> record
+- `POST /api/make/app/entities/:entityKey/records`
   - body: `{ data }`
   - response: `{ recordID }`
-- `PATCH /api/entities/:entityKey/records/:recordID`
+- `PATCH /api/make/app/entities/:entityKey/records/:recordID`
   - body: `{ data }`
   - response: `{ ok: true }`
-- `DELETE /api/entities/:entityKey/records/:recordID`
+- `DELETE /api/make/app/entities/:entityKey/records/:recordID`
   - response: `{ ok: true }` or the host documented empty success
-- `PATCH /api/entities/:entityKey/records/:recordID/cells/:fieldKey`
+- `PATCH /api/make/app/entities/:entityKey/records/:recordID/cells/:fieldKey`
   - body: `{ value }`
   - response: `{ ok: true }`
 
 Rules:
 
 - Make-backed list and detail routes read records through the Service Make adapter calling gateway `/make/data/v1/record`, with the incoming request's login/session context forwarded to gateway.
+- Keep record routes as explicit Service-owned contracts. Do not replace them with a fallback that forwards arbitrary UI paths to `/make/data/**`.
 - Do not serve record routes from `makecli`, local makecli config, makecli stdout, generated fixtures, or local DSL/YAML in published runtime.
 - List and detail are separate contracts. Use Make single-record reads for detail when available.
 - Validate `sort` shape. Prefer `{ fieldKey, order }`; reject ambiguous legacy `{ field, order }` in new contracts.
@@ -89,11 +104,13 @@ Rules:
 
 Default:
 
-- `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
-- `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
+- `GET /api/make/app/users?keyword=&page=&size=` -> `{ users, total }`
+- `GET /api/make/app/departments?keyword=&page=&size=` -> `{ departments, total }`
 
 Rules:
 
+- `/api/make/app/users` and `/api/make/app/departments` are the only published browser-facing Make App candidate route contract.
+- Do not generate `/api/users` or `/api/departments` aliases; this path family has not reached production and should be corrected at source instead of carried as compatibility.
 - User items expose `userId`, `userName`, and optional `avatar`.
 - Department items expose `departmentId`, `departmentName`, and optional hierarchy fields. Flatten nested trees when the selector expects flat options.
 - UI should not provide sort controls for these candidate APIs by default. If the Make/backend adapter supports a stable sort internally, keep it in Service.
@@ -103,7 +120,7 @@ Rules:
 
 Default:
 
-- `GET /api/lookup-options?sourceEntityKey=&lookupFieldKey=&keyword=&page=&size=`
+- `GET /api/make/app/lookup-options?sourceEntityKey=&lookupFieldKey=&keyword=&page=&size=`
   - response: `{ options: [{ label, value }], total }`
   - `value` is the target record identity, usually `recordID`
 
@@ -122,8 +139,8 @@ Generate lookup update routes only when the UI needs editable lookup relations a
 
 Default optional routes:
 
-- `PATCH /api/entities/:entityKey/records/:recordID/lookup-relations`
-- `PATCH /api/entities/:entityKey/records/:recordID/lookup-relations/:lookupFieldKey`
+- `PATCH /api/make/app/entities/:entityKey/records/:recordID/lookup-relations`
+- `PATCH /api/make/app/entities/:entityKey/records/:recordID/lookup-relations/:lookupFieldKey`
 
 Rules:
 
@@ -137,11 +154,11 @@ Rules:
 
 Default:
 
-- `POST /api/entities/:entityKey/records/:recordID/files/:fieldKey`
+- `POST /api/make/app/entities/:entityKey/records/:recordID/files/:fieldKey`
   - multipart field: `file`
-- `DELETE /api/entities/:entityKey/records/:recordID/files/:fieldKey`
+- `DELETE /api/make/app/entities/:entityKey/records/:recordID/files/:fieldKey`
   - body: `{ fileName, filePath? }`
-- `GET /api/files/download/*`
+- `GET /api/make/app/files/download/*`
   - proxies backend file download stream
 
 Rules:
@@ -151,7 +168,7 @@ Rules:
 - Normalize multipart filenames when the backend cannot handle non-ASCII filenames.
 - Do not expose raw signed backend download URLs when a Service download proxy exists.
 - Strip or redact signed query strings in logs.
-- Attachment previews must use a browser-compatible Service proxy URL, for example the host's `/api/files/download/*` or `/api/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
+- Attachment previews must use the browser-compatible Service proxy URL `/api/make/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
 - When the upstream Make download endpoint needs a bearer token, document that the Service validates the current App session before proxying the binary download with a Service-side token; unauthenticated requests should return 401 and failed auth checks should return a stable 5xx/contracted error.
 - `/api/config` and any UI-facing file metadata response must not expose Make download tokens.
 

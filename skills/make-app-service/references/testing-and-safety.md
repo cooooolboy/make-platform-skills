@@ -18,7 +18,9 @@ If the repository has no Service test setup, add the smallest test harness consi
 Route tests should cover:
 
 - `/api/health`, local/probe `/health` when present, and `/api/config` do not expose secrets
-- Service-fronted published routes use `/api/**`: at minimum test `/api/auth/**` proxy paths and `/api/app/**` or the documented business paths; prefix-free compatibility routes alone are not enough
+- Service-fronted published routes use `/api/make/**`: at minimum test `/api/make/auth/**`, `/api/make/oauth/**`, and `/api/make/app/**`; prefix-free compatibility routes alone are not enough
+- auth and OAuth tests cover namespace-level proxying, including `/api/make/auth/current-context`, `/api/make/auth/session/complete`, `/api/make/oauth/**`, and one unknown-but-auth-namespaced path that should still be proxied to `/make/auth/**`
+- unmatched `/api/make/**` outside the documented auth/oauth/app namespaces returns a clear 404/501 and does not call make-gateway
 - schema routes return normalized schema and fields
 - record list parses `fields`, `filter`, `sort`, `pagination`
 - record list sends Make filters as `{ expression }`, omits empty filters, and rejects malformed filter query/body values before calling the adapter
@@ -71,7 +73,8 @@ Adapter tests should cover:
 Before reporting Service work as ready:
 
 - `apps/docs/api.md` matches changed routes and response shapes
-- `apps/docs/api.md` documents the published browser-facing `/api/**` Service paths for Make Deploy Service-fronted Apps, not only local prefix-free paths
+- `apps/docs/api.md` documents the published browser-facing `/api/make/**` Service paths for Make Deploy Service-fronted Apps, not only local prefix-free paths
+- Service code has explicit auth/oauth namespace proxies, explicit business routes, and a fail-closed unmatched `/api/make/**` handler; it does not use `/api/make/**` as a production gateway catch-all
 - generated Make POC Service code is not left as a flat `apps/service/src` tree; it uses route/app registration, `make-client/`, `services/`, `utils/`, config/logger, and colocated tests or host-equivalent layered folders
 - route handlers remain thin: validation, delegation, error mapping, safe logs, and response sending only
 - Make request construction, schema normalization, lookup/file orchestration, and custom workflows live in adapters/services/helpers instead of route-local files
@@ -84,7 +87,8 @@ Before reporting Service work as ready:
 - no Make Data raw download URL is used directly as an image/PDF preview URL in UI; previews point to the Service download proxy
 - Make adapter gateway origins come from normalized Service config, and `/make` is an explicit Make Meta/Data adapter constant rather than a route-local string hack or env override
 - Service internal gateway requests use gateway-origin plus explicit service scope, such as `/make/meta/**` or `/make/data/**`, not bare-host `/meta|data|auth/**` and not `/api/make/**`
-- UI/Service integration tests prove `auth.api("/app/**")` reaches `/api/app/**` when `gatewayBaseUrl` is `/api`; do not ship a published App whose UI requests `/app/**` directly under the UI static route
+- route-mapping logs are available for proxy paths, for example `browserPathname -> upstreamPathname -> status`, without logging query strings by default and without logging cookies, tokens, authorization values, `login_ticket`, OAuth `code/state`, `redirect_uri`, ticket-like parameters, or signed download parameters
+- UI/Service integration tests prove `auth.api("/app/**")` reaches `/api/make/app/**` when `gatewayBaseUrl` is `/api/make`; do not ship a published App whose UI requests `/app/**` directly under the UI static route
 - candidate endpoints use real host/Make data sources, not demo arrays
 - lookup updates preserve unrelated relations
 - file upload requires persisted record identity

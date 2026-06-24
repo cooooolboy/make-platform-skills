@@ -101,10 +101,10 @@ If a field type is unknown, prefer a read-only display or an explicit unsupporte
 
 File fields are mode-sensitive. If upload requires a persisted record identity, create forms must omit `Make.Field.File` controls. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
 
-User and department selectors require a real host-provided candidate source. For generated Make App projects, use the ExpensePoc-proven default UI-Service candidate contract unless the host project already documents equivalent endpoints or Service/API routes:
+User and department selectors require a real candidate source. For generated Make App projects, use the published UI-Service candidate contract:
 
-- users: `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
-- departments: `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
+- users: `GET /api/make/app/users?keyword=&page=&size=` -> `{ users, total }`
+- departments: `GET /api/make/app/departments?keyword=&page=&size=` -> `{ departments, total }`
 - user option identity: `userId`; label: `userName`; optional avatar: `avatar`
 - department option identity: `departmentId`; label: `departmentName`; flatten department trees before presenting selector options
 - UI sends `keyword`, `page`, and `size`; do not expose a UI-side sort control for these candidate pickers
@@ -117,7 +117,7 @@ This candidate-source rule applies to every user or department selector UI. For 
 - advanced filter value editors and table-header "filter by this field" flows
 - reusable business selectors embedded in custom panels
 
-Do not read user/department candidates from field schema `options`, `meta.options`, current table rows, static fixtures, or hardcoded demo data. Those sources may not represent the current org. Current record values may be merged into the selector options only so existing selections keep readable labels while `/api/users` or `/api/departments` is loading or returns no matching page.
+Do not read user/department candidates from field schema `options`, `meta.options`, current table rows, static fixtures, or hardcoded demo data. Those sources may not represent the current org. Current record values may be merged into the selector options only so existing selections keep readable labels while `/api/make/app/users` or `/api/make/app/departments` is loading or returns no matching page.
 
 If the host project uses different route names, keep the same behavior contract and normalize the response at the UI boundary. Do not call Make user/department backend services directly from `makeui` components when the host project requires a Service/API adapter or another owning transport layer.
 

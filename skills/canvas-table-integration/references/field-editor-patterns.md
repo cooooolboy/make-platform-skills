@@ -197,9 +197,9 @@ Typical concerns:
 - auxiliary render mapping data for avatars/names
 - candidate source: host user API or existing people picker data source; current row values are only for echoing existing selections
 
-For generated Make App projects, the default people candidate source is a UI-Service contract; use the host equivalent route when the host project requires it:
+For generated Make App projects, the people candidate source is the published UI-Service contract:
 
-- `GET /api/users?keyword=&page=&size=` -> `{ users, total }`
+- `GET /api/make/app/users?keyword=&page=&size=` -> `{ users, total }`
 - option value: `userId`
 - option label: `userName`
 - optional avatar: `avatar`
@@ -208,7 +208,7 @@ For Make identity values, tolerate both record-style values and current identity
 
 People selector options, selected values, and inline echo UI should reuse the same ExpensePoc avatar token as table display: fixed 22px circular image/fallback, 11px radius, 9px centered fallback text, 400 weight, and a separate name label. Do not render user initials with a content-sized pill/tag background, do not enlarge the avatar text, and do not shrink the circular background around the text. Empty user values use placeholder/clear state, not a fake `-` avatar or candidate option.
 
-Current-value echo is mandatory. `SingleUser` may arrive as one object, a one-item array, a scalar id, or an identity API object; `MultiUser` may arrive as an array. Normalize these shapes before rendering the selector. If a selected user has an id and label, merge it into the selector options as an echo option even when `/api/users` is still loading or the current page of candidates does not contain that user. If the selected user has only a label and no stable id, keep that label visible as a temporary echo and require a real candidate selection before committing a changed value; do not render the editor empty. Candidate responses must merge with selected echo options rather than replacing them.
+Current-value echo is mandatory. `SingleUser` may arrive as one object, a one-item array, a scalar id, or an identity API object; `MultiUser` may arrive as an array. Normalize these shapes before rendering the selector. If a selected user has an id and label, merge it into the selector options as an echo option even when `/api/make/app/users` is still loading or the current page of candidates does not contain that user. If the selected user has only a label and no stable id, keep that label visible as a temporary echo and require a real candidate selection before committing a changed value; do not render the editor empty. Candidate responses must merge with selected echo options rather than replacing them.
 
 Do not use field schema `options`, table row samples, hardcoded fixtures, or mock users as candidate lists in production. If no user API exists, preserve the current cell value for display and allow editing only to the extent the host selector/data source supports it.
 The people editor must echo the current record value even while remote candidates are loading. Normalize ids from `recordID`, `userId`, or `id`; normalize labels from `name`, `userName`, `displayName`, or `label`.
@@ -227,9 +227,9 @@ Typical concerns:
 - extra mapped render data for downstream cell rendering
 - candidate source: real department API or host department selector data; current cell values are only for echoing existing selections
 
-For generated Make App projects, the default department candidate source is a UI-Service contract; use the host equivalent route when the host project requires it:
+For generated Make App projects, the department candidate source is the published UI-Service contract:
 
-- `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`
+- `GET /api/make/app/departments?keyword=&page=&size=` -> `{ departments, total }`
 - option value: `departmentId`
 - option label: `departmentName`
 - flatten nested department trees before showing selector options

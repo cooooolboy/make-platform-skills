@@ -99,7 +99,7 @@ Field-metadata-driven Make forms:
 - use the field component mapping in `component-usage.md`
 - use date pickers for date fields, searchable selectors for user/department fields when candidate data is available, select controls for select fields, mode-safe attachment controls for file fields, and read-only/association displays for lookup fields
 - do not silently fall back to a bare text `Input` for `Date`, `User`, `Department`, `Select`, `File`, or `Lookup` fields
-- user and department selectors show search, loading, empty, error, and retry UI states around the host-provided candidate source. For generated Make App projects, the default UI-Service candidate contract is `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, unless the host project documents equivalent Service/API routes
+- user and department selectors show search, loading, empty, error, and retry UI states around the published Make App candidate source. For generated Make App projects, follow `make-app-service`; the default UI-Service candidate contract is `GET /api/make/app/users?keyword=&page=&size=` and `GET /api/make/app/departments?keyword=&page=&size=`
 - user selector options use `userId` as value and `userName` as label; department selector options use `departmentId` as value and `departmentName` as label; merge current record values into options so detail/edit views display labels before async candidates load
 - create mode must omit `Make.Field.File` upload controls when upload requires a saved record identity
 - edit mode may render `Make.Field.File` controls only when a stable persisted record identity exists

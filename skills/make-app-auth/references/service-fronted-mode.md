@@ -21,25 +21,28 @@ UI must not bypass Service by calling `/data/**`, `/meta/**`, meta/data service 
 
 ## Deployed Chain
 
-Browser calls stay same-origin under `gatewayBaseUrl=/api`.
+Browser calls stay same-origin under `gatewayBaseUrl=/api/make`.
 
 Business APIs:
 
 ```text
-browser -> /api/app/** -> App Service -> http://make-gateway/make/meta|data/**
+browser -> /api/make/app/** -> App Service -> http://make-gateway/make/meta|data/**
 ```
 
 Auth APIs:
 
 ```text
-browser -> /api/auth/** -> App Service -> http://make-gateway/make/auth/**
+browser -> /api/make/auth/** -> App Service -> http://make-gateway/make/auth/**
+browser -> /api/make/oauth/** -> App Service -> http://make-gateway/make/oauth/**
 ```
 
 Service code running inside the cluster must call k8s-internal make-gateway routes without the external `/api` prefix. UI code must not call internal routes directly.
 
-Do not publish a Service-fronted unified-login App without the auth proxy. A missing `/api/auth/current-context` route means the browser cannot start or verify unified login, even if business routes such as `/api/app/schema` work.
+Do not publish a Service-fronted unified-login App without namespace-level auth and OAuth proxies. A missing `/api/make/auth/current-context` route means the browser cannot start or verify unified login, even if business routes such as `/api/make/app/schema` work. An endpoint-only allowlist is also incomplete because future auth routes and recovery callbacks must use the same proxy path.
 
-Do not infer the Service-fronted prefix from direct gateway mode. `/api/make/**` is for browser-to-make-gateway direct access; a Service-fronted App behind Make Deploy's default route split uses `/api/**` for App Service access and internal `/make/**` for Service-to-gateway access.
+Do not drop the `/make` segment from browser-facing Service-fronted auth routes. The current platform entry uses `/api/make/auth/**` and `/api/make/oauth/**` for unified login, while Service-to-gateway upstream calls still use internal `/make/**` paths without the external `/api` prefix.
+
+Do not fix auth proxy gaps by adding a broad `/api/make/** -> /make/**` passthrough. Auth and OAuth are the default transparent namespaces; Service-owned business APIs stay under explicit `/api/make/app/**` adapters, and unmatched `/api/make/**` paths should fail closed.
 
 The Service auth proxy must forward browser auth context:
 
@@ -54,7 +57,7 @@ Do not convert the gateway response into a JSON envelope for auth routes.
 In Service-fronted apps, file previews and downloads must stay on Service-owned browser paths:
 
 ```text
-browser img/link -> /api/app/files/download/** -> App Service -> make-gateway /make/data/v1/download/**
+browser img/link -> /api/make/app/files/download/** -> App Service -> make-gateway /make/data/v1/download/**
 ```
 
 Do not use raw Make download paths such as `/data/v1/download/**`, `/make/data/v1/download/**`, or `/api/make/data/v1/download/**` as UI `src`, `href`, or file metadata URLs when a Service proxy exists.
@@ -125,7 +128,7 @@ await fetch(`${makeBusinessBaseUrl}/data/v1/record`, { headers: businessHeaders 
 
 ## Session Complete
 
-When proxying `/api/auth/session/complete`, Service must return the gateway response to the browser:
+When proxying `/api/make/auth/session/complete`, Service must return the gateway response to the browser:
 
 - preserve `302`
 - preserve `Set-Cookie`
@@ -138,13 +141,15 @@ In Node Service code, use `redirect: "manual"` or the equivalent. Do not let ser
 These checks belong to the agent, generated tests, CI, or publish pipeline. Do not require the end user to open DevTools or inspect k8s logs after publish to discover the issue.
 
 - Run `scripts/audit-auth-contract.mjs <project-root> --mode service-fronted --published` when a generated project tree is available.
-- Browser business requests go to Service-owned `/api/app/**` paths.
-- Browser auth requests go to `/api/auth/**`.
-- `/api/auth/current-context` is reachable from the published domain and returns a challenge or authenticated context, not a Service 404.
-- UI uses `createMakeAppAuth({ gatewayBaseUrl: "/api", unifiedLogin: true, apiAuthRedirect: true })`, then calls `auth.api("/app/**")` for Service-owned business routes.
+- Browser business requests go to Service-owned `/api/make/app/**` paths.
+- Browser auth and OAuth requests go to namespace proxies under `/api/make/auth/**` and `/api/make/oauth/**`.
+- `/api/make/auth/current-context` is reachable from the published domain and returns a challenge or authenticated context, not a Service 404.
+- `/api/make/auth/session/complete` and at least one future/unknown auth-namespaced path use the same proxy mapping instead of a hand-written endpoint list.
+- UI uses `createMakeAppAuth({ gatewayBaseUrl: "/api/make", unifiedLogin: true, apiAuthRedirect: true })`, then calls `auth.api("/app/**")` for Service-owned business routes.
 - Service calls internal business routes such as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`.
 - Service calls internal auth routes such as `http://make-gateway/make/auth/**`.
-- Service does not call k8s-internal `/api/make/auth/**`, `/api/make/meta/**`, or `/api/make/data/**`; `/api` is only for external-domain access.
+- Service does not call k8s-internal `/api/make/auth/**`, `/api/make/oauth/**`, `/api/make/meta/**`, or `/api/make/data/**`; `/api/make` is only for browser/ingress access.
+- Service does not expose a production catch-all for all `/api/make/**`; unknown paths outside documented auth/oauth/app routes fail closed.
 - Service forwards browser cookies on every auth and business request that depends on App session.
 - Service derives `X-Forwarded-Host` from inbound `Host`, does not pass through client-supplied `X-Forwarded-Host`, and adds `X-Forwarded-Proto`; auth and business requests share this helper.
 - `session/complete` reaches the browser as `302 + Set-Cookie + Location`.

@@ -14,7 +14,7 @@ try {
   const goodRoot = createFixture('good-service-fronted', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
-      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
       const init = await auth.init({ redirect: true });
       if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
         await auth.login({ redirect: true });
@@ -34,11 +34,12 @@ try {
       export async function proxy(req) {
         const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
         applyForwardedHostContext(headers, req.headers);
-        if (req.url.includes('/api/auth/session/complete')) {
-          return fetch('http://make-gateway/make/auth/session/complete', { headers, redirect: 'manual' });
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
         }
-        if (req.url.includes('/api/auth/current-context')) {
-          return fetch('http://make-gateway/make/auth/current-context', { headers });
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
         }
         return fetch('http://make-gateway/make/data/v1/record', { headers });
       }
@@ -50,7 +51,7 @@ try {
   const missingHostRoot = createFixture('missing-host-context', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
-      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
       const init = await auth.init({ redirect: true });
       if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
         await auth.login({ redirect: true });
@@ -74,7 +75,7 @@ try {
   const missingExpiredRoot = createFixture('missing-expired-handling', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
-      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
       await auth.init({ redirect: true });
       export async function loadSchema() {
         return auth.api.get('/app/schema', { credentials: 'include' });
@@ -99,10 +100,54 @@ try {
   const missingExpiredOutput = runAudit(missingExpiredRoot, { expectFailure: true });
   assert.match(missingExpiredOutput, /recoverable_auth_expired_missing/);
 
+  const unsupportedReadyStatusRoot = createFixture('unsupported-ready-status', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const result = await auth.init({ redirect: true });
+      if (result.status === 'ready') {
+        renderApp();
+      }
+      if (result.reason === 'state_expired' || result.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        if (!headers.get('x-forwarded-host')) {
+          const host = source.get('host');
+          if (host) headers.set('x-forwarded-host', host);
+        }
+        if (!headers.get('x-forwarded-proto')) headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        if (url.pathname === '/api/make/app/schema') {
+          return fetch('http://make-gateway/make/meta/schema', { headers });
+        }
+        return new Response('not found', { status: 404 });
+      }
+    `
+  });
+
+  const unsupportedReadyStatusOutput = runAudit(unsupportedReadyStatusRoot, { expectFailure: true });
+  assert.match(unsupportedReadyStatusOutput, /unsupported_sdk_ready_status/);
+
   const businessApiScopeRoot = createFixture('business-api-wrong-scope', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
-      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
       const init = await auth.init({ redirect: true });
       if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
         await auth.login({ redirect: true });
@@ -121,7 +166,7 @@ try {
       export async function proxy(req) {
         const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
         applyForwardedHostContext(headers, req.headers);
-        if (req.url.includes('/api/auth/session/complete')) {
+        if (req.url.includes('/api/make/auth/session/complete')) {
           return fetch('http://make-gateway/make/auth/session/complete', { headers, redirect: 'manual' });
         }
         return fetch(MAKE_API_BASE_URL + '/data/v1/record', { headers });
@@ -135,7 +180,7 @@ try {
   const spoofedForwardedHostRoot = createFixture('spoofed-forwarded-host', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
-      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
       const init = await auth.init({ redirect: true });
       if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
         await auth.login({ redirect: true });
@@ -169,7 +214,7 @@ try {
   const rawDownloadUrlRoot = createFixture('raw-download-url', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
-      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
       const init = await auth.init({ redirect: true });
       if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
         await auth.login({ redirect: true });
@@ -192,7 +237,7 @@ try {
       export async function proxy(req) {
         const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
         applyForwardedHostContext(headers, req.headers);
-        if (req.url.includes('/api/auth/session/complete')) {
+        if (req.url.includes('/api/make/auth/session/complete')) {
           return fetch('http://make-gateway/make/auth/session/complete', { headers, redirect: 'manual' });
         }
         return fetch('http://make-gateway/make/data/v1/record', { headers });
@@ -203,7 +248,7 @@ try {
   const rawDownloadUrlOutput = runAudit(rawDownloadUrlRoot, { expectFailure: true });
   assert.match(rawDownloadUrlOutput, /service_fronted_raw_download_resource/);
 
-  const oldServicePrefixRoot = createFixture('old-service-prefix', {
+  const endpointOnlyProxyRoot = createFixture('endpoint-only-proxy', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
       const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
@@ -227,14 +272,131 @@ try {
         if (req.url.includes('/api/make/auth/session/complete')) {
           return fetch('http://make-gateway/make/auth/session/complete', { headers, redirect: 'manual' });
         }
+        if (req.url.includes('/api/make/auth/current-context')) {
+          return fetch('http://make-gateway/make/auth/current-context', { headers });
+        }
+        if (req.url.includes('/api/make/oauth/challenge')) {
+          return fetch('http://make-gateway/make/oauth/challenge', { headers });
+        }
         return fetch('http://make-gateway/make/data/v1/record', { headers });
       }
     `
   });
 
-  const oldServicePrefixOutput = runAudit(oldServicePrefixRoot, { expectFailure: true });
-  assert.match(oldServicePrefixOutput, /service_fronted_gateway_base_wrong/);
-  assert.match(oldServicePrefixOutput, /service_fronted_old_api_make_prefix/);
+  const endpointOnlyProxyOutput = runAudit(endpointOnlyProxyRoot, { expectFailure: true });
+  assert.match(endpointOnlyProxyOutput, /auth_proxy_missing/);
+
+  const catchAllPassthroughRoot = createFixture('catch-all-passthrough', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        if (url.pathname.startsWith('/api/make/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api/make', ''), { headers });
+        }
+        return new Response('not found', { status: 404 });
+      }
+    `
+  });
+
+  const catchAllPassthroughOutput = runAudit(catchAllPassthroughRoot, { expectFailure: true });
+  assert.match(catchAllPassthroughOutput, /service_fronted_catch_all_passthrough/);
+
+  const appCatchAllPassthroughRoot = createFixture('app-catch-all-passthrough', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        if (url.pathname.startsWith('/api/make/app/')) {
+          return proxyMakeBusiness(req, url.pathname.replace('/api/make/app', '/data'));
+        }
+        return new Response('not found', { status: 404 });
+      }
+    `
+  });
+
+  const appCatchAllPassthroughOutput = runAudit(appCatchAllPassthroughRoot, { expectFailure: true });
+  assert.match(appCatchAllPassthroughOutput, /service_fronted_app_catch_all_passthrough/);
+
+  const apiOnlyServicePrefixRoot = createFixture('api-only-service-prefix', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        if (req.url.includes('/api/auth/session/complete')) {
+          return fetch('http://make-gateway/make/auth/session/complete', { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  const apiOnlyServicePrefixOutput = runAudit(apiOnlyServicePrefixRoot, { expectFailure: true });
+  assert.match(apiOnlyServicePrefixOutput, /service_fronted_gateway_base_wrong/);
+  assert.match(apiOnlyServicePrefixOutput, /service_fronted_missing_make_prefix/);
+  assert.match(apiOnlyServicePrefixOutput, /auth_proxy_missing/);
 
   console.log('audit-auth-contract tests: PASS');
 } finally {

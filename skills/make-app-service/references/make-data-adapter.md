@@ -63,6 +63,7 @@ Default base selection:
 - candidate, lookup, record, and file adapters use the relevant normalized base from config, not inline environment reads.
 - all Make Meta/Data calls that require an app key must use `config.appKey` from `MAKE_APP_KEY`; route handlers must not accept `appKey` from UI query/body/header input.
 - record reads use the Make gateway/Data API path `/make/data/v1/record` after joining the strict gateway origin with the Make service scope. Do not replace this with makecli reads, local files, demo data, or direct UI-supplied record payloads.
+- Service business adapters are reached from explicit Service-owned routes such as `/api/make/app/**`; do not create a fallback that maps arbitrary browser `/api/make/**` paths to gateway `/make/**`.
 
 For Service-to-internal-make-gateway calls, the normalized base URL is the gateway origin. The adapter adds the fixed Make platform `/make` path scope:
 

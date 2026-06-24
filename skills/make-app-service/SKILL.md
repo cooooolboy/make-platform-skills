@@ -15,7 +15,7 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 
 1. Inspect `apps/docs/api.md`, `apps/service/src`, `apps/service/src/config.ts` or host-equivalent config entry, existing tests, and the host project's declared data flow.
 2. Preserve the host API contract. Update `apps/docs/api.md` before or with any Service route or response-shape change.
-3. For Make Deploy's default route split, treat published browser-facing Service routes as `/api/**`. Prefix-free `/app/**`, `/auth/**`, or `/health` routes may be local compatibility only; do not document them as the published UI contract unless the deploy route actually exposes them.
+3. For Make Deploy Service-fronted Apps, publish auth/oauth browser paths under `/api/make/auth/**` and `/api/make/oauth/**` as namespace-level transparent proxies; publish Service business paths under `/api/make/app/**`. Prefix-free `/app/**`, `/auth/**`, or `/health` routes may be local compatibility only; do not document them as the published UI contract unless the deploy route actually exposes them.
 4. Keep Service thin: validate UI input, normalize request/response shapes, call Make adapters, and return stable UI-facing contracts.
 5. For a new Make POC Service, use the ExpensePoc-style layered source tree by default: `app.ts`, `server.ts`, `config.ts`, `logger.ts`, `make-client/`, `services/`, `utils/`, with tests beside the route/adapter/helper they cover.
 6. Do not read local DSL/YAML as a published runtime data source. Runtime schema and data come from Make/backend APIs or the host Service adapter.
@@ -41,7 +41,7 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 - `make-app-service` defines Service-owned app APIs such as schema, records, candidates, lookup options, file proxy, and thin custom orchestration.
 - It may document route names, query/body shapes, response envelopes, and adapter behavior.
 - It may define Service-side Make adapter config semantics and environment variable names used by Service source, such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, while leaving deployment injection to runtime/operations.
-- It must not decide authentication implementation or OAuth/session mechanics; those belong to `make-app-auth`. It may still mount and document the App Service auth proxy path required by the host contract, normally `/api/auth/**` for Make Deploy Service-fronted Apps.
+- It must not decide authentication implementation or OAuth/session mechanics; those belong to `make-app-auth`. It may still mount and document the App Service auth/oauth proxy paths required by the host contract, normally `/api/make/auth/**` and `/api/make/oauth/**` for Make Deploy Service-fronted Apps.
 - It must not decide build output, Service port, Docker/K8s entrypoint, package scripts, workspace manifests, or publish readiness; those belong to `make-app-runtime`.
 - It must not define business models, entities, field meanings, relations, or DSL YAML; those belong to `makedsl`.
 - It must not decide UI layout, component choice, Drawer layout, or CanvasTable rendering; those belong to `makeui` and `canvas-table-integration`.
@@ -49,22 +49,27 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 
 ## Default Service responsibilities
 
-Generated or refactored Make App Service code should provide these capabilities when the UI needs them and the host project does not already have equivalent routes:
+Generated or refactored Make App Service code should provide these capabilities when the UI needs them:
 
 - public health/config: `/api/health`, `/api/config` for published UI access; `/health` may exist as local or k8s-probe compatibility
-- runtime schema: `/api/schema`, `/api/entities/:entityKey/fields`
+- unified-login namespace proxies: `/api/make/auth/**` -> `/make/auth/**` and `/api/make/oauth/**` -> `/make/oauth/**`, transparent to status, redirect, cookie, location, and body
+- runtime schema: `/api/make/app/schema`, `/api/make/app/entities/:entityKey/fields`
 - records: list, get, create, update, delete, cell update
 - lookup options and safe lookup relation updates
 - user candidates and department candidates
 - file upload/delete/download proxy
 - thin custom orchestration when requested, for example OCR result creation
+- fail-closed handling for unmatched `/api/make/**` routes with a clear 404/501 error instead of a catch-all gateway passthrough
 
 Keep route handlers small. Put Make/backend calls in adapter modules, cross-route business orchestration in `services/`, and pure schema/value helpers in `utils/`.
 
 ## Hard rules
 
 - `apps/docs/api.md` is the UI-Service contract source. Do not change Service route behavior without updating it.
-- For Make Deploy Service-fronted Apps, `apps/docs/api.md` must document published browser paths under `/api/**`, for example `/api/auth/**` and `/api/app/**`. Do not document prefix-free `/app/**` as the published path unless the deploy HTTPRoute exposes it.
+- For Make Deploy Service-fronted Apps, `apps/docs/api.md` must document published browser auth/oauth namespace proxies under `/api/make/auth/**` and `/api/make/oauth/**`, and Service business paths under `/api/make/app/**`. Do not document prefix-free `/app/**` as the published path unless the deploy HTTPRoute exposes it.
+- Auth and OAuth are gateway-owned transparent namespaces. Generate one namespace proxy for each of `/api/make/auth/**` and `/api/make/oauth/**`; do not enumerate only known endpoints such as `current-context` or `session/complete`.
+- Business APIs are Service-owned contracts. Keep `/api/make/app/**` routes explicit and backed by Service adapters; do not expose raw `/api/make/meta/**`, `/api/make/data/**`, `/make/meta/**`, or `/make/data/**` paths to UI as the Service-fronted business contract.
+- Do not add a production catch-all such as `/api/make/** -> make-gateway /make/**`. Unmatched `/api/make/**` requests must fail closed with a clear non-secret 404/501 response and safe route-mapping logs.
 - New generated Make POC Services and non-trivial generated/refactored `apps/service` code must use a layered, componentized source structure instead of flat route/adapter/helper files. For new Make POC Services, default to the ExpensePoc-style tree: `app.ts`, `server.ts`, `config.ts`, `logger.ts`, `make-client/` for Make/backend adapters, `services/` for multi-step orchestration, `utils/` for pure helpers, and colocated tests.
 - A flat `apps/service/src` tree is a readiness defect for generated POC work when it mixes route registration, Make request construction, schema normalization, lookup/file orchestration, config parsing, logging, and helpers side by side. Split it before reporting the Service as complete.
 - Route handlers in `app.ts` or `routes/` only validate input, call a service/adapter, map errors, log safe boundary context, and send the documented response. Do not put raw Make payload construction, schema variant parsing, record lookup orchestration, file proxy mapping, or custom workflow steps directly into route handlers.
@@ -86,7 +91,7 @@ Keep route handlers small. Put Make/backend calls in adapter modules, cross-rout
 - Runtime Service code must not require `apps/dsl/**`, `/dsl/**`, or copied `*.yaml` files to start or serve schema/data in published Apps.
 - Schema APIs normalize backend schema variants before UI sees them. Handle known variants such as `entity.properties.fields`, `entity.fields`, or the host-documented equivalent at the Service/API boundary.
 - Record list and detail are separate contracts. Do not implement detail by calling list and guessing the first row when a single-record Make call exists.
-- User and department candidates come from Service routes such as `GET /api/users` and `GET /api/departments` or the host equivalent; do not use local demo arrays in generated Service.
+- User and department candidates come from Service routes `GET /api/make/app/users` and `GET /api/make/app/departments`; do not generate `/api/users` or `/api/departments`, and do not use local demo arrays in generated Service.
 - Lookup option APIs must resolve target object/field from schema metadata and return `{ options, total }`. Do not expose full target records to selector UIs by default.
 - File routes proxy upload/delete/download through Service. UI should not expose raw backend file URLs when a Service download proxy is available.
 - Browser resource tags such as `<img src>` cannot attach `Authorization`. When Make file downloads require a bearer token, keep the URL browser-facing through a Service download proxy, verify the current App session first, and let only the Service adapter attach the deployment-injected token. Do not put Make tokens or raw `/data/v1/download/**` URLs in UI state, public config, JSX, or logs.
@@ -95,26 +100,29 @@ Keep route handlers small. Put Make/backend calls in adapter modules, cross-rout
 
 ## Default route baseline
 
-Prefer these UI-Service contracts for new Make App Service projects unless the host project already documents equivalent routes:
+Use these UI-Service contracts for new Make App Service projects:
 
 ```text
 GET    /api/health
 GET    /health
 GET    /api/config
-GET    /api/schema
-GET    /api/entities/:entityKey/fields
-GET    /api/entities/:entityKey/records
-GET    /api/entities/:entityKey/records/:recordID
-POST   /api/entities/:entityKey/records
-PATCH  /api/entities/:entityKey/records/:recordID
-DELETE /api/entities/:entityKey/records/:recordID
-PATCH  /api/entities/:entityKey/records/:recordID/cells/:fieldKey
-GET    /api/users
-GET    /api/departments
-GET    /api/lookup-options
-POST   /api/entities/:entityKey/records/:recordID/files/:fieldKey
-DELETE /api/entities/:entityKey/records/:recordID/files/:fieldKey
-GET    /api/files/download/*
+ANY    /api/make/auth/**
+ANY    /api/make/oauth/**
+GET    /api/make/app/schema
+GET    /api/make/app/entities/:entityKey/fields
+GET    /api/make/app/entities/:entityKey/records
+GET    /api/make/app/entities/:entityKey/records/:recordID
+POST   /api/make/app/entities/:entityKey/records
+PATCH  /api/make/app/entities/:entityKey/records/:recordID
+DELETE /api/make/app/entities/:entityKey/records/:recordID
+PATCH  /api/make/app/entities/:entityKey/records/:recordID/cells/:fieldKey
+GET    /api/make/app/users
+GET    /api/make/app/departments
+GET    /api/make/app/lookup-options
+POST   /api/make/app/entities/:entityKey/records/:recordID/files/:fieldKey
+DELETE /api/make/app/entities/:entityKey/records/:recordID/files/:fieldKey
+GET    /api/make/app/files/download/*
+ANY    /api/make/** -> 404/501 SERVICE_ROUTE_NOT_REGISTERED unless matched above
 ```
 
 Lookup relation update routes are optional and should be generated only when the UI needs editable lookup relationships and the Service can preserve a full `qfei_relation` snapshot safely.
