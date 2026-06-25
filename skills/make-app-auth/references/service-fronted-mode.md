@@ -19,6 +19,20 @@ await auth.api.post('/app/records/customer', payload);
 
 UI must not bypass Service by calling `/data/**`, `/meta/**`, meta/data service domains, or k8s-internal service names directly.
 
+## Local Preview
+
+Local preview keeps the same UI and Service source as published mode. UI still uses `createMakeAppAuth({ gatewayBaseUrl: "/api/make", unifiedLogin: true, apiAuthRedirect: true })` and business code still calls `auth.api("/app/**")`.
+
+When `MAKE_APP_LOCAL_PREVIEW=true`, the local Service may read the current makecli profile on the server side and use that token only for Service-to-Make requests. The browser must not receive the token, must not configure SDK token mode, and must not read `~/.make/credentials`.
+
+In local preview, Service should handle:
+
+- `GET /api/make/auth/current-context`: return a preview context with real values available from makecli config/token claims, such as `userId`, `tenantId`, `name`, and `avatar`, plus `authMode: "token"` and `localPreview: true`.
+- `GET /api/make/auth/runtime-view`: return a preview runtime view with `authMode: "token"` and `localPreview: true`.
+- `/api/make/app/**`: call the configured Make gateway with server-side `Authorization: Bearer <makecli token>` and makecli tenant/operator headers when configured.
+
+This is a development-only convenience. Published runtime must keep the deployed chain below and must fail closed if local preview mode is enabled in production.
+
 ## Deployed Chain
 
 Browser calls stay same-origin under `gatewayBaseUrl=/api/make`.

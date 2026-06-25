@@ -32,7 +32,9 @@ This skill does not cover:
 
 Default generated and published Make Apps use **unified login** with `unifiedLogin: true`, `apiAuthRedirect: true`, and `auth.init({ redirect: true })`.
 
-This skill only supports unified login for generated and reviewed Make Apps. Missing unified-login prerequisites are blockers, not reasons to switch modes. Do not generate token mode, mock mode, or any no-login bypass from this skill.
+This skill only supports unified login for generated and reviewed Make Apps. Missing unified-login prerequisites are blockers, not reasons to switch modes. Do not generate browser token mode, mock mode, or any no-login bypass from this skill.
+
+Local preview exception: a Service-fronted App may provide a Service-only local preview adapter guarded by `MAKE_APP_LOCAL_PREVIEW=true`. That adapter may read the current makecli profile on the server side and attach the token only on Service-to-Make requests. It must not expose the token to UI, must not change the published unified-login contract, and must fail closed in production.
 
 ## Hard Rules
 
@@ -51,7 +53,8 @@ This skill only supports unified login for generated and reviewed Make Apps. Mis
 - Do not read, write, persist, or delete `zs_session` or `make_app_session` in App code.
 - Do not construct Org OAuth URLs, `redirect_uri`, `state`, `code_challenge`, token exchange, or Org logout URLs in generated App code.
 - Browser code cannot read `~/.make/credentials`.
-- Do not generate `unifiedLogin: false`, `accessToken`, `token`, `tokenProvider`, local credential loading, `VITE_MAKE_AUTH_MODE=token`, or equivalent token-mode switches.
+- Do not generate browser-side `unifiedLogin: false`, `accessToken`, `token`, `tokenProvider`, local credential loading, `VITE_MAKE_AUTH_MODE=token`, or equivalent token-mode switches.
+- Service-only local preview may use makecli credentials only behind `MAKE_APP_LOCAL_PREVIEW=true`; current-context/runtime-view must be explicit preview responses and business requests must attach the token only inside Service.
 - Do not silently downgrade generated Apps from unified login because local OAuth prerequisites are missing; report the blocker.
 - Published/vibe Apps must be auth-ready before reporting success: the agent or platform performs the auth checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.
 - For Service-fronted Apps, `/api/make/auth/**` and `/api/make/oauth/**` are required namespace-level Service proxy contracts under the published App Service prefix, not optional convenience routes or endpoint-by-endpoint allowlists.
@@ -95,6 +98,13 @@ node skills/make-app-auth/scripts/audit-auth-contract.mjs <project-root> --mode 
 ```
 
 The audit is auth-scoped. It checks unified-login readiness, raw `/api/make` fetch usage, Service-fronted `/api/make/auth/**` and `/api/make/oauth/**` namespace proxy presence, broad `/api/make/**` passthrough risk, and obvious direct-vs-Service route mismatches. It does not verify schema rendering or UI blank-page behavior.
+
+Audit expectations:
+
+- UI design-system theme fields named `token` are not auth token mode. Only flag token-mode options inside auth configuration, auth environment switches, browser credential access, or explicit `authMode: "token"` paths.
+- Service namespace proxies may be expressed as direct string routes, constants, `.startsWith(...)`, or equivalent regex route mounts, as long as `/api/make/auth/**` and `/api/make/oauth/**` map to internal `/make/auth/**` and `/make/oauth/**`.
+- Cookie forwarding may use `req.headers.cookie`, `req.header("cookie")`, Fetch `headers.get("cookie")`, or an equivalent inbound-header adapter.
+- Keep tests in `scripts/test-audit-auth-contract.mjs` updated when changing audit heuristics, especially for false-positive and false-negative cases discovered in generated Apps.
 
 ## Collaboration With makeui
 

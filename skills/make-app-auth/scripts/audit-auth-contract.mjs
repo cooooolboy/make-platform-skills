@@ -64,9 +64,10 @@ const serviceFiles = collectSourceFiles(firstExisting([
   'service/src',
   'server/src'
 ]));
+const serviceRuntimeFiles = serviceFiles.filter(isRuntimeSourceFile);
 const allProjectFiles = collectSourceFiles(root);
 const uiText = readJoined(uiFiles);
-const serviceText = readJoined(serviceFiles);
+const serviceText = readJoined(serviceRuntimeFiles);
 const projectText = readJoined(allProjectFiles);
 const inferredMode = mode === 'auto' ? inferMode() : mode;
 
@@ -85,8 +86,8 @@ for (const hit of findRawMakeFetches(uiFiles)) {
   failures.push(`raw_make_fetch: ${relative(hit.file)} uses raw fetch for ${hit.url}; use auth.api through the shared adapter`);
 }
 
-if (hasTokenMode(projectText)) {
-  failures.push('token_mode_present: make-app-auth skill only supports unified login; remove unifiedLogin:false, token options, local credentials, and token-mode env switches');
+if (hasTokenMode(uiText) || hasServiceTokenModeWithoutLocalPreview(serviceText)) {
+  failures.push('token_mode_present: make-app-auth skill only supports unified login in UI and published runtime; remove browser token options and unguarded Service token-mode switches');
 }
 
 if (published) {
@@ -117,7 +118,9 @@ if (inferredMode === 'service-fronted') {
   if (!hasServiceFrontedGatewayBaseMakePrefix(uiText)) {
     failures.push('service_fronted_gateway_base_wrong: Service-fronted UI must configure gatewayBaseUrl as /api/make so auth.api("/app/**") reaches /api/make/app/**');
   }
-  if (!hasServiceFrontedNamespaceProxy(serviceText, 'auth') || !hasServiceFrontedNamespaceProxy(serviceText, 'oauth')) {
+  const hasAuthNamespaceProxy = hasServiceFrontedNamespaceProxy(serviceText, 'auth');
+  const hasOauthNamespaceProxy = hasServiceFrontedNamespaceProxy(serviceText, 'oauth');
+  if (!hasAuthNamespaceProxy || !hasOauthNamespaceProxy) {
     failures.push('auth_proxy_missing: Service-fronted App must proxy /api/make/auth/** and /api/make/oauth/** as namespace-level routes to make-gateway');
   }
   if (hasBroadMakeGatewayPassthrough(serviceText)) {
@@ -129,8 +132,14 @@ if (inferredMode === 'service-fronted') {
   if (!/\/api\/make\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
     warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/make/app/** or UI /app/** calls');
   }
-  if (/session\/complete/.test(serviceText) && !/redirect\s*:\s*[`'"]manual[`'"]/.test(serviceText) && !/maxRedirects\s*:\s*0/.test(serviceText)) {
+  if (hasAuthNamespaceProxy && !hasManualRedirectPreservation(serviceText)) {
     failures.push('session_complete_redirect_not_manual: session/complete proxy must preserve gateway 302/Set-Cookie/Location');
+  }
+  if (hasAuthNamespaceProxy && !hasSetCookiePassthrough(serviceText)) {
+    failures.push('session_complete_set_cookie_not_preserved: auth proxy must preserve gateway Set-Cookie for /api/make/auth/session/complete');
+  }
+  if (hasAuthNamespaceProxy && !hasLocationPassthrough(serviceText)) {
+    failures.push('session_complete_location_not_preserved: auth proxy must preserve gateway Location for /api/make/auth/session/complete');
   }
   if (hasInternalGatewayApiPrefix(serviceText)) {
     failures.push('service_fronted_business_gateway_scope_wrong: Service running inside k8s must call make-gateway without /api prefix, for example http://make-gateway/make/auth|meta|data/**');
@@ -144,7 +153,7 @@ if (inferredMode === 'service-fronted') {
   if (!hasForwardedProtoFallback(serviceText)) {
     failures.push('forwarded_proto_context_missing: Service-fronted proxy must add X-Forwarded-Proto when forwarding to make-gateway');
   }
-  if (!/(req\.headers\.cookie|headers\.cookie|(?:request|req)\.headers\.get\(\s*[`'"]cookie[`'"]|(?:source|inboundHeaders|headers)\.get\(\s*[`'"]cookie[`'"]|cookie\s*:)/i.test(serviceText)) {
+  if (!/(req\.headers\.cookie|headers\.cookie|(?:request|req)\.headers\.get\(\s*[`'"]cookie[`'"]|(?:request|req)\.header\(\s*[`'"]cookie[`'"]|(?:source|inboundHeaders|headers)\.get\(\s*[`'"]cookie[`'"]|cookie\s*:)/i.test(serviceText)) {
     warnings.push('cookie_forwarding_not_obvious: could not find obvious Cookie forwarding in Service code');
   }
 } else {
@@ -210,6 +219,12 @@ function isSourceFile(file) {
   return /\.(cjs|mjs|js|jsx|ts|tsx|json|html|vue|svelte)$/i.test(file);
 }
 
+function isRuntimeSourceFile(file) {
+  const basename = path.basename(file);
+  return !/\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(basename)
+    && !/(?:^|[/\\])(?:__tests__|test|tests)(?:[/\\]|$)/i.test(file);
+}
+
 function readJoined(files) {
   return files.map((file) => {
     try {
@@ -245,14 +260,23 @@ function findRawMakeFetches(files) {
 
 function hasTokenMode(text) {
   return (
-    /authMode\s*=\s*[`'"]token[`'"]/.test(text) ||
+    /authMode\s*[:=]\s*[`'"]token[`'"]/.test(text) ||
     /VITE_MAKE_AUTH_MODE[\s\S]{0,120}(?:\?\?|\|\|)\s*[`'"]token[`'"]/.test(text) ||
     /MAKE_AUTH_MODE[\s\S]{0,120}(?:\?\?|\|\|)\s*[`'"]token[`'"]/.test(text) ||
     /unifiedLogin\s*:\s*false/.test(text) ||
     /\b(?:accessToken|tokenProvider)\s*:/.test(text) ||
-    /\btoken\s*:\s*[^,}\n]+/.test(text) ||
+    /createMakeAppAuth\s*\(\s*\{(?:(?!\}\s*\)).){0,1000}\btoken\s*:\s*[^,}\n]+/s.test(text) ||
     /~\/\.make\/credentials/.test(text)
   );
+}
+
+function hasServiceTokenModeWithoutLocalPreview(text) {
+  const hasServiceTokenMode = /MAKE_AUTH_MODE[\s\S]{0,120}(?:\?\?|\|\|)\s*[`'"]token[`'"]/.test(text) ||
+    /unifiedLogin\s*:\s*false/.test(text) ||
+    /\b(?:accessToken|tokenProvider)\s*:/.test(text) ||
+    /createMakeAppAuth\s*\(\s*\{(?:(?!\}\s*\)).){0,1000}\btoken\s*:\s*[^,}\n]+/s.test(text) ||
+    /~\/\.make\/credentials/.test(text);
+  return hasServiceTokenMode && !/MAKE_APP_LOCAL_PREVIEW/.test(text);
 }
 
 function hasUiDirectGatewayCalls(text) {
@@ -301,6 +325,22 @@ function hasInternalGatewayApiPrefix(text) {
     || /fetch\(\s*[`'"]\/api\/make\/(?:auth|meta|data)\b/i.test(text);
 }
 
+function hasManualRedirectPreservation(text) {
+  return /redirect\s*:\s*[`'"]manual[`'"]/.test(text) || /maxRedirects\s*:\s*0/.test(text);
+}
+
+function hasSetCookiePassthrough(text) {
+  return /getSetCookie\s*\(/.test(text)
+    || /(?:append|set|header|setHeader)\(\s*[`'"]set-cookie[`'"]/i.test(text)
+    || /headers\.raw\(\)\s*\[\s*[`'"]set-cookie[`'"]\s*\]/i.test(text);
+}
+
+function hasLocationPassthrough(text) {
+  return /(?:append|set|header|setHeader)\(\s*[`'"]location[`'"]/i.test(text)
+    || /headers\.get\(\s*[`'"]location[`'"]\s*\)/i.test(text)
+    || /\[[^\]]*[`'"]location[`'"][^\]]*\][\s\S]{0,240}(?:setHeader|header|set)\(\s*\w+/i.test(text);
+}
+
 function hasServiceFrontedGatewayBaseMakePrefix(text) {
   return /gatewayBaseUrl\s*:\s*[`'"]\/api\/make[`'"]/.test(text);
 }
@@ -314,23 +354,56 @@ function hasServiceFrontedNamespaceProxy(text, namespace) {
   const internalPath = `/make/${namespace}`;
   const escapedBrowserPath = escapeRegExp(browserPath);
   const escapedInternalPath = escapeRegExp(internalPath);
+  const browserPathConstants = constantNamesForStringLiteral(text, browserPath);
+  const internalPathConstants = constantNamesForStringLiteral(text, internalPath);
+  const browserRouteToken = routeTokenPattern(browserPathConstants);
 
   const hasNamespaceRoute = new RegExp(
-    String.raw`(?:app|router|server)\.(?:use|all|any)\s*\(\s*[\`'"]${escapedBrowserPath}(?:\/(?:\*|\*\*))?\/?[\`'"]`,
+    String.raw`(?:app|router|server)\.(?:use|all|any)\s*\(\s*(?:[\`'"]${escapedBrowserPath}(?:\/(?:\*|\*\*))?\/?[\`'"]${browserRouteToken ? `|${browserRouteToken}` : ''})`,
     'i'
   ).test(text) || new RegExp(
     String.raw`\.startsWith\(\s*[\`'"]${escapedBrowserPath}\/?[\`'"]\s*\)`,
     'i'
-  ).test(text);
+  ).test(text) || hasRegexRouteForPath(text, browserPath);
 
   if (!hasNamespaceRoute) {
     return false;
   }
 
-  const hasDirectInternalPath = new RegExp(escapedInternalPath).test(text);
+  const hasDirectInternalPath = new RegExp(escapedInternalPath).test(text) || internalPathConstants.length > 0;
   const stripsExternalApiPrefix = /replace\(\s*(?:\/\^\\?\/api|[`'"]\/api[`'"])/i.test(text);
   const hasGatewayMakeBase = /make-gateway[\s\S]{0,160}\/make/i.test(text) || /MAKE_[A-Z_]*BASE_URL[\s\S]{0,160}\/make/.test(text);
   return hasDirectInternalPath || (stripsExternalApiPrefix && hasGatewayMakeBase);
+}
+
+function constantNamesForStringLiteral(text, literal) {
+  const names = [];
+  const escapedLiteral = escapeRegExp(literal);
+  const declaration = new RegExp(
+    String.raw`\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*[\`'"]${escapedLiteral}[\`'"]`,
+    'g'
+  );
+  let match;
+  while ((match = declaration.exec(text))) {
+    names.push(match[1]);
+  }
+  return names;
+}
+
+function routeTokenPattern(names) {
+  if (names.length === 0) {
+    return '';
+  }
+  return names.map((name) => escapeRegExp(name)).join('|');
+}
+
+function hasRegexRouteForPath(text, pathLiteral) {
+  const escapedAsRegex = pathLiteral.replace(/\//g, String.raw`\\\/`);
+  const routeRegex = new RegExp(
+    String.raw`(?:app|router|server)\.(?:use|all|any)\s*\(\s*\/\^${escapedAsRegex}`,
+    'i'
+  );
+  return routeRegex.test(text);
 }
 
 function hasBroadMakeGatewayPassthrough(text) {

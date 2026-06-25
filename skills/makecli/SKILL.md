@@ -42,7 +42,7 @@ User request arrives
     |
     +- makecli not installed? --> Installation above
     |
-    +- Environment not configured or token expired? --> makecli login / configure env
+    +- Environment not configured? --> Pre-flight Check above
     |
     +- Create/update schema (app, entity, relation)?
     |   --> Declarative Workflow (preferred)
@@ -137,9 +137,30 @@ makecli diff -f apps/dsl
 makecli apply -f apps/dsl
 makecli entity list --app MyApp
 
-# 5. After code is generated, committed, and build checks pass, deploy code
-makecli app deploy                    # default: preview
+# 5. After code is generated, run the generated App checks, then deploy committed code
+#    Follow the generated AGENTS.md: install/build, auth audit, and artifact checks
+makecli app deploy                    # default: preview; deploy currently pushes committed code
 makecli app deploy --env production   # requires explicit confirmation
+```
+
+**Deploy preflight and verification:**
+
+Run deploy from the app project root, not from `apps/`, because `makecli app deploy` expects `apps/dsl/app.yaml`.
+
+```bash
+makecli preflight
+git status --short
+git log --oneline -1
+```
+
+`makecli app deploy` currently pushes committed code. If there is no commit, or if required files are uncommitted, commit the intended scope first. Do not assume uncommitted files are included in deploy.
+
+After deploy, verify all three layers:
+
+```bash
+makecli app list --filter key=<appKey> --output=json
+makecli schema --app <appKey>
+makecli diff -f apps/dsl --output=json
 ```
 
 **Inspect remote state:**
@@ -150,9 +171,12 @@ makecli entity list <entity-name> --app <app>    # detail view with fields
 makecli relation list --app <app>
 ```
 
-**Initialize local App workspace in a project directory:**
+**Initialize AI provider config in project directory:**
 ```bash
-makecli app init [appKey]    # creates CLAUDE.md, AGENTS.md, apps/dsl/app.yaml, .gitignore
+makecli app init <folder> --provider anthropic    # creates CLAUDE.md
+makecli app init <folder> --provider openai       # creates AGENTS.md
+makecli app init <folder> --provider google       # creates GEMINI.md
+makecli app init <folder> --provider cursor       # creates .cursorrules
 ```
 
 **Self-update:**
@@ -168,4 +192,5 @@ makecli version
 - **Don't guess CLI flags.** Read `@references/cli-reference.md` if unsure.
 - **Don't make manual token copy the default path.** Use `makecli login`; `configure token` is a legacy/manual fallback only.
 - **Don't put `/api/make` into generated App code because makecli config has it.** CLI config owns host origins; App browser requests still follow the app auth/service contract.
+- **Don't assume `makecli app deploy` replaces the generated App quality gate.** Run the project build, `make-app-auth` published audit, and artifact checks before deploy unless the target makecli version explicitly provides an equivalent strict gate.
 - **Don't write DSL YAML from memory.** Invoke the `makedsl` skill for schema reference.

@@ -1,5 +1,15 @@
+import {
+  applyLocalPreviewAuthorization,
+  isLocalPreviewEnabled,
+  localPreviewGatewayBaseUrl
+} from './makecliPreview';
+
 const MAKE_AUTH_BASE_URL = process.env.MAKE_AUTH_BASE_URL ?? 'http://make-gateway/make';
 const MAKE_BUSINESS_BASE_URL = process.env.MAKE_BUSINESS_BASE_URL ?? 'http://make-gateway/make';
+
+type HeadersWithSetCookieList = Headers & {
+  getSetCookie?: () => string[];
+};
 
 export function applyForwardedHostContext(headers: Headers, source: Headers): void {
   const host = source.get('host');
@@ -40,22 +50,42 @@ export async function proxyMakeAuth(request: Request, pathname: string): Promise
   });
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: upstream.headers
+    headers: copyGatewayResponseHeaders(upstream)
   });
 }
 
 export async function proxyMakeBusiness(request: Request, pathname: string): Promise<Response> {
   const headers = pickProxyHeaders(request.headers, ['cookie']);
   applyForwardedHostContext(headers, request.headers);
-  const upstream = await fetch(`${MAKE_BUSINESS_BASE_URL}${pathname}`, {
+  const baseUrl = isLocalPreviewEnabled() ? localPreviewGatewayBaseUrl() : MAKE_BUSINESS_BASE_URL;
+  if (isLocalPreviewEnabled()) {
+    applyLocalPreviewAuthorization(headers);
+  }
+  const upstream = await fetch(`${baseUrl}${pathname}`, {
     method: request.method,
     headers,
     body: request.body
   });
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: upstream.headers
+    headers: copyGatewayResponseHeaders(upstream)
   });
+}
+
+function copyGatewayResponseHeaders(upstream: Response): Headers {
+  const headers = new Headers(upstream.headers);
+  const setCookies = (upstream.headers as HeadersWithSetCookieList).getSetCookie?.() ?? [];
+  if (setCookies.length > 0) {
+    headers.delete('set-cookie');
+    for (const cookie of setCookies) {
+      headers.append('set-cookie', cookie);
+    }
+  }
+  const location = upstream.headers.get('location');
+  if (location) {
+    headers.set('location', location);
+  }
+  return headers;
 }
 
 function pickProxyHeaders(source: Headers, names: string[]): Headers {

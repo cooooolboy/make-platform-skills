@@ -5,7 +5,7 @@ description: Use when designing, generating, refactoring, or reviewing Make App 
 
 # makeui
 
-Current skill revision: 0.3.45.
+Current skill revision: 0.3.46.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 

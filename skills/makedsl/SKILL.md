@@ -22,6 +22,10 @@ When working inside a `makecli app init` workspace, model from the confirmed App
 4. Before remote changes, use `makecli diff -f apps/dsl` and summarize create/update/delete effects for user confirmation.
 5. Apply only after confirmation, then verify with `makecli schema`, entity/relation list commands, or another diff.
 
+## App ownership key
+
+For Entity and Relation DSL in generated Make App workspaces, use `appKey: <appKey>` as the ownership field. Do not generate the legacy `app: <Make.App>` field. If older examples or existing files use `app:`, migrate them to `appKey:` before running `makecli diff` or `makecli apply`.
+
 ## Runtime Boundary
 
 - DSL YAML is a design and deployment input, not a required runtime file for a published App Service.
@@ -90,7 +94,7 @@ properties:
 key: <KEY> # 仅英文字符、数字、下划线, 长度 2-20, 创建后不可更新
 name: String # 必填, 用户可见的展示名称, 允许中英文数字下划线, 长度 2-20
 type: Make.Entity
-app: <Make.App>
+appKey: <Make.App key>
 meta:
   version: SemanticVersion
 properties:
@@ -114,7 +118,7 @@ properties:
 key: project
 name: 项目
 type: Make.Entity
-app: <Make.App>
+appKey: MatrixProject
 meta:
   version: 1.0.0
 properties:
@@ -139,7 +143,7 @@ properties:
 key: task
 name: 任务
 type: Make.Entity
-app: <Make.App>
+appKey: MatrixProject
 meta:
   version: 1.0.0
 properties:

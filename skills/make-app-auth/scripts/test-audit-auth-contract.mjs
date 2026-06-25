@@ -36,7 +36,13 @@ try {
         applyForwardedHostContext(headers, req.headers);
         const url = new URL(req.url);
         if (url.pathname.startsWith('/api/make/auth/')) {
-          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers(upstream.headers);
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
         }
         if (url.pathname.startsWith('/api/make/oauth/')) {
           return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
@@ -47,6 +53,306 @@ try {
   });
 
   assert.match(runAudit(goodRoot), /status: PASS/);
+
+  const antdThemeTokenRoot = createFixture('antd-theme-token-not-auth-token', {
+    ui: `
+      import { ConfigProvider } from 'antd';
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export function App() {
+        return <ConfigProvider theme={{ token: { colorPrimary: '#2563eb' } }} />;
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers(upstream.headers);
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  assert.match(runAudit(antdThemeTokenRoot), /status: PASS/);
+
+  const constantNamespaceProxyRoot = createFixture('constant-namespace-proxy', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      const AUTH_BROWSER_PREFIX = '/api/make/auth';
+      const OAUTH_BROWSER_PREFIX = '/api/make/oauth';
+      const AUTH_GATEWAY_SCOPE = '/make/auth';
+      const OAUTH_GATEWAY_SCOPE = '/make/oauth';
+      function applyForwardedHostContext(headers, req) {
+        const host = req.header('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      function toConfiguredMakePath(path) {
+        return path.startsWith('/make/') ? path.slice('/make'.length) : path;
+      }
+      async function proxyMakeNamespace(req, res, browserPrefix, upstreamPrefix) {
+        const headers = new Headers();
+        const cookie = req.header('cookie');
+        if (cookie) headers.set('cookie', cookie);
+        applyForwardedHostContext(headers, req);
+        const upstreamPath = toConfiguredMakePath(upstreamPrefix + req.path.slice(browserPrefix.length));
+        const upstream = await fetch('http://make-gateway/make' + upstreamPath, { headers, redirect: 'manual' });
+        const setCookie = upstream.headers.get('set-cookie');
+        if (setCookie) res.setHeader('set-cookie', setCookie);
+        const location = upstream.headers.get('location');
+        if (location) res.setHeader('location', location);
+      }
+      app.use(AUTH_BROWSER_PREFIX, (req, res) => proxyMakeNamespace(req, res, AUTH_BROWSER_PREFIX, AUTH_GATEWAY_SCOPE));
+      app.use(OAUTH_BROWSER_PREFIX, (req, res) => proxyMakeNamespace(req, res, OAUTH_BROWSER_PREFIX, OAUTH_GATEWAY_SCOPE));
+    `
+  });
+
+  assert.match(runAudit(constantNamespaceProxyRoot), /status: PASS/);
+
+  const localPreviewServiceRoot = createFixture('local-preview-service-token-adapter', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      function localPreviewHeaders(headers) {
+        if (process.env.MAKE_APP_LOCAL_PREVIEW === 'true') {
+          const accessToken = 'server-only-local-token';
+          headers.set('authorization', 'Bearer ' + accessToken);
+        }
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers(upstream.headers);
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        localPreviewHeaders(headers);
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  assert.match(runAudit(localPreviewServiceRoot), /status: PASS/);
+
+  const uiTokenModeRoot = createFixture('ui-token-mode', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', accessToken: 'browser-token' });
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers(upstream.headers);
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  const uiTokenModeOutput = runAudit(uiTokenModeRoot, { expectFailure: true });
+  assert.match(uiTokenModeOutput, /token_mode_present/);
+
+  const missingSetCookieRoot = createFixture('missing-set-cookie-passthrough', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers();
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  const missingSetCookieOutput = runAudit(missingSetCookieRoot, { expectFailure: true });
+  assert.match(missingSetCookieOutput, /session_complete_set_cookie_not_preserved/);
+
+  const testOnlySetCookieRoot = createFixture('test-only-set-cookie-passthrough', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers();
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `,
+    serviceTest: `
+      export function testOnlyStringFixture() {
+        return 'set-cookie should not satisfy production proxy audit';
+      }
+    `
+  });
+
+  const testOnlySetCookieOutput = runAudit(testOnlySetCookieRoot, { expectFailure: true });
+  assert.match(testOnlySetCookieOutput, /session_complete_set_cookie_not_preserved/);
+
+  const missingLocationRoot = createFixture('missing-location-passthrough', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers();
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  const missingLocationOutput = runAudit(missingLocationRoot, { expectFailure: true });
+  assert.match(missingLocationOutput, /session_complete_location_not_preserved/);
 
   const missingHostRoot = createFixture('missing-host-context', {
     ui: `
@@ -407,6 +713,9 @@ function createFixture(name, files) {
   const root = path.join(tempRoot, name);
   write(path.join(root, 'apps/ui/src/app.ts'), files.ui);
   write(path.join(root, 'apps/service/src/app.ts'), files.service);
+  if (files.serviceTest) {
+    write(path.join(root, 'apps/service/src/app.test.ts'), files.serviceTest);
+  }
   return root;
 }
 

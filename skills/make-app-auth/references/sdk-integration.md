@@ -133,6 +133,7 @@ For published/vibe Apps, auth integration is not complete until the agent or pla
 - Raw `Authorization` header logic outside the SDK.
 - Token-mode SDK options such as `unifiedLogin: false`, `accessToken`, `token`, or `tokenProvider`.
 - Token-mode environment switches such as `VITE_MAKE_AUTH_MODE=token`.
+- Using makecli credentials in UI. If local preview needs makecli token, keep it in Service-only code guarded by `MAKE_APP_LOCAL_PREVIEW=true`.
 - Hard-coded Org, unified-login, or account-center domains in App code.
 - Passing arbitrary absolute URLs to `auth.api`.
 - Constructing Org OAuth URLs, `redirect_uri`, `state`, or `code_challenge`.
