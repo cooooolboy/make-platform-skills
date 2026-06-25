@@ -20,27 +20,28 @@ This skill owns the consumer-side package integration contract, advanced-filter 
 
 1. Treat any Make record-list request containing "筛选", "高级筛选", "条件筛选", "表格筛选", "表头筛选", "列头筛选", or "按字段筛选" as the same integrated filtering requirement. Implement both the package-backed toolbar advanced filter and the host-owned CanvasTable header filter linkage.
 2. Locate the host UI package, usually `apps/ui/package.json`. If no UI package exists, stop and report the missing host package.
-3. Ensure `@qfei-design/make-filter@^0.1.4` is installed. If missing or older, install/upgrade with the host package manager.
+3. Ensure `@qfei-design/make-filter@^0.2.2` is installed. If missing or older, install/upgrade with the host package manager.
 4. Read package docs before designing code. Prefer installed package docs; if the host is working in the package repo, read source docs.
 5. Import `@qfei-design/make-filter/styles.css` once in the host UI entry.
 6. Use package APIs for filter core, panel, controller, adapter, validation, and CEL compile/parse. Do not copy or hand-write these capabilities in the host.
 7. Keep host responsibilities outside the package: toolbar trigger, Popover/Drawer/Modal container, scroll sizing, applied state, candidate APIs, Service request adapter, and CanvasTable header filter UI/menu.
 8. Wire header "按该字段筛选" to the same package controller/panel; do not create separate header-only state or a local filter implementation.
 9. Align with the backend Record list filter contract: Service sends `filter: { expression }`, blank expressions mean no filter, expressions must stay in the supported CEL/DNF subset, and field support must match runtime metadata plus package public APIs.
-10. Before finishing, verify tests or deterministic checks for package source usage, empty filter omission, search merge, draft confirm/discard, candidate sources, header linkage, package/backend field-support drift, and Service payload shape.
+10. Preserve the BizFinancePoc fixed advanced-filter panel layout: top fixed header, scrollable condition body, and bottom fixed footer. Header/footer controls must remain visible while condition rows scroll.
+11. Before finishing, verify tests or deterministic checks for package source usage, fixed panel layout, empty filter omission, search merge, draft confirm/discard, candidate sources, header linkage, package/backend field-support drift, and Service payload shape.
 
 ## Package pre-flight
 
 If `@qfei-design/make-filter` is missing:
 
-- `pnpm-lock.yaml` -> `pnpm add @qfei-design/make-filter@^0.1.4`
-- `yarn.lock` -> `yarn add @qfei-design/make-filter@^0.1.4`
-- `package-lock.json` -> `npm install @qfei-design/make-filter@^0.1.4`
-- no lockfile -> default to `npm install @qfei-design/make-filter@^0.1.4`
+- `pnpm-lock.yaml` -> `pnpm add @qfei-design/make-filter@^0.2.2`
+- `yarn.lock` -> `yarn add @qfei-design/make-filter@^0.2.2`
+- `package-lock.json` -> `npm install @qfei-design/make-filter@^0.2.2`
+- no lockfile -> default to `npm install @qfei-design/make-filter@^0.2.2`
 
-If a different advanced-filter package name is already used, stop and ask before changing the dependency. If `@qfei-design/make-filter` is installed but older than `0.1.4`, upgrade before integrating.
+If a different advanced-filter package name is already used, stop and ask before changing the dependency. If `@qfei-design/make-filter` is installed but older than `0.2.2`, upgrade before integrating.
 
-Required read order for installed `0.1.5+` packages:
+Required read order for installed `0.2.2+` packages:
 
 1. `node_modules/@qfei-design/make-filter/package.ai.json`
 2. `node_modules/@qfei-design/make-filter/docs/agent-usage.md`
@@ -50,7 +51,7 @@ Required read order for installed `0.1.5+` packages:
 6. `node_modules/@qfei-design/make-filter/README.md`
 7. `node_modules/@qfei-design/make-filter/docs/api.md`
 
-When working directly in the package repo, use the same root-relative paths. If the installed package is `0.1.4` and these AI docs are absent, fall back to `README.md`, `docs/api.md`, and `dist/**/*.d.ts`; do not invent undocumented APIs.
+When working directly in the package repo, use the same root-relative paths. If the installed package is older than `0.2.2`, upgrade first instead of relying on older package docs or inferred internals.
 
 ## Topic reference map
 
@@ -85,11 +86,13 @@ When working directly in the package repo, use the same root-relative paths. If 
 - Unsupported package fields must be hidden from field selectors and header "按该字段筛选"; do not call `openWithField` for unknown fields, invalid field keys, or package-unsupported field/operator combinations.
 - Header menu filtering is a host integration. It appends a draft condition through the package controller and opens the same toolbar filter panel. It must not submit immediately, reload records, or create a separate header-only state.
 - Table scrolling, object switching, outside click, or unmount must close any header menu and restore the header suffix icon to hover-only state.
+- Advanced filter panel layout is mandatory: every Make advanced filter must use the BizFinancePoc three-region baseline with a fixed header, scrollable body, and fixed footer. A panel where add/confirm/clear actions scroll away with conditions is a readiness blocker and must not be reported as ready, complete, or delivered.
 
 ## Default behavior
 
 - Filtering is optional product capability. Generate it only when requested or already established by the project.
-- Once filtering is in scope, default to the complete ExpensePoc package baseline: toolbar `筛选` trigger, bottom-left popover, host-owned container, package `AdvancedFilterPanel`, package draft controller, `确认`, `清空所有`, active label `已筛选 N 个条件`, field-type controls, CanvasTable header menu `按该字段筛选`, header `openWithField(fieldKey)` linkage, and Service `filter.expression` payload.
+- Once filtering is in scope, default to the complete BizFinancePoc package baseline: toolbar `筛选` trigger, bottom-left popover, host-owned container, package `AdvancedFilterPanel`, package draft controller, fixed header/body/footer layout, `确认`, `清空所有`, active label `已筛选 N 个条件`, field-type controls, CanvasTable header menu `按该字段筛选`, header `openWithField(fieldKey)` linkage, and Service `filter.expression` payload.
+- The advanced filter panel must keep its three regions explicit: header top fixed with left `筛选` and right `清空所有`, body middle containing only condition rows/groups and using the only vertical scroll, footer bottom fixed with left `+ 添加条件` and `+ 添加条件组` and right `确认`.
 - The host keeps search text separate from advanced filter state. Compile both through `compileListFilter({ fields, searchText, advancedFilter })`.
 - Clicking outside the popover or trigger-closing discards unconfirmed draft changes by calling the package controller reset flow.
 - `清空所有` clears the draft and affects applied filters only after `确认`.

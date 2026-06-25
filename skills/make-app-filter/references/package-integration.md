@@ -2,6 +2,10 @@
 
 Use this reference when wiring `@qfei-design/make-filter` into a Make App host.
 
+## Package version baseline
+
+Use `@qfei-design/make-filter@^0.2.2` for new Make advanced-filter integrations. This is the validated baseline for the package `AdvancedFilterPanel` header/body/footer structure used by BizFinancePoc-style fixed panels. If the host has an older package version, upgrade before implementing the advanced filter instead of relying on older package behavior.
+
 ## Public package surface
 
 Use only public package entrypoints:
@@ -33,6 +37,7 @@ Never import from `src`, `dist`, or package-internal files.
 - toolbar trigger placement
 - Popover, Modal, Drawer, or other mounting container
 - container width, max height, and scrolling
+- host CSS for the fixed panel container and `.advanced-filter__body { overflow-y: auto; }`
 - candidate APIs for users and departments
 - Service request adapter and record reload timing
 - CanvasTable header filter UI/menu and `openWithField` linkage
@@ -114,6 +119,19 @@ function handleConfirm() {
 ```
 
 Host CSS should size only the outer container, for example width, max-height, and overflow. Do not duplicate package panel internals in host CSS.
+
+For BizFinancePoc-style fixed panels, host CSS must clip the outer wrapper and make the package body the only scroll region:
+
+```css
+.advanced-filter-popover {
+  max-height: min(560px, calc(100vh - 160px));
+  overflow: hidden;
+}
+
+.advanced-filter-popover .advanced-filter__body {
+  overflow-y: auto;
+}
+```
 
 ## Compatibility shims
 
