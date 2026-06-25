@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make App Auth"
+  short_description: "Integrate Make App unified login"
+  default_prompt: "Use $make-app-auth to wire unified login, authenticated Make requests, and logout behavior."

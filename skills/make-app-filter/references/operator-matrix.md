@@ -4,7 +4,7 @@ Use this reference when mapping Make field metadata to package operators and val
 
 ## Source of truth
 
-Use backend Record filter docs for what Make Data can accept, and package APIs for what the host UI can safely expose. The backend contract is documented in `../makedsl/references/EntityDataFilterUsage.md`; do not re-create it in host UI code.
+Use backend Record filter docs for what Make Data can accept, and package APIs for what the host UI can safely expose. The backend contract is owned by `makedsl`; read its EntityDataFilterUsage reference when you need the full contract. Do not re-create it in host UI code.
 
 Use package APIs:
 

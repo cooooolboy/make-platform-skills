@@ -6,7 +6,7 @@ Use this reference before finishing package-backed advanced filter work.
 
 Package source:
 
-- `apps/ui/package.json` depends on `@qfei-design/make-filter@^0.1.4` or newer
+- `apps/ui/package.json` depends on `@qfei-design/make-filter@^0.2.2` or newer
 - UI entry imports `@qfei-design/make-filter/styles.css`
 - local advanced-filter shim, if any, imports from `@qfei-design/make-filter`
 - host code does not contain copied operator matrix, CEL compiler/parser, validator, or `AdvancedFilterPanel` clone
@@ -42,6 +42,11 @@ UI behavior:
 - opening with no conditions inserts one default draft condition through `beginDraft`
 - package panel renders inside a host-owned container
 - host Popover uses max height rather than fixed initial height
+- panel follows the BizFinancePoc fixed layout: header top, scrollable condition body middle, footer bottom
+- header and footer remain visible while conditions scroll; they must not scroll with the condition body
+- header remains visible while the body scrolls, with `筛选` on the left and `清空所有` on the right
+- footer remains visible while the body scrolls, with `+ 添加条件` and `+ 添加条件组` on the left and `确认` on the right
+- only the condition body scrolls; the whole Popover content does not become one full-panel scroll surface
 - edits do not reload records before `确认`
 - `确认` commits and closes only when validation passes
 - validation failure marks invalid controls and keeps the popover open
@@ -88,3 +93,5 @@ Service and integration:
 - host CSS forks package internals and breaks future package fixes
 - fixed value controls remain red after the user enters or selects a valid value
 - changing an operator to empty/not-empty leaves an old value error on the row
+- missing fixed top header and bottom footer, or placing header/footer actions inside the scrollable condition body, is a blocker/regression for advanced filter delivery
+- full-panel scroll makes `清空所有`, `+ 添加条件`, `+ 添加条件组`, or `确认` scroll away from the user

@@ -67,6 +67,9 @@ Generated Make App shells must expose the current logged-in user in the top head
 Default pattern:
 
 - show only a 32px circular avatar followed by the current user's plain display name
+- normalize the host auth/current-context response before rendering; a current-context response such as `{ userId, avatar, name }` must display `name` outside the avatar and use `avatar` as the avatar image
+- for display text, prefer `name`, then `userName`, then `displayName`, then `label`; use `userId` only as identity and a last-resort fallback after no human-readable name exists
+- for avatar image, prefer `avatar`, then `avatarUrl`, then `avatarURL`, then `photoURL`
 - use the current user's real avatar image when the auth/user context provides one
 - if no avatar image exists, render a fixed 32px circular fallback avatar with a deterministic random background color selected from a small, readable color palette by user id or display name, centered white text, and the last two characters of the display name; if the display name is shorter than two characters, use the whole display name
 - the fallback background color must differ by user when possible, but remain stable for the same user across renders and reloads; do not use one fixed global fallback color for all users or a per-render `Math.random()` color that changes on refresh
@@ -78,7 +81,7 @@ Default pattern:
 - the dropdown must contain a visible `退出` action
 - additional items such as clear cache, change password, language, or settings are optional only when the host project already has those actions or the user asks for them
 
-Do not fabricate a fake user. If the host auth context has not loaded the current user's name yet, show a small loading/skeleton state or a neutral account placeholder until the real identity is available.
+Do not fabricate a fake user. If the host auth context has not loaded the current user's name yet, show a small loading/skeleton state or a neutral account placeholder until the real identity is available. Do not eagerly render `userId` as both avatar text and display name while `name`, `userName`, `displayName`, or avatar fields are still available in the same context payload.
 
 `makeui` only owns the visual slot, menu item, and interaction surface. The `退出` action handler must come from the host auth integration defined by `make-app-auth`; do not construct logout URLs, clear cookies, or implement auth/session behavior in UI layout code.
 

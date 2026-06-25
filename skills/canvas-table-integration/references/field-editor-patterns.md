@@ -81,7 +81,8 @@ Examples:
 
 Recommended pattern:
 
-- simple text editor
+- host Input / 文本输入框 for single-line text and URL fields; host TextArea / textarea for multi-line text
+- full-cell, non-popup, borderless inline editor; the CanvasTable active edit border is the only editing border
 - submit-style editing
 - `updateVal()` returns the edited string for both display and submit in simple cases
 - URL fields may share the text editor; link rendering belongs in the display/render layer
@@ -102,7 +103,8 @@ Examples:
 
 Recommended pattern:
 
-- numeric input editor
+- host InputNumber / NumberInput / 数字输入框, not a plain text input
+- full-cell, non-popup, borderless inline editor; hide steppers by default with `controls={false}` or the host-library equivalent unless the product explicitly needs stepper controls
 - submit-style editing
 - keep precision and unit behavior in field metadata or field config
 - keep the row value and submit value as a number when the backend expects a number
@@ -130,7 +132,7 @@ Good defaults:
 
 Recommended pattern:
 
-- date picker editor
+- host DatePicker / 日期选择器 for `Date` and `DateTime`; host RangePicker / 日期区间选择器 for `DateRange`
 - often realtime-style editing
 - keep date format driven by field metadata
 - open popup immediately when the editor mounts
@@ -158,11 +160,13 @@ Recommended pattern:
 
 ### Single-select
 
+- host Select / 选择器 using schema `{ label, value }` options
 - often realtime-style
 - selecting a new value may commit immediately
 
 ### Multi-select
 
+- host Select / 多选选择器 with responsive tags and value arrays
 - often submit-style
 - editing may remain open while the user manages multiple selections
 

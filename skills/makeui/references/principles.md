@@ -46,7 +46,7 @@ For generated object-list UI, the shell structure is:
 
 1. left full-height sidebar for module/object navigation
 2. right fixed header with selected object/module name on the left
-3. current logged-in user on the header right as a strict 32px circular avatar plus plain display name; the dropdown containing `退出` appears only after the avatar/name trigger is clicked
+3. current logged-in user on the header right as a strict 32px circular avatar plus plain display name; normalize current-context shapes such as `{ userId, avatar, name }` so avatar/name are used before any `userId` fallback; the dropdown containing `退出` appears only after the avatar/name trigger is clicked
 4. local list toolbar below the header
 5. canvas-table region filling the remaining height
 

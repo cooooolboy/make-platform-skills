@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make DSL"
+  short_description: "Design Make platform DSL schemas"
+  default_prompt: "Use $makedsl to design Make platform app, entity, field, relation, and view YAML."

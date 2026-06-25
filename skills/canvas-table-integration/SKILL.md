@@ -1,17 +1,6 @@
 ---
 name: canvas-table-integration
-description: >-
-  Use when integrating `@qfei-design/canvas-table` into an existing app or page.
-  Covers consumer-side local or virtual tables, public props/methods/events,
-  row-head suffix actions, selection, drag, fixed columns, summary rows, empty
-  states, lightweight `render + TextShape + shape click` interactions, host-side
-  cell-edit architecture, schema-driven Make field editors, `customEdit`,
-  `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`,
-  `editApplyMode: controlled`, attachment editors, and Make field-display
-  columns with value normalization, ExpensePoc-derived field renderers, and
-  overflow-only tooltip behavior. Only supports `@qfei-design/canvas-table`,
-  never UI-library tables. Read package AI docs first, choose Track A, B, or C,
-  use documented public APIs, and do not modify the table library itself.
+description: Use when integrating `@qfei-design/canvas-table` into an existing app or page. Covers consumer-side local or virtual tables, public props/methods/events, row-head suffix actions, selection, drag, fixed columns, summary rows, empty states, lightweight `render + TextShape + shape click` interactions, host-side cell-edit architecture, schema-driven Make field editors, mandatory ExpensePoc-derived cell-edit standards, `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `editApplyMode: controlled`, attachment editors, and Make field-display columns with value normalization, ExpensePoc-derived field renderers, and overflow-only tooltip behavior. Only supports `@qfei-design/canvas-table`, never UI-library tables. Read package AI docs first, choose Track A, B, or C, use documented public APIs, and do not modify the table library itself.
 ---
 
 # canvas-table-integration
@@ -37,6 +26,7 @@ This skill has three tracks:
   - host-side edit controller architecture
   - editor-container patterns
   - field-editor mappings
+  - non-popup / 非弹窗 inline editor chrome: keep only the CanvasTable active edit border; inner input, textarea, number, select, and date triggers must be full-cell and borderless
   - ExpensePoc-derived editable-cell defaults: double-click enters edit, clipped cells scroll fully into view before editing, popup editors open immediately, inline editors fill the active cell, and unchanged values do not call save APIs
   - ExpensePoc-derived popup visibility, empty-value, no-double-border, and attachment-panel visual rules
   - schema field-type mappings for display value vs submit value
@@ -45,6 +35,7 @@ This skill has three tracks:
   - attachment editor integration
 - **Track C: Make field-display integration**
   - schema-driven columns for supported Make field types
+  - shared Make field type registry in `apps/ui/src/lib/make-field-types.ts` or the host equivalent
   - pure value normalization before canvas rendering
   - text / URL / number / date / tag / user / department / attachment / lookup renderers
   - default overflow-only tooltip behavior for text, tags, users, files, and lookup values
@@ -53,20 +44,22 @@ This skill has three tracks:
 Choose the track first. Do not mix a basic table integration request with a full cell-edit architecture refactor unless the user clearly wants the editing workflow.
 If the user says display-only, field type display, or schema field rendering, choose Track C and leave cell editing out unless explicitly requested.
 For new Make App projects or pages that display Make schema records, choose Track C by default even when the user only says "add a table" or "show a list". Use Track A only for `@qfei-design/canvas-table` pages whose columns are not Make schema-driven.
+Hard Track B rule: every CanvasTable cell edit / 单元格编辑 implementation must follow Track B plus `references/make-cell-edit-defaults.md`. Missing borderless full-cell editors, host component-library field editors, immediate popup opening, post-scroll positioning, normalized values, or unchanged-value save skipping is a readiness and delivery blocker; do not report the table as complete.
 
 ## Quick start
 
 1. Confirm this is a consumer-side table integration, not table-library maintenance.
 2. Check package installation and read the package AI docs in the required order below.
 3. Choose exactly one primary track: Track A display table, Track B editable cells, or Track C Make field display. If Make schema fields are in scope, Track C is the default.
-4. For Make schema tables, load and normalize schema fields before initializing the table; build `IColumn[]` plus renderers from the normalized field types.
+4. For Make schema tables, load and normalize schema fields before initializing the table; build `IColumn[]` plus renderers from the normalized field types and the shared field type registry.
 5. Read only the track references from the topic map.
 6. Start from the package recipe/example when available, then adapt with the smallest project-local diff.
 7. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
 8. For Make schema tables, apply the ExpensePoc-derived field renderer defaults. Text-bearing overflow must show ellipsis, and tooltip is enabled by default only for ellipsized overflow or hidden `+N` content; do not require the user to ask for it.
 9. When the object/entity/schema key changes, reset table interaction state and scroll position. Do not carry the previous object's horizontal or vertical scroll into the next object.
-10. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
-11. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
+10. If Track B is in scope, verify the mandatory cell-edit standard before finishing; a non-standard cell editor is not a shippable partial result.
+11. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
+12. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
 
 ## Typical requests
 
@@ -87,6 +80,7 @@ For new Make App projects or pages that display Make schema records, choose Trac
 - 给 canvas table 增加单元格编辑
 - 设计或接入 `customEdit`
 - 复用项目已有输入框 / 下拉 / 日期 / 人员 / 部门 / 附件组件
+- 修复非弹窗单元格编辑出现二次边框、输入框内缩、数字字段不是数字输入框、日期/下拉没有立即打开等问题
 - 让表格 cell editor 的 Make 字段映射与 Drawer 表单保持一致
 - 按 ExpensePoc 默认方式处理双击进入编辑、编辑前滚动到可见、编辑器定位、弹窗左右/上下边界、关闭、保存、回显、回填、回滚
 - 增加文本 / 数字 / 日期 / 选项 / 人员 / 部门 / 附件字段编辑
@@ -98,6 +92,7 @@ For new Make App projects or pages that display Make schema records, choose Trac
 
 - 根据 Make 字段类型生成 canvas table 展示列
 - 新 Make 项目中只要是 schema 驱动的业务表格，默认按当前 ExpensePoc 表格展示基线生成；除非用户明确要求不同展示
+- 新 Make POC 项目中在 `apps/ui/src/lib/make-field-types.ts` 或宿主等价文件维护统一字段类型 registry，表格列、详情展示、表单控件、筛选值编辑器和单元格编辑器都从这里取字段类型语义
 - 把 18 种字段类型按展示族分类处理
 - 默认处理列宽溢出：文本内容超出时显示省略号并展示 tooltip，未超出不展示 tooltip；多值被折叠为 `+N` 时，`+N` tooltip 展示完整列表
 - 按 ExpensePoc 表格默认渲染附件、lookup、下拉标签、人员、部门、日期、金额等字段
@@ -212,59 +207,17 @@ Read:
 
 ## Track A: first-version base integration scope
 
-Use Track A for:
-
-- `basic local table`
-- `virtual remote table`, only when the user explicitly asks for pagination, virtual loading, or paginated backend integration
-- common public `IColumn` / `TableCanvasProps` / instance-method usage
-- stable event-bus wiring
-- default sequence-number row head through `showSN` for every table unless explicitly disabled
-- default hover-revealed open-detail icon through `bodyRowHeadSuffixOptions` for every table unless explicitly disabled
-- optional row selection when the user asks for selection, batch actions, or multi-record operations
-- row drag
-- column drag
-- fixed columns
-- body row-head suffix actions through `bodyRowHeadSuffixOptions`
-- summary rows
-- empty states
-- lightweight `render + TextShape + shape click` business interaction
-
-Do not turn a first-pass integration into a grouped-table or cell-edit project unless the user explicitly wants that deeper path.
+Use Track A for basic local tables, explicitly requested virtual/paginated tables, row-head defaults, optional public table capabilities, and lightweight clickable cell shapes. Do not turn a first-pass integration into grouped table or cell-edit work unless the user explicitly asks for that deeper path. For the detailed workflow and capability checklist, read `references/track-workflows.md`.
 
 ## Track B: second-version cell-edit enhancement scope
 
 Use Track B when the user explicitly needs editable cells or a host-side field-editor system.
 
-This track covers:
-
-- `editType`
-- `customEdit`
-- host-side edit controller design
-- editor-container design
-- `focus()` / `updateVal()` style editor interfaces
-- submit-style vs realtime-style field editors
-- click-outside save/close patterns through `autoClose` and `relatedElements`
-- positioning and scroll-follow behavior for editor overlays
-- value validation, commit, rollback, and cell backfill
-- attachment-field editor integration
-
-This track does **not** require a fixed UI library. Prefer the current project's existing editor components and component library.
-
-For Make schema-driven editable tables, default to the ExpensePoc-proven edit baseline unless the user explicitly asks for a different interaction:
-
-- Make editable cells enter edit on double-click by default. Keyboard/programmatic edit entry may still be supported, but a pointer user must not need a third click after the double-click activation.
-- popup editors such as date, date range, select, user, department, lookup selector, and attachment panel open during the same cell-edit activation; never require an extra click after edit mode starts
-- before mounting or showing the real editor/popup, partially hidden target cells must finish scrolling into the visible body viewport so the active cell and editor anchor are not clipped
-- popup editor triggers inside the active cell are borderless and shadowless; the only blue editing border should be the canvas-table active-cell outline or the attachment popup panel itself
-- inline editors such as text, textarea, number, currency, and percent fill the entire active cell with no extra wrapper border, margin, or outer padding
-- every editor must echo the current cell value on entry using normalized backend value shapes, not formatted display strings
-- all edits use a shared value contract with separate `renderValue`, `submitValue`, and optional `displayValue`
-- in single-field cell editing, every close path must compare normalized old/new values first; unchanged values close without calling save APIs, marking dirty state, or writing table data
-- after edit commit/cancel/rollback, keep the table at the current scrollLeft/scrollTop. Do not reset to the left/top, remount the table, change the table identity key, or call `scrollTo(0, 0)` for a same-object edit result
+This track covers host-side edit controller design, editor containers, `editType` / `customEdit`, commit/cancel behavior, overlay positioning, value validation, rollback, and attachment-field editor integration. It does **not** require a fixed UI library; prefer the current project's existing editor components. For every CanvasTable editable table, the ExpensePoc-proven edit baseline in `references/track-workflows.md` and `references/make-cell-edit-defaults.md` is mandatory. Product-specific editors may vary only when they still satisfy the same lifecycle, value, popup, and no-double-border requirements.
 
 ## Track C: Make field-display integration scope
 
-Use Track C when the task is to show Make platform fields correctly in canvas-table. In new Make App projects, this is the default for every Make schema-driven business table unless the user explicitly asks for a different table style. Keep it display-only: normalize backend values into a small display model, then route by display group to focused renderers. The 18 field types are the current backend contract, but implementation names and folder names may adapt to the host project.
+Use Track C when the task is to show Make platform fields correctly in canvas-table. In new Make App projects, this is the default for every Make schema-driven business table unless the user explicitly asks for a different table style. Keep it display-only: normalize backend values into a small display model, then route by display group to focused renderers. Before writing table-specific column or renderer branches in a new Make POC, create or reuse the shared field type registry described in `references/make-field-display-patterns.md`.
 
 Default grouping:
 
@@ -278,21 +231,12 @@ Default grouping:
 - file: `Make.Field.File`
 - lookup: `Make.Field.Lookup`
 
-Prefer this shape:
-
-- `config/`: schema field -> column config (`width`, `align`, `showEllipsis`, `renderKind`)
-- `renderers/`: canvas shape renderers by display group (`text`, `tag`, `user`, `attachment`, `lookup`)
-- `hooks/`: field option data needed for display, such as department candidates; never fetch per cell
-- `types/`: shared table/display contracts when they are used across modules
-- value adapter: pure functions that return `{ group, kind, text, labels, href, attachments, users, empty }`
-
-This is guidance, not a required folder taxonomy. Preserve an existing project structure when it already separates these responsibilities clearly.
-
 Default Make schema table baseline:
 
 - initialize the table only after runtime schema fields are available; missing schema is a blocking loading/error state, not a reason to infer columns from row keys
 - derive columns from normalized runtime schema fields; do not pass raw remote schema objects or hand-maintain static columns for dynamic Make objects
 - each generated column should retain `fieldType`, `fieldSchema`, and `renderKind` or equivalent metadata for renderer dispatch
+- derive each generated column's `renderKind`, default width, alignment, and multiplicity from the shared field type registry before applying thin business overrides
 - normalize field values once through a pure adapter before canvas rendering
 - route display by field type group, not by business field names, except for explicit business roles such as a primary code link
 - use the ExpensePoc-proven renderer families by default: text/link, tag list, compact user avatar/name list, attachment list, lookup reference text, and safe generic fallback

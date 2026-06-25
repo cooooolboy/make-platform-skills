@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make App Service"
+  short_description: "Design Make App Service APIs and adapters"
+  default_prompt: "Use $make-app-service to implement Make App Service routes, API contracts, and Make data adapters."

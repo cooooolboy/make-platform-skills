@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make CLI"
+  short_description: "Run Make platform CLI resource operations"
+  default_prompt: "Use $makecli to inspect, diff, apply, or manage Make platform resources with makecli."

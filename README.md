@@ -111,7 +111,7 @@ npx skills update make-app-filter
 
 **使用场景**
 - 设计或修改完整筛选能力：高级筛选弹窗、筛选条件组、`且 / 或` 关系、确认提交交互和 CanvasTable 表头“按该字段筛选”入口
-- 接入或升级 `@qfei-design/make-filter@^0.1.4`，并读取包内 `package.ai.json`、`docs/agent-usage.md`、`recipes.json`、`capabilities.json`、`PUBLIC_API.md`
+- 接入或升级 `@qfei-design/make-filter@^0.2.2`，并读取包内 `package.ai.json`、`docs/agent-usage.md`、`recipes.json`、`capabilities.json`、`PUBLIC_API.md`
 - 使用包内 core、React panel、controller、AntD adapter 和 `styles.css`；禁止复制或手写本地筛选模型、操作符矩阵、校验器、CEL compiler/parser 或高级筛选面板
 - 根据 Make 字段类型使用包内筛选操作符和值编辑器
 - 通过包内 `compileListFilter` 把搜索和高级筛选合并为 Service 可消费的 `filter.expression`

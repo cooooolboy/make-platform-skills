@@ -19,10 +19,12 @@ For new Make App projects, any Make schema-driven business table should follow t
 Default structure:
 
 - use `@qfei-design/canvas-table` as the table implementation; this baseline is not for UI-library tables
+- in new Make POC projects, create or reuse `apps/ui/src/lib/make-field-types.ts` as the shared Make field type registry before building table-specific config or renderers
 - wait for runtime schema fields before creating or updating the table columns
 - normalize remote schema variants before the table layer consumes them; handle shapes such as `entity.properties.fields`, `entity.fields`, or the host documented equivalent in a boundary adapter
 - derive `IColumn[]` from normalized runtime schema fields, not from a hand-maintained static column list
 - keep `fieldType`, `fieldSchema`, and `renderKind` or equivalent metadata on each generated column
+- derive `displayGroup`, `renderKind`, default `width`, `align`, multiplicity, and field UI capability hints from the shared registry; do not duplicate field-type string lists inside each table, form, detail, filter, or editor module
 - keep business ordering or primary-link roles as a thin config layer; generic rendering still branches by field type
 - normalize each raw cell value once through a pure field-display adapter before rendering
 - route normalized display groups to focused canvas renderers: `text`, `tag`, `user`, `attachment`, `lookup`, and generic fallback
@@ -65,6 +67,7 @@ Do not initialize a Make schema table from `Object.keys(row)` or temporary gener
 
 Use these folders when the host project does not already have a clearer structure:
 
+- `apps/ui/src/lib/make-field-types.ts`: the shared registry for all current Make field types, including `displayGroup`, `renderKind`, default `width`, `align`, multiplicity, and UI capability hints
 - `config/`: schema-to-column mapping, width, alignment, `renderKind`, `showEllipsis`
 - `renderers/`: canvas shape renderers by display group
 - `hooks/`: preloaded display data, for example department candidates
@@ -96,6 +99,8 @@ The exact type name can change. The important part is that renderers do not pars
 ## Supported Field Types
 
 The current backend supports these 18 field types. Treat this list as the current contract, with a safe fallback for unknown future types.
+
+In new Make POC code, this table should be represented in the shared registry instead of being re-created separately in CanvasTable, detail, form, filter, and editor modules.
 
 | Field type | Group | Expected value formats | Display behavior |
 | --- | --- | --- | --- |
