@@ -51,7 +51,7 @@ packages:
 
 Treat `makecli app deploy` as a code deployment boundary unless the target makecli version is proven to run a stricter publish gate. Do not report a generated App as publish-ready merely because deploy succeeded.
 
-Generated Apps should provide enough project-local scripts and documentation for the agent or CI to run publish-readiness checks before deploy:
+When preparing a generated App for publish, provide enough project-local scripts and documentation for the agent or CI to run publish-readiness checks before deploy:
 
 - install dependencies for `apps`
 - run the workspace build
@@ -59,7 +59,7 @@ Generated Apps should provide enough project-local scripts and documentation for
 - verify `apps/ui/dist` and `apps/service/dist/server.js`
 - run Service contract tests, including auth callback proxy behavior, when tests exist
 
-Generated Service-fronted Apps should provide a project-local `verify:publish` script that runs the publish gate in one command. Keep `check:publish` for build/artifact checks, but do not make it the only release gate.
+For publish-ready Service-fronted Apps, prefer a project-local `verify:publish` script that runs the publish gate in one command. Keep `check:publish` for build/artifact checks, but do not make it the only release gate.
 
 Recommended workspace scripts:
 

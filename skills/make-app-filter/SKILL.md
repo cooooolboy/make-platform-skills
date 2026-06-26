@@ -80,7 +80,7 @@ When working directly in the package repo, use the same root-relative paths. If 
 - Do not send `filter: []`, `filter: {}`, `{ expression: "" }`, blank raw filter strings, or old object-array DSL.
 - Do not filter Make record lists locally. List filtering goes through Service/backend filter APIs.
 - Filter fields come from normalized runtime object/field metadata. Do not read `apps/dsl/**`, copied YAML, row samples, or hardcoded demo data as runtime filter metadata.
-- User and department filter values are identities, not display names. Generated Make App candidate sources use the published UI-Service routes `/api/make/app/users` and `/api/make/app/departments`.
+- User and department filter values are identities, not display names. Candidate sources must use host UI-Service routes such as `/api/users` and `/api/departments` or documented equivalents.
 - Do not source user/department options from field schema `options`, current table rows, local arrays, or display labels. Current applied values may be merged only to keep labels visible while remote candidates load.
 - Backend Record filters support DateRange, File, and Lookup semantics, but the UI may expose a field only when `@qfei-design/make-filter` public APIs support that field/operator combination. If backend docs and package capabilities differ, stop to upgrade/fix the package or report the mismatch; do not hand-write CEL or guess package internals.
 - Unsupported package fields must be hidden from field selectors and header "按该字段筛选"; do not call `openWithField` for unknown fields, invalid field keys, or package-unsupported field/operator combinations.

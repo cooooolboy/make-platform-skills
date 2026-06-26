@@ -1,21 +1,12 @@
 ---
 name: makecli
 description: "Use when the user asks to manage Make platform resources with makecli — create/deploy apps, entities, relations, records, inspect resources, or run makecli CLI commands. Also triggered by requests like \"部署\", \"apply\", \"查看应用\", \"创建记录\", or \"/makecli\". Does not own DSL schema design (use makedsl), frontend UI (makeui), auth (make-app-auth), Service/API code (make-app-service), runtime packaging (make-app-runtime), OCR integration (make-integration), or canvas-table behavior."
-metadata:
-  version: 0.2.3
-  homepage: https://github.com/qfeius/make-platform-skills
 ---
 
 # makecli — Make Platform CLI
 
 makecli is the CLI for the Make agentic development platform.
 It manages Apps, Entities, Relations, and Records via Meta/Data Services.
-
-## Vibe App Bootstrap
-
-For a new vibe App workspace, start with `makecli app init [appKey]`. The generated `AGENTS.md` is the project navigation file and should drive App Contract collection, skill routing, directory layout, and verification.
-
-Do not create remote resources or run `makecli apply` until the generated App Contract is confirmed. After confirmation, use `makedsl` to write DSL under `apps/dsl/`, then run `makecli diff -f apps/dsl` before any apply.
 
 ## Installation
 
@@ -32,8 +23,8 @@ Before executing ANY makecli command, verify the environment:
    - Missing: run the installation commands above
 
 1. Run `makecli configure verify --output=json` to check token status
-   - Not configured or expired: prefer browser OAuth with `makecli login`
-   - Do not ask the user to copy a web token into Make App code or skill output
+   - Not configured: user must run `makecli configure token`
+   - **INTERACTIVE** (masked input) — instruct user to run via `!`
 
 ## Decision Tree
 
@@ -97,70 +88,33 @@ makecli relation list [<name>] --app <app>
 ## Workflow: Environment Configuration
 
 ```bash
-# Step 1: Login through the browser OAuth flow
-makecli login
+# Step 1: Set access token (INTERACTIVE -- user must run via !)
+! makecli configure token
 
-# Step 2: Select a built-in backend environment when needed
-makecli configure set environment dev       # dev | test | production
-
-# Step 3: Override host URLs only for non-preset environments
-makecli configure set meta-server-url https://your-make-host.example.com
-makecli configure set repo-server-url https://your-repo-host.example.com
-makecli configure set auth-server-url https://your-myaccount-host.example.com
-
-# Step 4: Set tenant/operator headers only when the target environment requires them
+# Step 2: Set server URL and headers (if non-default)
+makecli configure set server-url https://your-server.com/api/make
 makecli configure set X-Tenant-ID <tenant>
 makecli configure set X-Operator-ID <operator>
 
 # Verify
-makecli configure get environment
-makecli configure verify
+makecli configure get server-url
 ```
 
 **Profiles:** All commands accept `--profile <name>` (default: "default").
 **Config files:** `~/.make/credentials` and `~/.make/config` (INI format).
-**URL contract:** `meta-server-url` and `repo-server-url` are host origins. The CLI appends `/api/make` automatically and keeps this idempotent if a full URL was already configured.
 
 ## Common Patterns
 
 **From zero to deployed app:**
 ```bash
-# 1. Initialize the local App workspace and follow the generated AGENTS.md
-makecli app init my-app
+# 1. Configure (user runs interactively)
+! makecli configure token
 
-# 2. Login if remote diff/apply/deploy is needed
-makecli login
-
-# 3. Write DSL under apps/dsl (use makedsl skill)
-# 4. Preview schema changes -> apply after user confirms the diff
-makecli diff -f apps/dsl
-makecli apply -f apps/dsl
+# 2. Write DSL (use makedsl skill for schema reference)
+# 3. Preview -> Deploy -> Verify
+makecli diff -f app.yaml
+makecli apply -f app.yaml
 makecli entity list --app MyApp
-
-# 5. After code is generated, run the generated App checks, then deploy committed code
-#    Follow the generated AGENTS.md: install/build, auth audit, and artifact checks
-makecli app deploy                    # default: preview; deploy currently pushes committed code
-makecli app deploy --env production   # requires explicit confirmation
-```
-
-**Deploy preflight and verification:**
-
-Run deploy from the app project root, not from `apps/`, because `makecli app deploy` expects `apps/dsl/app.yaml`.
-
-```bash
-makecli preflight
-git status --short
-git log --oneline -1
-```
-
-`makecli app deploy` currently pushes committed code. If there is no commit, or if required files are uncommitted, commit the intended scope first. Do not assume uncommitted files are included in deploy.
-
-After deploy, verify all three layers:
-
-```bash
-makecli app list --filter key=<appKey> --output=json
-makecli schema --app <appKey>
-makecli diff -f apps/dsl --output=json
 ```
 
 **Inspect remote state:**
@@ -190,7 +144,5 @@ makecli version
 - **Don't skip diff before apply.** Always preview changes first.
 - **Don't use imperative commands for bulk schema setup.** Use YAML + apply instead.
 - **Don't guess CLI flags.** Read `@references/cli-reference.md` if unsure.
-- **Don't make manual token copy the default path.** Use `makecli login`; `configure token` is a legacy/manual fallback only.
-- **Don't put `/api/make` into generated App code because makecli config has it.** CLI config owns host origins; App browser requests still follow the app auth/service contract.
-- **Don't assume `makecli app deploy` replaces the generated App quality gate.** Run the project build, `make-app-auth` published audit, and artifact checks before deploy unless the target makecli version explicitly provides an equivalent strict gate.
+- **Don't run `configure token` or `configure config` via Bash tool.** These are interactive — tell user to run via `!`.
 - **Don't write DSL YAML from memory.** Invoke the `makedsl` skill for schema reference.

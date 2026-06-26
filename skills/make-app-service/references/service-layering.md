@@ -47,16 +47,6 @@ Generated POC Services must not be delivered as a flat `src` directory with rout
 
 ## Route handler rules
 
-Register routes in this order for Service-fronted Apps:
-
-1. public health/config routes
-2. raw/transparent auth and OAuth namespace proxies: `/api/make/auth/**`, `/api/make/oauth/**`
-3. JSON/body parsing for Service-owned business routes
-4. explicit `/api/make/app/**` business routes
-5. fail-closed handler for unmatched `/api/make/**`
-
-Do not place a broad `/api/make/**` gateway passthrough before or after business routes. Auth/OAuth are the only default transparent namespaces; business paths remain explicit Service contracts.
-
 Route handlers should:
 
 - parse and validate path/query/body input
@@ -133,8 +123,7 @@ The Service API may be a local dev proxy or deployed app backend. Preserve the h
 Default guidance:
 
 - keep `/api/health` and `/api/config` public for published App Service access; `/health` may remain for local or k8s-probe compatibility
-- for Make Deploy Service-fronted Apps, mount published auth/oauth namespace proxies under `/api/make/auth/**` and `/api/make/oauth/**`, and Service business APIs under `/api/make/app/**`. Prefix-free `/app/**` and `/auth/**` routes are local compatibility only unless the deploy HTTPRoute exposes them.
-- unmatched `/api/make/**` paths should fail closed with a clear non-secret 404/501 response; do not use them as a fallback gateway proxy
+- for Make Deploy's default route split, mount published browser-facing Service APIs under `/api/**`. Prefix-free `/app/**` and `/auth/**` routes are local compatibility only unless the deploy HTTPRoute exposes them.
 - protect Make-backed `/api/*` routes when the host project has a Service API key or auth middleware
 - for Make-backed record/data routes, forward the established request login context to Make gateway through the adapter; do not replace this with makecli or local credentials
 - keep CORS scoped to documented UI origins in local development
@@ -208,6 +197,6 @@ export const loadConfig = (
 
 `GET /api/config` must expose only public UI config. Do not return `appKey`, Make base URLs, tokens, cookies, service keys, signed URLs, or deployment-internal route details.
 
-For Service-fronted unified-login Apps, route registration should include the published auth/oauth namespace proxy paths (`/api/make/auth/**` and `/api/make/oauth/**`) and business paths (`/api/make/app/**`). If the code also keeps prefix-free local routes, tests must cover the published browser path so UI cannot accidentally call `/app/**` and fall through to the UI static route. Tests must also prove an unknown `/api/make/**` path returns the Service's fail-closed response and does not call make-gateway.
+For Service-fronted unified-login Apps, route registration should include the published auth proxy path (`/api/auth/**`) and business paths (`/api/app/**` or the documented `/api/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route.
 
 If the task is to change `apps/service/src/config.ts` structure for port, build, start, or runtime artifact reasons, use `make-app-runtime`.

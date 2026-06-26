@@ -1,9 +1,6 @@
 ---
 name: makedsl
 description: Use when designing or generating Make platform DSL YAML — defining apps, entities, fields, relations, views, or record schemas. Also triggered by requests like "建模", "建表", "加字段", "定义关联", or "生成 DSL". Does not deploy resources (use makecli), build frontend UI (makeui), implement Service/API code (make-app-service), handle auth (make-app-auth), runtime packaging (make-app-runtime), OCR integration (make-integration), or canvas-table behavior.
-metadata:
-  version: 0.2.2
-  homepage: https://github.com/qfeius/make-platform-skills/makedsl
 ---
 
 # makedsl usage
@@ -11,20 +8,6 @@ Use this skill when you need to  design or generate dsl for make platform or mak
 make platform 从 kubernetes 和 ansible 中借鉴了设计思路, 业务的模型通过 DSL 建模定义, 
 然后通过 DataAPI 来对数据进行 CRUD-LS. 
 生成的 DSL(yaml) 文件应该通过 `makecli` 提交到 make platform (make 开发者平台)
-
-## Vibe App Modeling Workflow
-
-When working inside a `makecli app init` workspace, model from the confirmed App Contract in `apps/docs/PRD.md`.
-
-1. Identify the App, core entities, fields, relations, and default views from the App Contract.
-2. Write DSL files under `apps/dsl/` with stable English keys and user-facing Chinese names when appropriate.
-3. Keep DSL as a deployment input only; UI and Service runtime should load schema from Make platform APIs or host Service APIs.
-4. Before remote changes, use `makecli diff -f apps/dsl` and summarize create/update/delete effects for user confirmation.
-5. Apply only after confirmation, then verify with `makecli schema`, entity/relation list commands, or another diff.
-
-## App ownership key
-
-For Entity and Relation DSL in generated Make App workspaces, use `appKey: <appKey>` as the ownership field. Do not generate the legacy `app: <Make.App>` field. If older examples or existing files use `app:`, migrate them to `appKey:` before running `makecli diff` or `makecli apply`.
 
 ## Runtime Boundary
 
@@ -94,7 +77,7 @@ properties:
 key: <KEY> # 仅英文字符、数字、下划线, 长度 2-20, 创建后不可更新
 name: String # 必填, 用户可见的展示名称, 允许中英文数字下划线, 长度 2-20
 type: Make.Entity
-appKey: <Make.App key>
+app: <Make.App>
 meta:
   version: SemanticVersion
 properties:
@@ -118,7 +101,7 @@ properties:
 key: project
 name: 项目
 type: Make.Entity
-appKey: MatrixProject
+app: <Make.App>
 meta:
   version: 1.0.0
 properties:
@@ -143,7 +126,7 @@ properties:
 key: task
 name: 任务
 type: Make.Entity
-appKey: MatrixProject
+app: <Make.App>
 meta:
   version: 1.0.0
 properties:

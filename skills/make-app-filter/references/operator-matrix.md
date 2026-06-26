@@ -76,8 +76,8 @@ Hide package-unsupported fields from field selectors and hide header "按该字�
 
 User and department selectors must use remote candidate sources:
 
-- users: `GET /api/make/app/users?keyword=&page=&size=`
-- departments: `GET /api/make/app/departments?keyword=&page=&size=`
+- users: `GET /api/users?keyword=&page=&size=` or host equivalent
+- departments: `GET /api/departments?keyword=&page=&size=` or host equivalent
 
 Pass normalized options through package `candidateSources`:
 

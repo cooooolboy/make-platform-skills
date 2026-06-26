@@ -4,28 +4,15 @@
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--env` | Backend environment preset: `dev`, `test`, or `production` | `[settings] environment` or `dev` |
-| `--meta-server-url` | Meta/Data gateway host origin. CLI appends `/api/make` automatically | profile config or env preset |
-| `--repo-server-url` | Code repository service host origin. CLI appends `/api/make` automatically | profile config or env preset |
-| `--profile` | Credentials/config profile | `default` |
+| `--server-url` | Meta Server base URL | config value or `https://dev-make.qtech.cn/api/make` |
 
-URL values are host origins such as `https://dev-make.qtech.cn`. If a user already configured a full URL ending in `/api/make`, the CLI keeps it idempotent and does not append the prefix twice.
+Most subcommands also accept `--profile <name>` (default: `"default"`).
 
 ---
 
-## login
-
-```
-makecli login [--timeout <duration>] [--no-open-browser] [--profile <name>] [--env dev|test|production]
-```
-
-Browser OAuth login. The command discovers the active environment's auth server, registers a temporary public client, opens the browser, receives the loopback callback, exchanges the code, and saves the access token to `~/.make/credentials`.
-
-Use this as the default authentication path. Do not ask users to copy web tokens into generated App code.
-
 ## configure
 
-Manages credentials (`~/.make/credentials`) and config (`~/.make/config`). Prefer `makecli login` for credentials. Use `configure` for environment, host overrides, tenant/operator headers, or emergency/manual token setup.
+Manages credentials (`~/.make/credentials`) and config (`~/.make/config`). Both files use INI format with `[profile]` sections, permissions 0600.
 
 ### configure token
 
@@ -33,9 +20,9 @@ Manages credentials (`~/.make/credentials`) and config (`~/.make/config`). Prefe
 makecli configure token [--profile <name>]
 ```
 
-Legacy/manual token prompt. Masked input. Empty input preserves current value.
+Interactive prompt for access token (JWT). Masked input (last 4 chars visible). Empty input preserves current value.
 
-Do not use this as the normal Vibe App path; prefer `makecli login`.
+**INTERACTIVE** — cannot be run by agent. User must run via `!`.
 
 ### configure config
 
@@ -43,7 +30,7 @@ Do not use this as the normal Vibe App path; prefer `makecli login`.
 makecli configure config [--profile <name>]
 ```
 
-Interactive prompts for profile config values: `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, and `X-Operator-ID`.
+Interactive prompts for: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
 
 **INTERACTIVE** — cannot be run by agent. User must run via `!`.
 
@@ -53,13 +40,7 @@ Interactive prompts for profile config values: `meta-server-url`, `repo-server-u
 makecli configure set <key> <value> [--profile <name>]
 ```
 
-Non-interactive. Valid profile keys: `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, `X-Operator-ID`.
-
-Special global key:
-
-```
-makecli configure set environment dev|test|production
-```
+Non-interactive. Valid keys: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
 
 ### configure get
 
@@ -67,7 +48,7 @@ makecli configure set environment dev|test|production
 makecli configure get <key> [--profile <name>]
 ```
 
-Reads a single config value. Supports the profile keys above and global `environment`.
+Reads a single config value. Valid keys: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
 
 ### configure verify
 
@@ -75,7 +56,7 @@ Reads a single config value. Supports the profile keys above and global `environ
 makecli configure verify [--output table|json] [--profile <name>]
 ```
 
-Verify that the current profile has a valid token for the selected environment. If it fails, run `makecli login` for that profile/env.
+Verify that the current profile has a valid token. Use this to check environment readiness before running other commands.
 
 ---
 
@@ -104,30 +85,18 @@ makecli app list [--page <n>] [--size <n>] [--output table|json] [--profile <nam
 ### app init
 
 ```
-makecli app init [appKey]
+makecli app init <folder> [--provider <name>]
 ```
 
-- Optional `appKey` also acts as the target directory. Without it, the current directory name is used.
-- Writes local scaffold files such as `CLAUDE.md`, `AGENTS.md`, `apps/dsl/app.yaml`, and `.gitignore`.
-- Idempotent for existing files and initializes git when needed. It does not create remote resources or commit.
+- `folder`: required, must exist
+- `--provider`: `anthropic` (CLAUDE.md), `openai` (AGENTS.md), `google` (GEMINI.md), `cursor` (.cursorrules). Default: `anthropic`
+- Fails if target file already exists
 
 ### app delete
 
 ```
 makecli app delete <name> [--profile <name>]
 ```
-
-### app deploy
-
-```
-makecli app deploy [--env preview|production] [--yes] [--force] [--profile <name>]
-```
-
-- Default target is `preview`.
-- `production` requires explicit confirmation unless `--yes` is supplied in a non-interactive flow.
-- Must run from the App project root with `apps/dsl/app.yaml`.
-- Requires a clean git worktree and at least one commit.
-- Verifies the App exists in Meta before preparing repositories and pushing code.
 
 ---
 

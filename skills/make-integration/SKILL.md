@@ -35,15 +35,14 @@ Before running OCR:
 
 2. Check the selected profile.
    - Run `makecli configure verify --profile <profile> --output=json`
-   - If not configured or expired, tell the user to run browser login:
-     `makecli login --profile <profile>`
-   - If the token is invalid or missing, stop and ask the user to refresh makecli credentials through `makecli login`. Do not recognize, extract, infer, correct, or complete invoice content outside makecli.
+   - If not configured, tell the user to run the interactive setup:
+     `! makecli configure token --profile <profile>`
+   - If the token is invalid or missing, stop and ask the user to configure makecli credentials. Do not recognize, extract, infer, correct, or complete invoice content outside makecli.
 
-3. Check the request environment from makecli.
-   - Run `makecli configure get environment`
-   - If a profile overrides the host, inspect `makecli configure get meta-server-url --profile <profile>`.
-   - Prefer the active makecli environment/profile instead of hard-coding an environment URL.
-   - `meta-server-url` is a host origin; makecli appends `/api/make` automatically.
+3. Check the request base URL from makecli.
+   - Run `makecli configure get server-url --profile <profile>`
+   - Prefer using the profile-configured server URL instead of hard-coding an environment URL.
+   - If the profile has no server URL, makecli uses its own default base URL.
 
 4. Check the input file.
    - Supported extensions: `.pdf`, `.ofd`, `.png`, `.jpg`, `.jpeg`
@@ -111,7 +110,7 @@ When reporting results to the user:
 ### Failure handling
 
 - `API 错误 [990300403]: token验证失败`
-  - The token is invalid for the selected environment. Ask the user to run `makecli login --profile <profile>` for the active environment, then retry OCR through makecli.
+  - The token is invalid for the selected environment. Ask the user to configure a token valid for that environment, then retry OCR through makecli.
 - `API 错误 [990300404]: 服务不存在`
   - The selected makecli server URL likely has not deployed the OCR route. Check the profile server URL or confirm deployment.
 - `unsupported file extension`
@@ -124,7 +123,7 @@ When reporting results to the user:
 ### Hard rules
 
 - Do not write user-provided tokens into repository files.
-- Prefer `makecli login`; if the user provides a one-off token for emergency/manual use, keep it in a temporary config directory.
+- Prefer temporary config directories when the user provides a one-off token.
 - Clean up temporary credentials and OCR result files after the run unless the user asks to keep them.
 - Never print, commit, or duplicate tokens.
 - Do not upload local files unless the user provided or approved them.

@@ -56,7 +56,7 @@ Local preview exception: a Service-fronted App may provide a Service-only local 
 - Do not generate browser-side `unifiedLogin: false`, `accessToken`, `token`, `tokenProvider`, local credential loading, `VITE_MAKE_AUTH_MODE=token`, or equivalent token-mode switches.
 - Service-only local preview may use makecli credentials only behind `MAKE_APP_LOCAL_PREVIEW=true`; current-context/runtime-view must be explicit preview responses and business requests must attach the token only inside Service.
 - Do not silently downgrade generated Apps from unified login because local OAuth prerequisites are missing; report the blocker.
-- Published/vibe Apps must be auth-ready before reporting success: the agent or platform performs the auth checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.
+- Before reporting publish/login readiness, verify the auth path with the agent or platform checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.
 - For Service-fronted Apps, `/api/make/auth/**` and `/api/make/oauth/**` are required namespace-level Service proxy contracts under the published App Service prefix, not optional convenience routes or endpoint-by-endpoint allowlists.
 - Do not implement auth readiness by adding a broad `/api/make/**` passthrough. Only auth/oauth are default transparent namespaces; Service-owned business requests stay under explicit `/api/make/app/**` routes, and unknown `/api/make/**` paths fail closed.
 - For Service-fronted Apps, Service must preserve the App host context for every make-gateway call: derive `X-Forwarded-Host` from inbound `Host`, do not trust client-supplied `X-Forwarded-Host`, add `X-Forwarded-Proto`, and share the same helper for auth and business proxy requests.
@@ -74,7 +74,7 @@ Local preview exception: a Service-fronted App may provide a Service-only local 
 4. Read `references/service-fronted-mode.md` when the App keeps a Service layer between UI and make-gateway.
 5. Read `references/request-adapter.md` whenever generating or reviewing Make backend requests.
 6. Keep auth bootstrap thin. Business features must consume the project Make API adapter and auth state, not auth internals.
-7. For published or vibe Apps, verify auth readiness before claiming the app is usable: current-context route, unified redirect, session callback, cookie-preserving business requests, and Service-fronted auth proxy when applicable.
+7. Before claiming publish/login readiness, verify the auth path: current-context route, unified redirect, session callback, cookie-preserving business requests, and Service-fronted auth proxy when applicable.
 8. Run `scripts/audit-auth-contract.mjs <project-root> --published` for generated Apps when a project tree is available; use `--mode service-fronted` when the App keeps a Service layer.
 9. When changing generated code, add or update tests for the touched auth path: unauthenticated session, expired session, 403, logout, unified-login redirect, callback proxy, or business-request 401 handling.
 

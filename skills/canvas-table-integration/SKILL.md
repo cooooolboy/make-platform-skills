@@ -242,7 +242,7 @@ Default Make schema table baseline:
 - use the ExpensePoc-proven renderer families by default: text/link, tag list, compact user avatar/name list, attachment list, lookup reference text, and safe generic fallback
 - number, currency, and percent renderers must only format finite parsed numbers; blank, invalid, `NaN`, `Infinity`, or unparseable values render the empty placeholder `-` and must never display `NaN`
 - apply ellipsis plus overflow-only tooltip by default: visible text/tag/user/lookup labels must show ellipsis when truncated and get tooltip only when ellipsized; attachment/tag/user/lookup `+N` badges get a tooltip with the full hidden value list
-- keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same published UI-Service candidate contract as forms: `GET /api/make/app/users?keyword=&page=&size=` and `GET /api/make/app/departments?keyword=&page=&size=`, normalized to `userId/userName` and `departmentId/departmentName`
+- keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same default UI-Service candidate contract as forms: `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, or host equivalent routes, normalized to `userId/userName` and `departmentId/departmentName`
 - treat object/entity/schema key as table identity. On identity change, rebuild or reset the table so scrollLeft/scrollTop, active edit state, selection, hover/suffix state, and header popups do not leak from the previous object
 - preserve row defaults: `showSN` sequence numbers plus hover-revealed detail entry through `bodyRowHeadSuffixOptions`
 
