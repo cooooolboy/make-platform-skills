@@ -129,6 +129,9 @@ if (inferredMode === 'service-fronted') {
   if (hasBroadServiceAppBusinessPassthrough(serviceText)) {
     failures.push('service_fronted_app_catch_all_passthrough: Service-fronted App must not proxy broad /api/make/app/** traffic to raw Make data/meta paths; keep Service-owned business routes explicit');
   }
+  if (published && hasPublishedPreviewAuthShadow(serviceText)) {
+    failures.push('local_preview_auth_shadow: published /api/make/auth/current-context or runtime-view must not be served by local preview handlers; gate preview routes with MAKE_APP_LOCAL_PREVIEW=true and let published auth paths proxy to make-gateway');
+  }
   if (!/\/api\/make\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
     warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/make/app/** or UI /app/** calls');
   }
@@ -417,6 +420,51 @@ function hasBroadServiceAppBusinessPassthrough(text) {
   const rewritesToRawMakePath = /replace\(\s*[\s\S]{0,160}\/api\/make\/app[\s\S]{0,160}\/(?:data|meta)/i.test(text)
     || /proxyMakeBusiness\([\s\S]{0,160}replace\(\s*[\s\S]{0,160}\/api\/make\/app/i.test(text);
   return hasBroadAppRoute && rewritesToRawMakePath;
+}
+
+function hasPublishedPreviewAuthShadow(text) {
+  if (!/(localPreview\s*:\s*true|local-preview-user|local-preview|authMode\s*:\s*[`'"]token[`'"])/.test(text)) {
+    return false;
+  }
+
+  return hasUnguardedPreviewPathHandler(text, '/api/make/auth/current-context')
+    || hasUnguardedPreviewPathHandler(text, '/api/make/auth/runtime-view');
+}
+
+function hasUnguardedPreviewPathHandler(text, pathLiteral) {
+  const escapedPath = escapeRegExp(pathLiteral);
+  const ifRoute = new RegExp(
+    String.raw`if\s*\((?<condition>[^)]*${escapedPath}[^)]*)\)\s*\{(?<body>[\s\S]{0,360}?(?:localPreview|local-preview|previewCurrentContext|previewRuntimeView)[\s\S]{0,360}?)\}`,
+    'gi'
+  );
+  let match;
+  while ((match = ifRoute.exec(text))) {
+    const block = `${match.groups?.condition ?? ''}\n${match.groups?.body ?? ''}`;
+    if (!isPreviewRouteGated(block)) {
+      return true;
+    }
+  }
+
+  const routeQuote = '[`\'"]';
+  const mountedRoute = new RegExp(
+    String.raw`(?:app|router|server)\.(?:get|use|all|any)\s*\(\s*${routeQuote}${escapedPath}${routeQuote}[\s\S]{0,360}(?:localPreview|local-preview|previewCurrentContext|previewRuntimeView)`,
+    'gi'
+  );
+  while ((match = mountedRoute.exec(text))) {
+    const before = text.slice(Math.max(0, match.index - 260), match.index);
+    const block = `${before}\n${match[0]}`;
+    if (!isPreviewRouteGated(block)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isPreviewRouteGated(text) {
+  return /MAKE_APP_LOCAL_PREVIEW\s*={2,3}\s*[`'"]true[`'"]/.test(text)
+    || /process\.env\.MAKE_APP_LOCAL_PREVIEW\s*={2,3}\s*[`'"]true[`'"]/.test(text)
+    || /isLocalPreviewEnabled\s*\(\s*\)/.test(text);
 }
 
 function escapeRegExp(value) {

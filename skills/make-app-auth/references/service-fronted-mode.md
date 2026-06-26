@@ -33,6 +33,27 @@ In local preview, Service should handle:
 
 This is a development-only convenience. Published runtime must keep the deployed chain below and must fail closed if local preview mode is enabled in production.
 
+The preview auth routes must be strictly gated. Do not register or mount preview `current-context` / `runtime-view` handlers unless `MAKE_APP_LOCAL_PREVIEW=true`, or guard them inline before returning any preview response. When the flag is absent or false, `/api/make/auth/current-context` and `/api/make/auth/runtime-view` must fall through to the make-gateway auth proxy.
+
+Safe shape:
+
+```ts
+if (isLocalPreviewEnabled() && url.pathname === '/api/make/auth/current-context') {
+  return localPreviewCurrentContext();
+}
+if (url.pathname.startsWith('/api/make/auth/')) {
+  return proxyMakeAuth(request, stripBrowserMakePrefix(url));
+}
+```
+
+Unsafe shape:
+
+```ts
+// Wrong: this shadows the published auth proxy.
+app.get('/api/make/auth/current-context', localPreviewCurrentContext);
+app.use('/api/make/auth', proxyMakeAuth);
+```
+
 ## Deployed Chain
 
 Browser calls stay same-origin under `gatewayBaseUrl=/api/make`.
@@ -57,6 +78,8 @@ Do not publish a Service-fronted unified-login App without namespace-level auth 
 Do not drop the `/make` segment from browser-facing Service-fronted auth routes. The current platform entry uses `/api/make/auth/**` and `/api/make/oauth/**` for unified login, while Service-to-gateway upstream calls still use internal `/make/**` paths without the external `/api` prefix.
 
 Do not fix auth proxy gaps by adding a broad `/api/make/** -> /make/**` passthrough. Auth and OAuth are the default transparent namespaces; Service-owned business APIs stay under explicit `/api/make/app/**` adapters, and unmatched `/api/make/**` paths should fail closed.
+
+Published `/api/make/auth/current-context` must be the make-gateway response. It may return an authenticated context or `401 + authorizationUrl`, but it must not return a local preview context such as `localPreview: true`, `grantVersion: "local-preview"`, `authMode: "token"`, or `userId: "local-preview-user"`.
 
 The Service auth proxy must forward browser auth context:
 
@@ -158,6 +181,7 @@ These checks belong to the agent, generated tests, CI, or publish pipeline. Do n
 - Browser business requests go to Service-owned `/api/make/app/**` paths.
 - Browser auth and OAuth requests go to namespace proxies under `/api/make/auth/**` and `/api/make/oauth/**`.
 - `/api/make/auth/current-context` is reachable from the published domain and returns a challenge or authenticated context, not a Service 404.
+- In published mode, `/api/make/auth/current-context` and `/api/make/auth/runtime-view` are not served by local preview handlers and do not return `localPreview`, `local-preview-user`, `grantVersion: "local-preview"`, or `authMode: "token"`.
 - `/api/make/auth/session/complete` and at least one future/unknown auth-namespaced path use the same proxy mapping instead of a hand-written endpoint list.
 - UI uses `createMakeAppAuth({ gatewayBaseUrl: "/api/make", unifiedLogin: true, apiAuthRedirect: true })`, then calls `auth.api("/app/**")` for Service-owned business routes.
 - Service calls internal business routes such as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`.

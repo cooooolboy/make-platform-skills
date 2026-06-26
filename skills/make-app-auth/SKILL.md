@@ -55,6 +55,7 @@ Local preview exception: a Service-fronted App may provide a Service-only local 
 - Browser code cannot read `~/.make/credentials`.
 - Do not generate browser-side `unifiedLogin: false`, `accessToken`, `token`, `tokenProvider`, local credential loading, `VITE_MAKE_AUTH_MODE=token`, or equivalent token-mode switches.
 - Service-only local preview may use makecli credentials only behind `MAKE_APP_LOCAL_PREVIEW=true`; current-context/runtime-view must be explicit preview responses and business requests must attach the token only inside Service.
+- Local preview auth routes must not shadow published auth proxy routes. In published runtime, `/api/make/auth/current-context` and `/api/make/auth/runtime-view` must reach make-gateway through the auth namespace proxy and must not return `localPreview`, `local-preview-user`, `authMode: "token"`, or other preview context.
 - Do not silently downgrade generated Apps from unified login because local OAuth prerequisites are missing; report the blocker.
 - Before reporting publish/login readiness, verify the auth path with the agent or platform checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.
 - For Service-fronted Apps, `/api/make/auth/**` and `/api/make/oauth/**` are required namespace-level Service proxy contracts under the published App Service prefix, not optional convenience routes or endpoint-by-endpoint allowlists.
@@ -97,7 +98,7 @@ node skills/make-app-auth/scripts/audit-auth-contract.mjs <project-root> --publi
 node skills/make-app-auth/scripts/audit-auth-contract.mjs <project-root> --mode service-fronted --published
 ```
 
-The audit is auth-scoped. It checks unified-login readiness, raw `/api/make` fetch usage, Service-fronted `/api/make/auth/**` and `/api/make/oauth/**` namespace proxy presence, broad `/api/make/**` passthrough risk, and obvious direct-vs-Service route mismatches. It does not verify schema rendering or UI blank-page behavior.
+The audit is auth-scoped. It checks unified-login readiness, raw `/api/make` fetch usage, Service-fronted `/api/make/auth/**` and `/api/make/oauth/**` namespace proxy presence, local-preview auth shadowing, broad `/api/make/**` passthrough risk, and obvious direct-vs-Service route mismatches. It does not verify schema rendering or UI blank-page behavior.
 
 Audit expectations:
 

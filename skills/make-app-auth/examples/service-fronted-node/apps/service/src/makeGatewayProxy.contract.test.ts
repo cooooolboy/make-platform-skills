@@ -4,9 +4,11 @@ import { handleRequest } from './routes';
 
 export async function testSessionCompleteProxyPreservesRedirectContract(): Promise<void> {
   const originalFetch = globalThis.fetch;
+  const originalPreview = process.env.MAKE_APP_LOCAL_PREVIEW;
   let capturedUrl = '';
   let capturedInit: RequestInit | undefined;
   const calls: Array<{ url: string; init?: RequestInit }> = [];
+  delete process.env.MAKE_APP_LOCAL_PREVIEW;
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     capturedUrl = String(input);
@@ -37,6 +39,8 @@ export async function testSessionCompleteProxyPreservesRedirectContract(): Promi
     ));
 
     assert(contextResponse.status === 200, 'current context proxy must preserve gateway status');
+    const contextPayload = await contextResponse.clone().json();
+    assert(contextPayload.data?.localPreview !== true, 'published current-context must not return local preview context');
     const contextCall = calls[0];
     assert(contextCall.url.endsWith('/make/auth/current-context'), 'current context proxy must call internal make-gateway auth path');
     const contextHeaders = contextCall.init?.headers as Headers | undefined;
@@ -66,6 +70,7 @@ export async function testSessionCompleteProxyPreservesRedirectContract(): Promi
     assert(headers?.get('x-forwarded-proto') === 'https', 'session complete proxy must add X-Forwarded-Proto');
   } finally {
     globalThis.fetch = originalFetch;
+    restoreEnv('MAKE_APP_LOCAL_PREVIEW', originalPreview);
   }
 }
 
