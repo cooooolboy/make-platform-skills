@@ -31,6 +31,8 @@ Default structure:
 - keep option, user, department, file, and lookup candidate loading in hooks/data sources; never fetch from a cell renderer
 - for generated Make App table editing/search selectors, use the host candidate source. The ExpensePoc default UI-Service contract is `GET /api/users?keyword=&page=&size=` -> `{ users, total }` and `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`; if the host documents a different route, use its equivalent route while preserving the same response semantics. Normalize results before passing options to table editors
 - keep `showSN` sequence numbers and the hover-revealed row detail entry through `bodyRowHeadSuffixOptions`
+- create or update the CanvasTable after schema/columns are ready and the host has real size; do not wait for `records.length`, `rows.length`, or data totals to become positive. Empty rows still render headers and the configured empty state after `setData([])`
+- keep latest rows in the table host/controller and call `setData(latestRows)` after the CanvasTable instance is created, because backend rows can arrive before `ResizeObserver` or schema readiness finishes creating the instance
 - treat object/entity/schema key as table identity. Switching to another object must reset scroll to the top-left and clear old table interaction state; data refresh within the same object may preserve scroll
 
 Default visual rules:
@@ -59,7 +61,9 @@ Before constructing `CanvasTableComponent` or rendering a project wrapper around
 4. prepare a render registry by display group
 5. keep a pure value adapter available to every render callback
 6. pass `showSN` and `bodyRowHeadSuffixOptions` unless explicitly disabled
-7. on object/entity/schema identity change, reset or recreate the canvas-table instance before presenting the new object's table
+7. create/update the table when schema/columns and host size are ready, not when `records.length` or `rows.length` is positive
+8. after creating the CanvasTable instance, immediately call `setData(latestRows)`; use `setData([])` when rows are empty so headers and empty state render
+9. on object/entity/schema identity change, reset or recreate the canvas-table instance before presenting the new object's table
 
 Do not initialize a Make schema table from `Object.keys(row)` or temporary generic text columns while schema is loading. Show loading/error/empty chrome around the canvas host until schema is ready.
 
@@ -129,6 +133,7 @@ Use tolerant extraction. Do not fail the cell because one key is absent.
 
 - generic object label priority: `label`, `name`, `title`, `displayName`, `value`
 - numeric values: accept finite numbers directly; for trimmed numeric strings, parse to a number first and accept only when `Number.isFinite(parsed)` is true. Treat `null`, `undefined`, blank strings, `NaN`, `Infinity`, and unparseable strings as empty. Do not render `Number(value)` directly.
+- currency display must normalize preformatted amount strings in a boundary adapter before canvas rendering. For values such as `¥1,000.00`, `￥1,000.00`, `$1,000.00`, or `1,000.00`, strip currency symbols, thousands separators, and whitespace, then parse the cleaned string and accept it only when `Number.isFinite(parsed)` is true. `Number('¥1,000.00')` must not be used because it produces `NaN`; render `-` when the cleaned value is still not finite.
 - currency and percent display may apply symbols, separators, precision, or `%` only after finite validation. If a host returns preformatted numeric strings, normalize them in a boundary adapter first; renderers still require finite numeric output before formatting.
 - select labels: `field.properties.options[]` with `{ value, label }`, fallback to raw value
 - user candidate API results: value/id is `userId`, label is `userName`, optional avatar is `avatar`
@@ -180,10 +185,14 @@ Add focused tests before or with implementation:
 
 - field type -> display group/kind mapping covers all 18 supported types
 - table initialization waits for schema fields and never infers Make columns from row keys
+- table initialization gates on schema/columns and real host size, not on `records.length`, `rows.length`, or data totals
+- rows arriving before the table instance is ready are applied after creation by calling `setData(latestRows)`
+- empty rows / `setData([])` still render table header plus `emptyStateOptions` / 暂无数据 state
 - Make schema table defaults include `showSN` and `bodyRowHeadSuffixOptions` unless explicitly disabled
 - object switch resets horizontal and vertical scroll instead of reusing the previous object's scrollLeft/scrollTop
 - overflow tooltips are default behavior, but only appear when text/tag/user/attachment/lookup content is ellipsized, clipped, or hidden behind `+N`; text-bearing overflow must visibly show ellipsis before tooltip
 - number/currency/percent values cover `0`, negative, decimal, numeric string, `null`, empty string, non-numeric string, `NaN`, and `Infinity`, and never render `NaN`
+- currency normalization tests include preformatted strings such as `¥1,000.00`, `￥1,000.00`, `$1,000.00`, and `1,000.00`, which should normalize to finite number `1000` before formatting
 - backend variants: primitive, object, array, JSON string, empty value
 - select option label fallback
 - user backend shapes with `name`, `userName`, `recordID`, `userId`, and avatar keys
@@ -201,11 +210,14 @@ Mock canvas-table shapes in unit tests when the host test environment cannot dra
 - Do not parse backend values inside every column render callback. Normalize once through the display adapter.
 - Do not initialize Make schema tables before schema fields are available.
 - Do not infer Make columns from returned row object keys.
+- Do not gate CanvasTable creation on row count. Empty rows are valid and must still render headers plus the empty state.
+- Do not drop rows that arrive before the table instance is ready. Reapply the latest rows with `setData(latestRows)` after instance creation.
 - Do not carry scroll position or object-scoped interaction state across different object/entity/schema keys.
 - Do not branch generic display behavior by business field name. Field names are only for explicit business roles, such as a claim number link.
 - Do not let custom renderers fetch data per cell.
 - Do not call user or department candidate APIs inside canvas renderers. Load candidates at the page/table-controller layer and pass normalized options into editors or display adapters.
 - Do not call `Number(value).toLocaleString()` or similar formatting without first checking `Number.isFinite`.
+- Do not call `Number('¥1,000.00')` or direct `Number(rawCurrencyText)` on formatted currency strings. Strip currency symbols and thousands separators in the boundary adapter first, then perform finite-number validation.
 - Do not flatten select, user, department, file, or lookup values into plain text when the schema type supports richer default rendering.
 - Do not show tooltip for every cell unconditionally. Tooltip is for visible ellipsis, unavoidable non-text clipping, or `+N` hidden values.
 - Do not render raw JSON wrapper text when a label can be extracted.

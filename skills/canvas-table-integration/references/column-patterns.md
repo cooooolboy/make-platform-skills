@@ -97,6 +97,8 @@ For editable number-like fields, keep row and submit values numeric, then format
 
 For display-only number, currency, and percent columns, format only after a finite-number check. If parsing fails, render the empty placeholder instead of `NaN`, `Infinity`, or exception text.
 
+For preformatted currency strings such as `¥1,000.00`, `￥1,000.00`, `$1,000.00`, or `1,000.00`, clean the value in a boundary adapter before the column render path: remove currency symbols, thousands separators, and whitespace, then parse the cleaned value and require `Number.isFinite(parsed)`. Do not call `Number('¥1,000.00')` or direct `Number(rawCurrencyText)` inside the renderer.
+
 ## 6. Use `render` only when necessary
 
 Use `render` when you need:

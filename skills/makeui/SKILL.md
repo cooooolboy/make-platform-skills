@@ -1,11 +1,11 @@
 ---
 name: makeui
-description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, current-user header menu, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, and Make advanced filters to use `@qfei-design/make-filter` through `make-app-filter`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, canvas-table internals, or advanced-filter package internals.
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, current-user header menu, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, custom form field controlled props, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, and Make advanced filters to use `@qfei-design/make-filter` through `make-app-filter`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, canvas-table internals, or advanced-filter package internals.
 ---
 
 # makeui
 
-Current skill revision: 0.3.45.
+Current skill revision: 0.3.46.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
@@ -22,11 +22,12 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 7. For a new Make POC UI, use the ExpensePoc-style componentized source tree by default: `src/pages`, `src/components`, `src/hooks`, `src/lib/service-api`, `src/router`, and `src/types`, with complex table/workflow components split into nested `config`, `editing`, `editors`, `hooks`, `renderers`, and `types` modules.
 8. For a new Make POC UI, create a shared Make field type registry at `apps/ui/src/lib/make-field-types.ts` or the host project's established equivalent before implementing field-driven form, detail, table, filter, or editor behavior. The registry must cover all current `Make.Field.*` types and expose display group, render kind, default width, alignment, multiplicity, and control/display hints.
 9. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
-10. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
-11. If filtering, advanced filtering, table filtering, or header filtering is requested or already present, route the integrated filtering behavior to `make-app-filter`; `makeui` only places the toolbar trigger area and preserves the table region needed by CanvasTable header linkage.
-12. If Make record table cell editing is requested or already present, route the editor lifecycle, `customEdit`, borderless in-cell chrome, popup placement, and field-editor mapping to `canvas-table-integration` Track B. `makeui` may place the table host, but must not invent a one-off cell editor in a page component. Non-standard CanvasTable cell editors are a readiness blocker / 交付阻断; do not report the UI as ready, complete, or delivered.
-13. Treat missing componentization as a readiness blocker for new Make POC UI and non-trivial UI changes. Before reporting ready or complete, verify that `App.tsx` and route/page files only orchestrate and that implementation logic is split into page, shell, feature components, hooks, `lib/service-api`, field display/config adapters, table host, toolbar, and Drawer modules.
-14. Read only the needed reference files from the map below.
+10. Custom form field controls must be host-form controlled adapters: accept and forward `value/onChange/onBlur/id/disabled` from the host form layer, and make the form value seen by submit/validation match the displayed selection. This is UI-library neutral and does not require Ant Design, Arco, or shadcn.
+11. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
+12. If filtering, advanced filtering, table filtering, or header filtering is requested or already present, route the integrated filtering behavior to `make-app-filter`; `makeui` only places the toolbar trigger area and preserves the table region needed by CanvasTable header linkage.
+13. If Make record table cell editing is requested or already present, route the editor lifecycle, `customEdit`, borderless in-cell chrome, popup placement, and field-editor mapping to `canvas-table-integration` Track B. `makeui` may place the table host, but must not invent a one-off cell editor in a page component. Non-standard CanvasTable cell editors are a readiness blocker / 交付阻断; do not report the UI as ready, complete, or delivered.
+14. Treat missing componentization as a readiness blocker for new Make POC UI and non-trivial UI changes. Before reporting ready or complete, verify that `App.tsx` and route/page files only orchestrate and that implementation logic is split into page, shell, feature components, hooks, `lib/service-api`, field display/config adapters, table host, toolbar, and Drawer modules.
+15. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -63,6 +64,13 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - If object/field metadata is missing or inconsistent, show a visible UI dependency/error state and report the missing dependency. Do not invent business API paths, parse local DSL, or create fake user/department/business fallback data in `makeui`.
 - Schema, data, route, and render failures must resolve to visible object-shell states: loading, empty, error, forbidden, expired-session, retry, not-found, or render-error. Do not let exceptions become a blank page.
 
+### Form field controlled contract
+
+- This is the MakeUI 自定义表单字段控件受控 hard rule and readiness blocker: any custom field component used inside create/edit Drawer forms or route forms must be a host-form controlled adapter. It must accept and forward `value/onChange/onBlur/id/disabled` from the host form layer, plus `name`, `ref`, validation status, and accessibility props when the host form provides them.
+- The displayed selection must be the same value that submit, save, resolver, or validation reads from the form store. If a user, department, lookup, select, date, file, or custom selector visually shows a choice but the host form value remains empty or stale, the UI is not ready for delivery.
+- Custom selector components may keep transient search text, popup open state, and fetched option cache locally, but they must not keep the selected value only in internal state. `onChange` must write the normalized submit value back to the host form on every commit, and `onBlur` must propagate so required validation and touched state behave correctly.
+- This rule is component-library neutral. Do not fix these bugs by requiring Ant Design, Arco, shadcn, or a specific `Form.Item`/`Select`; use the selected project component library or project-owned controls, but preserve the host form controlled contract.
+
 ### Component structure and modularization
 
 - This is the MakeUI 组件化拆分 / 模块化 hard rule and readiness blocker: new generated Make POC UI and non-trivial generated/refactored `apps/ui` code must be split by responsibility instead of implemented as one page-sized component. Do not report the UI as ready, complete, or delivered until this split exists.
@@ -98,6 +106,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 - Detail values must be normalized by Make field type before rendering. Date range objects such as `{ begin, end }` or arrays such as `[begin, end]` display as a formatted range, not raw JSON; select/user/department/file/lookup values use their type-specific read-only renderers. Empty values display a muted `-`.
 - Detail Drawer/page titles should show the complete selected object or record title whenever space permits. Give the title area flexible width and use ellipsis only for true overflow; keep the full title available through a tooltip or accessible title. Do not create a tiny title slot that truncates otherwise displayable titles.
 - Create/edit forms use type-appropriate controls. Date, select, user, department, file, and lookup fields must not silently degrade to plain text inputs. File upload is omitted in create mode when upload requires an existing record identity.
+- Create/edit custom form field controls must follow the host-form controlled contract from `component-usage.md`: forward `value/onChange/onBlur/id/disabled`, keep visual selection and form store synchronized, and treat local-only selected state as a delivery blocker.
 - User and department selector UI must consume host candidate APIs. Generated Make App UI-Service defaults are `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, normalized to selector options with `userId/userName` and `departmentId/departmentName`, unless the host project documents equivalent Service/API routes.
 - Do not use field schema `options`, local demo arrays, row samples, hardcoded names, or stale client-only lists as the source of truth for user/department selectors. Current record values may be merged into options only to echo existing selections while the real candidate API is loading or temporarily empty. If the selector appears inside advanced filter or CanvasTable cell editing, implement the surface with `make-app-filter` or `canvas-table-integration` while preserving this candidate-source contract.
 - Use dynamic object routes such as `/objects/:objectKey`. Do not generate one hard-coded route component per object.
