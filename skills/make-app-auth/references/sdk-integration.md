@@ -88,7 +88,7 @@ if (boot.status === 'authenticated') {
 
 Use `auth.api` for Make backend calls. In direct gateway mode, the SDK handles `/api/make`, cookies, JSON request bodies, and unified auth errors.
 
-`gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling the environment already exists as the active `makecli` env preset plus optional `meta-server-url` host override (`makecli configure get environment`, `makecli configure get meta-server-url`). CLI host config is a gateway origin and CLI appends `/api/make` automatically. Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
+`gatewayBaseUrl` is the SDK option for the Make backend API base. In Make tooling the effective local-preview backend origin is resolved by `makecli configure resolve --target local-preview --output=json`; consume the returned `make_api_origin` and add `/api/make` in Service-only local preview. Legacy `configure get environment` / `configure get meta-server-url` probing is only a fallback for older makecli installations. Reuse that host Make backend config when generating App configuration; do not invent a separate backend URL setting.
 
 For a deployed same-origin direct-gateway unified-login App, prefer the SDK default `/api/make`. For a Service-fronted published App, also configure `gatewayBaseUrl: "/api/make"` and keep business calls as `auth.api("/app/**")`, which normally reaches `/api/make/app/**`. Browser code must not read `~/.make/config` directly.
 

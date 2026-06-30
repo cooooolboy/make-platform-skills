@@ -286,6 +286,57 @@ try {
   const ungatedPreviewAuthOutput = runAudit(ungatedPreviewAuthRoot, { expectFailure: true });
   assert.match(ungatedPreviewAuthOutput, /local_preview_auth_shadow/);
 
+  const querySensitivePreviewAuthRoot = createFixture('query-sensitive-preview-auth-route', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      function isLocalPreviewEnabled() {
+        return process.env.MAKE_APP_LOCAL_PREVIEW === 'true';
+      }
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      function localPreviewCurrentContext() {
+        return Response.json({ data: { userId: 'local-preview-user', localPreview: true, authMode: 'token' } });
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (isLocalPreviewEnabled() && req.originalUrl === '/api/make/auth/current-context') {
+          return localPreviewCurrentContext();
+        }
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers(upstream.headers);
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch('http://make-gateway/make' + url.pathname.replace('/api', ''), { headers, redirect: 'manual' });
+        }
+        return fetch('http://make-gateway/make/data/v1/record', { headers });
+      }
+    `
+  });
+
+  const querySensitivePreviewAuthOutput = runAudit(querySensitivePreviewAuthRoot, { expectFailure: true });
+  assert.match(querySensitivePreviewAuthOutput, /local_preview_auth_query_sensitive_match/);
+
   const uiTokenModeRoot = createFixture('ui-token-mode', {
     ui: `
       import { createMakeAppAuth } from '@qfeius/make-app-auth';
@@ -577,6 +628,58 @@ try {
 
   const businessApiScopeOutput = runAudit(businessApiScopeRoot, { expectFailure: true });
   assert.match(businessApiScopeOutput, /service_fronted_business_gateway_scope_wrong/);
+
+  const dynamicGatewayApiScopeRoot = createFixture('dynamic-gateway-api-wrong-scope', {
+    ui: `
+      import { createMakeAppAuth } from '@qfeius/make-app-auth';
+      const auth = createMakeAppAuth({ gatewayBaseUrl: '/api/make', unifiedLogin: true, apiAuthRedirect: true });
+      const init = await auth.init({ redirect: true });
+      if (init.reason === 'state_expired' || init.reason === 'challenge_expired') {
+        await auth.login({ redirect: true });
+      }
+      export async function loadSchema() {
+        return auth.api.get('/app/schema', { credentials: 'include' });
+      }
+    `,
+    service: `
+      const config = { makeGatewayBaseUrl: 'http://make-gateway.make-dev' };
+      const AUTH_GATEWAY_SCOPE = '/make/auth';
+      const OAUTH_GATEWAY_SCOPE = '/make/oauth';
+      function applyForwardedHostContext(headers, source) {
+        const host = source.get('host');
+        if (host) headers.set('x-forwarded-host', host);
+        headers.set('x-forwarded-proto', 'https');
+      }
+      function buildMakeUrl(path) {
+        const normalizedPath = path.startsWith('/') ? path : '/' + path;
+        return \`\${config.makeGatewayBaseUrl}/api/make\${normalizedPath}\`;
+      }
+      function buildNamespaceUrl(originalPath, browserPrefix, upstreamPrefix) {
+        return config.makeGatewayBaseUrl + upstreamPrefix + originalPath.slice(browserPrefix.length);
+      }
+      export async function proxy(req) {
+        const headers = new Headers({ cookie: req.headers.get('cookie') || '' });
+        applyForwardedHostContext(headers, req.headers);
+        const url = new URL(req.url);
+        if (url.pathname.startsWith('/api/make/auth/')) {
+          const upstream = await fetch(buildNamespaceUrl(url.pathname, '/api/make/auth', AUTH_GATEWAY_SCOPE), { headers, redirect: 'manual' });
+          const responseHeaders = new Headers(upstream.headers);
+          const cookies = upstream.headers.getSetCookie?.() ?? [];
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          const location = upstream.headers.get('location');
+          if (location) responseHeaders.set('location', location);
+          return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+        }
+        if (url.pathname.startsWith('/api/make/oauth/')) {
+          return fetch(buildNamespaceUrl(url.pathname, '/api/make/oauth', OAUTH_GATEWAY_SCOPE), { headers, redirect: 'manual' });
+        }
+        return fetch(buildMakeUrl('/data/v1/record'), { headers });
+      }
+    `
+  });
+
+  const dynamicGatewayApiScopeOutput = runAudit(dynamicGatewayApiScopeRoot, { expectFailure: true });
+  assert.match(dynamicGatewayApiScopeOutput, /service_fronted_business_gateway_scope_wrong/);
 
   const spoofedForwardedHostRoot = createFixture('spoofed-forwarded-host', {
     ui: `

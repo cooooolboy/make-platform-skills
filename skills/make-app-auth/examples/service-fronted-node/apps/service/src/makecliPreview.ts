@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 
 const GATEWAY_PATH = '/api/make';
 const DEFAULT_PROFILE = 'default';
@@ -14,6 +15,14 @@ type PreviewContext = {
   claims: Record<string, unknown>;
   tenantId?: string;
   operatorId?: string;
+};
+
+type MakecliResolveResult = {
+  profile?: string;
+  environment?: string;
+  make_api_origin?: string;
+  tenant_id?: string;
+  operator_id?: string;
 };
 
 const ENV_GATEWAY_ORIGINS: Record<string, string> = {
@@ -36,12 +45,14 @@ export function loadLocalPreviewContext(): PreviewContext {
     throw new Error(`makecli profile ${profile} 未登录，请先运行 makecli login`);
   }
 
+  const resolved = resolveMakecliLocalPreview(profile);
   const profileConfig = config[profile] ?? {};
-  const environment = process.env.MAKE_ENV || config.settings?.environment || 'dev';
+  const environment = resolved?.environment || process.env.MAKE_ENV || config.settings?.environment || 'production';
   const gatewayOrigin = process.env.MAKE_API_BASE_URL
+    || resolved?.make_api_origin
     || profileConfig['meta-server-url']
     || ENV_GATEWAY_ORIGINS[environment]
-    || ENV_GATEWAY_ORIGINS.dev;
+    || ENV_GATEWAY_ORIGINS.production;
 
   return {
     profile,
@@ -49,8 +60,8 @@ export function loadLocalPreviewContext(): PreviewContext {
     gatewayBaseUrl: withGateway(gatewayOrigin),
     accessToken,
     claims: parseJwtClaims(accessToken),
-    tenantId: profileConfig['X-Tenant-ID'],
-    operatorId: profileConfig['X-Operator-ID']
+    tenantId: resolved?.tenant_id || profileConfig['X-Tenant-ID'],
+    operatorId: resolved?.operator_id || profileConfig['X-Operator-ID']
   };
 }
 
@@ -125,6 +136,26 @@ function readMakecliFile(name: 'credentials' | 'config'): string {
     return readFileSync(`${dir}/${name}`, 'utf8');
   } catch {
     return '';
+  }
+}
+
+function resolveMakecliLocalPreview(profile: string): MakecliResolveResult | undefined {
+  const args = ['--profile', profile];
+  if (process.env.MAKE_ENV) {
+    args.push('--env', process.env.MAKE_ENV);
+  }
+  args.push('configure', 'resolve', '--target', 'local-preview', '--output=json');
+
+  try {
+    const output = execFileSync('makecli', args, {
+      encoding: 'utf8',
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    const parsed = JSON.parse(output) as MakecliResolveResult;
+    return parsed && typeof parsed === 'object' ? parsed : undefined;
+  } catch {
+    return undefined;
   }
 }
 

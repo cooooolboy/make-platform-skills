@@ -116,7 +116,7 @@ export async function testLocalPreviewUsesMakecliTokenServerSide(): Promise<void
 
   try {
     const contextResponse = await handleRequest(new Request(
-      'http://127.0.0.1:3000/api/make/auth/current-context'
+      'http://127.0.0.1:3000/api/make/auth/current-context?return_url=http%3A%2F%2F127.0.0.1%3A3000%2F'
     ));
     const contextPayload = await contextResponse.json();
     assert(contextPayload.data.userId === 'u-config', 'local preview current-context should prefer makecli operator id');

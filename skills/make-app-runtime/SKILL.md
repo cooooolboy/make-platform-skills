@@ -56,6 +56,7 @@ When preparing a generated App for publish, provide enough project-local scripts
 - install dependencies for `apps`
 - run the workspace build
 - run the `make-app-auth` published contract audit for Service-fronted Apps
+- run Service gateway-mode contract tests proving local preview and published upstream scopes are separated
 - verify `apps/ui/dist` and `apps/service/dist/server.js`
 - run Service contract tests, including auth callback proxy behavior, when tests exist
 
@@ -75,6 +76,14 @@ Recommended workspace scripts:
 ```
 
 Do not describe `verify:publish` as a universal makecli hook unless the target makecli version supports it. It is a project-local quality gate to run before `makecli app deploy`.
+
+Do not pass deploy-environment flags through `verify:publish`. Run the gate as `pnpm run verify:publish`; choose the publish target on the follow-up deploy command, for example `makecli app deploy --env preview` or `makecli app deploy --env production`. If a project-local Node wrapper must accept flags through `pnpm run`, normalize argv by dropping a standalone `--` before parsing because `pnpm run <script> -- --flag` can expose that separator to the script.
+
+For Service-fronted Apps, the Service test suite behind `pnpm run test` must include the gateway-mode contract:
+
+- `MAKE_APP_LOCAL_PREVIEW=true`: Service uses `makecli configure resolve --target local-preview --output=json` field `make_api_origin` and `/api/make/**`.
+- published mode, where the flag is absent or false: Service uses the deployed k8s-internal gateway origin and `/make/**`.
+- The local-preview token branch is unreachable in published mode.
 
 ## Frontend build contract
 
@@ -180,7 +189,8 @@ Before reporting a Service-backed App as ready to publish or ready for user-doma
 3. Run the Service build.
 4. Verify `apps/service/dist/server.js` exists when the runtime entry points there.
 5. Run the Service contract test and the make-app-auth published audit for Service-fronted Apps.
-6. If a start smoke is available, start the built Service with the production start script and verify it reaches the expected health or root response, then stop it.
+6. For Service-fronted Apps, verify the Service contract test covers both local-preview and published gateway modes. Published upstream requests must not use `/api/make/**`; local preview must consume makecli resolve `make_api_origin` and must not use k8s-internal `/make/**`.
+7. If a start smoke is available, start the built Service with the production start script and verify it reaches the expected health or root response, then stop it.
 
 Do not mark a Service-backed App ready based only on successful local `tsx src/server.ts` development startup.
 

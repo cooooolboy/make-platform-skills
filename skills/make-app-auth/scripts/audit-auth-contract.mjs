@@ -132,6 +132,9 @@ if (inferredMode === 'service-fronted') {
   if (published && hasPublishedPreviewAuthShadow(serviceText)) {
     failures.push('local_preview_auth_shadow: published /api/make/auth/current-context or runtime-view must not be served by local preview handlers; gate preview routes with MAKE_APP_LOCAL_PREVIEW=true and let published auth paths proxy to make-gateway');
   }
+  if (hasQuerySensitivePreviewAuthRouteMatch(serviceText)) {
+    failures.push('local_preview_auth_query_sensitive_match: local preview current-context/runtime-view must match pathname or mounted req.path, not exact req.url/originalUrl; SDK may append return_url query parameters');
+  }
   if (!/\/api\/make\/app\b/.test(projectText) && !/auth\.api\.(?:get|post|put|patch|delete|request)\(\s*[`'"]\/app\//.test(uiText)) {
     warnings.push('service_fronted_app_route_missing: could not find Service-owned /api/make/app/** or UI /app/** calls');
   }
@@ -145,7 +148,7 @@ if (inferredMode === 'service-fronted') {
     failures.push('session_complete_location_not_preserved: auth proxy must preserve gateway Location for /api/make/auth/session/complete');
   }
   if (hasInternalGatewayApiPrefix(serviceText)) {
-    failures.push('service_fronted_business_gateway_scope_wrong: Service running inside k8s must call make-gateway without /api prefix, for example http://make-gateway/make/auth|meta|data/**');
+    failures.push('service_fronted_business_gateway_scope_wrong: published Service running inside k8s must call make-gateway without /api prefix, for example http://make-gateway/make/auth|meta|data/**; reserve public /api/make upstream scope for MAKE_APP_LOCAL_PREVIEW=true only');
   }
   if (hasForwardedHostPassthrough(serviceText)) {
     failures.push('forwarded_host_passthrough_present: Service-fronted proxy must not trust or pass through client supplied X-Forwarded-Host; derive it from inbound Host');
@@ -324,8 +327,27 @@ function hasUnsupportedSdkReadyStatus(text) {
 }
 
 function hasInternalGatewayApiPrefix(text) {
-  return /make-gateway\/api\/make\b/i.test(text)
-    || /fetch\(\s*[`'"]\/api\/make\/(?:auth|meta|data)\b/i.test(text);
+  const patterns = [
+    /make-gateway[^`'"\s)]{0,160}\/api\/make\b/gi,
+    /fetch\(\s*[`'"]\/api\/make\/(?:auth|meta|data)\b/gi,
+    /\$\{\s*[^}]*makeGateway[^}]*\}\s*\/api\/make\b/gi,
+    /\b(?:makeGatewayBaseUrl|makeGatewayOrigin|gatewayOrigin)\b\s*\+\s*[`'"]\/api\/make\b/gi,
+  ];
+
+  return patterns.some((pattern) => hasUngatedMatch(text, pattern, isPreviewRouteGated));
+}
+
+function hasUngatedMatch(text, pattern, isGated) {
+  pattern.lastIndex = 0;
+  let match;
+  while ((match = pattern.exec(text))) {
+    const contextStart = Math.max(0, match.index - 360);
+    const contextEnd = Math.min(text.length, pattern.lastIndex + 360);
+    if (!isGated(text.slice(contextStart, contextEnd))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function hasManualRedirectPreservation(text) {
@@ -458,6 +480,33 @@ function hasUnguardedPreviewPathHandler(text, pathLiteral) {
     }
   }
 
+  return false;
+}
+
+function hasQuerySensitivePreviewAuthRouteMatch(text) {
+  const previewPathLiterals = [
+    '/api/make/auth/current-context',
+    '/api/make/auth/runtime-view',
+  ];
+
+  return previewPathLiterals.some((pathLiteral) => hasRawUrlEqualityForPreviewPath(text, pathLiteral));
+}
+
+function hasRawUrlEqualityForPreviewPath(text, pathLiteral) {
+  const escapedPath = escapeRegExp(pathLiteral);
+  const rawUrlEquality = new RegExp(
+    String.raw`(?:\b(?:req|request)\.(?:originalUrl|url)\s*={2,3}\s*[\`'"]${escapedPath}[\`'"]|[\`'"]${escapedPath}[\`'"]\s*={2,3}\s*\b(?:req|request)\.(?:originalUrl|url))`,
+    'gi'
+  );
+  let match;
+  while ((match = rawUrlEquality.exec(text))) {
+    const contextStart = Math.max(0, match.index - 520);
+    const contextEnd = Math.min(text.length, rawUrlEquality.lastIndex + 520);
+    const context = text.slice(contextStart, contextEnd);
+    if (/(MAKE_APP_LOCAL_PREVIEW|isLocalPreviewEnabled|localPreview|local-preview|localPreviewCurrentContext|localPreviewRuntimeView|authMode\s*:\s*[`'"]token[`'"])/.test(context)) {
+      return true;
+    }
+  }
   return false;
 }
 

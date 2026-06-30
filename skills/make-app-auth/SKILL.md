@@ -34,7 +34,7 @@ Default generated and published Make Apps use **unified login** with `unifiedLog
 
 This skill only supports unified login for generated and reviewed Make Apps. Missing unified-login prerequisites are blockers, not reasons to switch modes. Do not generate browser token mode, mock mode, or any no-login bypass from this skill.
 
-Local preview exception: a Service-fronted App may provide a Service-only local preview adapter guarded by `MAKE_APP_LOCAL_PREVIEW=true`. That adapter may read the current makecli profile on the server side and attach the token only on Service-to-Make requests. It must not expose the token to UI, must not change the published unified-login contract, and must fail closed in production.
+Local preview exception: a Service-fronted App may provide a Service-only local preview adapter guarded by `MAKE_APP_LOCAL_PREVIEW=true`. Enable that flag only as a temporary process environment variable from the local dev command, for example `MAKE_APP_LOCAL_PREVIEW=true pnpm run dev` or a project-owned `dev:preview` script. Do not persist the flag in `.env`, `.env.local`, `.env.example`, generated README setup steps, or deployment environment. The adapter should resolve the effective public Make origin with `makecli configure resolve --target local-preview --output=json`, consume `make_api_origin`, add the browser-facing `/api/make` scope, and attach the token only on Service-to-Make requests. It must not expose the token to UI, must not change the published unified-login contract, and must fail closed in production.
 
 ## Hard Rules
 
@@ -47,14 +47,14 @@ Local preview exception: a Service-fronted App may provide a Service-only local 
 - Do not generate raw `window.fetch('/api/make/...')` for Make backend calls.
 - Do not hand-write `Authorization`.
 - Browser resource requests such as `<img src>`, `<object data>`, and plain `<a href>` cannot attach custom `Authorization` headers. If a Make file download requires a bearer token, UI must use a same-origin Service download proxy URL, and the Service must validate the current App session before using any deployment-injected download token.
-- `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first, especially the active `makecli` environment or `meta-server-url` host; do not create a second environment concept for the same URL.
+- `gatewayBaseUrl` is the SDK option for the Make backend API base. Reuse the host Make backend config first; for local preview, prefer `makecli configure resolve --target local-preview --output=json` and its `make_api_origin` field instead of creating a second environment concept for the same URL.
 - `gatewayBaseUrl` is not the unified login or account-center URL. Prefer `/api/make` for both same-origin direct-gateway Apps and Service-fronted published Apps; the difference is whether UI business calls use direct Make backend paths such as `/data/**` or Service-owned paths such as `/app/**`.
 - Do not configure or hard-code unified login, Org, or account-center URLs in generated App code; make-gateway returns those URLs.
 - Do not read, write, persist, or delete `zs_session` or `make_app_session` in App code.
 - Do not construct Org OAuth URLs, `redirect_uri`, `state`, `code_challenge`, token exchange, or Org logout URLs in generated App code.
 - Browser code cannot read `~/.make/credentials`.
 - Do not generate browser-side `unifiedLogin: false`, `accessToken`, `token`, `tokenProvider`, local credential loading, `VITE_MAKE_AUTH_MODE=token`, or equivalent token-mode switches.
-- Service-only local preview may use makecli credentials only behind `MAKE_APP_LOCAL_PREVIEW=true`; current-context/runtime-view must be explicit preview responses and business requests must attach the token only inside Service.
+- Service-only local preview may use makecli credentials only behind a temporary process-level `MAKE_APP_LOCAL_PREVIEW=true`; do not persist this flag in env files or generated docs. Local preview must use `makecli configure resolve --target local-preview --output=json`, call `make_api_origin + /api/make`, and published runtime must call the k8s-internal gateway with `/make`. current-context/runtime-view must be explicit preview responses, route matching must ignore query strings such as `return_url`, and business requests must attach the token only inside Service.
 - Local preview auth routes must not shadow published auth proxy routes. In published runtime, `/api/make/auth/current-context` and `/api/make/auth/runtime-view` must reach make-gateway through the auth namespace proxy and must not return `localPreview`, `local-preview-user`, `authMode: "token"`, or other preview context.
 - Do not silently downgrade generated Apps from unified login because local OAuth prerequisites are missing; report the blocker.
 - Before reporting publish/login readiness, verify the auth path with the agent or platform checks. Do not leave domain access, DevTools, k8s logs, or cookie inspection as user-only validation steps.

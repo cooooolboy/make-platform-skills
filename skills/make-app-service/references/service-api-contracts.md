@@ -15,7 +15,7 @@ Before changing code:
 
 Do not leave undocumented routes as the only integration path for generated UI.
 
-For Make Deploy Service-fronted Apps, published browser-facing Service routes live under `/api/**` because the default HTTPRoute sends `/api` to App Service and `/` to UI. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
+For Make Deploy Service-fronted Apps, published browser-facing Service routes live under `/api/**` because the default HTTPRoute sends `/api` to App Service and `/` to UI. In Make App projects that use `gatewayBaseUrl: "/api/make"`, document the browser-facing paths under `/api/make/**`. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
 
 ## Public routes
 
@@ -29,15 +29,17 @@ Public config must not expose `appKey`, tokens, Make API base URLs, session cook
 
 ## Auth proxy routes
 
-For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose the browser-facing proxy paths:
+For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose the browser-facing proxy paths used by the host project. For `gatewayBaseUrl: "/api/make"` projects, use `/api/make/auth/**` and `/api/make/oauth/**`; for older `/api` projects, use `/api/auth/**` and `/api/oauth/**`.
 
-- `GET/POST /api/auth/**` -> transparent proxy to make-gateway internal `/make/auth/**`
+- `GET/POST /api/make/auth/**` -> transparent proxy to make-gateway auth scope
+- `GET/POST /api/make/oauth/**` -> transparent proxy to make-gateway oauth scope
 
 Rules:
 
 - Preserve upstream status, `Set-Cookie`, `Location`, and body for auth proxy responses.
-- Strip only the browser-facing `/api` prefix before calling make-gateway; do not forward `/api/auth/**` or `/api/make/auth/**` to the internal gateway.
-- If local development keeps `/auth/**`, also test the published `/api/auth/**` path.
+- Select the upstream gateway scope by runtime mode: local preview uses makecli resolve `make_api_origin` plus `/api/make/auth|oauth/**`; published runtime uses the k8s-internal gateway plus `/make/auth|oauth/**`.
+- Do not forward `/api/make/auth/**`, `/api/make/oauth/**`, `/api/auth/**`, or `/api/oauth/**` unchanged to the internal gateway.
+- If local development keeps `/auth/**`, also test the published browser-facing path.
 
 ## Schema routes
 
