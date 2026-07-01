@@ -139,7 +139,7 @@ Service code should:
 - read Make adapter config from `apps/service/src/config.ts` or the host equivalent
 - expose a pure `loadConfig(env = process.env)` or host-equivalent function so config behavior can be unit tested without mutating global process state
 - trim env strings and normalize trailing slashes before adapters consume base URLs
-- normalize or validate internal make-gateway base URLs as strict gateway origins, then let Make Meta/Data adapters add the fixed `/make/**` service scope
+- normalize or validate gateway base URLs as strict origins, then let Make Meta/Data adapters add the runtime-mode service scope: local preview `make_api_origin + /api/make/**`, published `/make/**`
 - avoid hard-coded Make domains in route handlers
 - keep secrets out of public config
 - treat `makecli` as unavailable in online Service runtime; runtime adapters use gateway/API calls, not local CLI commands
@@ -147,8 +147,9 @@ Service code should:
 Default new-project config semantics:
 
 - `appKey`: read deployment-injected `env.MAKE_APP_KEY`. Make-backed Services that call Make Meta/Data APIs must fail config loading when it is missing. Do not invent, hard-code, or read `appKey` from UI requests in generated production code.
-- `makeGatewayBaseUrl`: read `env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL`, trim it, and remove trailing slashes. `MAKE_API_BASE_URL` is preferred; `MAKE_SERVER_URL` is a compatibility alias. This value is a gateway origin, for example `http://make-gateway.make-dev`, not a path-scoped Make API base.
-- Make Meta/Data scope: fixed to `/make` inside adapter URL construction. Do not put this path segment in Service runtime config or `.env.example`.
+- `makeGatewayBaseUrl`: in published runtime, read `env.MAKE_API_BASE_URL || env.MAKE_SERVER_URL`, trim it, and remove trailing slashes. `MAKE_API_BASE_URL` is preferred; `MAKE_SERVER_URL` is a compatibility alias. This value is a k8s gateway origin, for example `http://make-gateway.make-dev`, not a path-scoped Make API base.
+- Local preview gateway origin: when `MAKE_APP_LOCAL_PREVIEW=true`, derive the public gateway origin from `makecli configure resolve --target local-preview --output=json` field `make_api_origin`. Normalize any path-scoped legacy fallback value into origin plus `/api/make`.
+- Make Meta/Data scope: selected by runtime mode inside adapter URL construction. Local preview uses `/api/make`; published uses `/make`. Do not put either path segment in published Service runtime config or `.env.example`.
 - `makeSchemaPath`: read `env.MAKE_SCHEMA_PATH`, otherwise use `/meta/v1/schema`.
 - When `MAKE_APP_KEY` is missing, or both `MAKE_API_BASE_URL` and `MAKE_SERVER_URL` are missing in a Make-backed Service, throw a clear non-secret config error during `loadConfig`.
 - Reject `MAKE_API_BASE_URL` / `MAKE_SERVER_URL` values that include a service scope such as `/make`, `/api/make`, `/meta`, `/data`, or `/auth`. New generated Services keep the env var as the gateway origin because the same Service may call other gateway services with different scopes.
@@ -193,10 +194,10 @@ export const loadConfig = (
 };
 ```
 
-`normalizeGatewayOrigin` can be a host-equivalent helper, but its contract is fixed for new generated code: trim, remove trailing slashes, require an origin-style URL, reject `/make`, `/api/make`, `/meta`, `/data`, `/auth`, and other service scopes in `MAKE_API_BASE_URL`, and leave service path construction to adapters. Existing projects may keep equivalent names such as `baseUrl`, `serverUrl`, or `makeBaseUrl`, but they must preserve the same precedence and failure behavior. `/make` is fixed in the Make Meta/Data adapter boundary, not config loading. A local-only fallback app key is acceptable only when the host project has explicitly documented it for tests or local development; deployed readiness still requires `MAKE_APP_KEY`.
+`normalizeGatewayOrigin` can be a host-equivalent helper, but its published-runtime contract is fixed for new generated code: trim, remove trailing slashes, require an origin-style URL, reject `/make`, `/api/make`, `/meta`, `/data`, `/auth`, and other service scopes in `MAKE_API_BASE_URL`, and leave service path construction to adapters. Existing projects may keep equivalent names such as `baseUrl`, `serverUrl`, or `makeBaseUrl`, but they must preserve the same precedence and failure behavior. `/make` is fixed in the published Make Meta/Data adapter boundary, not config loading. Local preview should consume `make_api_origin` from makecli resolve; only legacy fallback may normalize a makecli-provided public API base that includes `/api/make`, and that normalization must be gated by `MAKE_APP_LOCAL_PREVIEW=true`. A local-only fallback app key is acceptable only when the host project has explicitly documented it for tests or local development; deployed readiness still requires `MAKE_APP_KEY`.
 
 `GET /api/config` must expose only public UI config. Do not return `appKey`, Make base URLs, tokens, cookies, service keys, signed URLs, or deployment-internal route details.
 
-For Service-fronted unified-login Apps, route registration should include the published auth proxy path (`/api/auth/**`) and business paths (`/api/app/**` or the documented `/api/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route.
+For Service-fronted unified-login Apps that use `gatewayBaseUrl: "/api/make"`, route registration should include the published auth proxy paths (`/api/make/auth/**` and `/api/make/oauth/**`) and business paths (`/api/make/app/**` or the documented `/api/make/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/make/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route. Older `/api` projects may keep `/api/auth/**` and `/api/app/**` only as an explicit legacy contract.
 
 If the task is to change `apps/service/src/config.ts` structure for port, build, start, or runtime artifact reasons, use `make-app-runtime`.

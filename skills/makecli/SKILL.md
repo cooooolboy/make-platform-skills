@@ -91,14 +91,21 @@ makecli relation list [<name>] --app <app>
 # Step 1: Set access token (INTERACTIVE -- user must run via !)
 ! makecli configure token
 
-# Step 2: Set server URL and headers (if non-default)
-makecli configure set server-url https://your-server.com/api/make
+# Step 2: Set backend environment and profile headers (if non-default)
+makecli configure set environment test
+makecli configure set meta-server-url https://your-server.com
 makecli configure set X-Tenant-ID <tenant>
 makecli configure set X-Operator-ID <operator>
 
 # Verify
-makecli configure get server-url
+makecli configure get environment
+makecli configure resolve --target local-preview --output=json
+makecli configure verify --output=json
 ```
+
+`environment` is global and accepts `dev`, `test`, or `production`. The `--env` flag overrides it for one command. For local preview, use `configure resolve --target local-preview --output=json` as the primary source of the effective public Make origin. Consume `make_api_origin` as a bare origin and let the local-preview Service add the browser-facing `/api/make` scope. Profile-specific host overrides such as `meta-server-url` and `repo-server-url` should be origins; path-scoped legacy values must be normalized before adapter URL construction.
+
+`--env` belongs on the specific `makecli` command being executed; do not route it through project-local package scripts such as `pnpm run verify:publish -- --env production`. For code publishing, run the project gate first, then run `makecli app deploy --env preview` or `makecli app deploy --env production`.
 
 **Profiles:** All commands accept `--profile <name>` (default: "default").
 **Config files:** `~/.make/credentials` and `~/.make/config` (INI format).

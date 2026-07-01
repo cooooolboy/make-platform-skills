@@ -4,7 +4,9 @@
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--server-url` | Meta Server base URL | config value or `https://dev-make.qtech.cn/api/make` |
+| `--env` | Backend environment: `dev`, `test`, or `production` | `[settings].environment` or `production` |
+| `--meta-server-url` | Meta Server host override for the current profile | environment default |
+| `--repo-server-url` | Code repository host override for the current profile | environment default |
 
 Most subcommands also accept `--profile <name>` (default: `"default"`).
 
@@ -30,7 +32,7 @@ Interactive prompt for access token (JWT). Masked input (last 4 chars visible). 
 makecli configure config [--profile <name>]
 ```
 
-Interactive prompts for: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
+Interactive prompts for: `environment`, `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, `X-Operator-ID`.
 
 **INTERACTIVE** — cannot be run by agent. User must run via `!`.
 
@@ -40,7 +42,14 @@ Interactive prompts for: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
 makecli configure set <key> <value> [--profile <name>]
 ```
 
-Non-interactive. Valid keys: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
+Non-interactive. Profile keys include `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, and `X-Operator-ID`. The special key `environment` writes to global `[settings]`, affects every profile, and accepts only `dev`, `test`, or `production`.
+
+Examples:
+
+```bash
+makecli configure set environment test
+makecli configure set meta-server-url https://dev-make.qtech.cn
+```
 
 ### configure get
 
@@ -48,7 +57,14 @@ Non-interactive. Valid keys: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
 makecli configure get <key> [--profile <name>]
 ```
 
-Reads a single config value. Valid keys: `server-url`, `X-Tenant-ID`, `X-Operator-ID`.
+Reads a single config value. Profile keys include `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, and `X-Operator-ID`. The special key `environment` reads global `[settings]`.
+
+Examples:
+
+```bash
+makecli configure get environment
+makecli configure get meta-server-url
+```
 
 ### configure verify
 
@@ -57,6 +73,28 @@ makecli configure verify [--output table|json] [--profile <name>]
 ```
 
 Verify that the current profile has a valid token. Use this to check environment readiness before running other commands.
+
+### configure resolve
+
+```
+makecli configure resolve --target local-preview --output=json [--profile <name>] [--env dev|test|production]
+```
+
+Resolve the current MakeCLI configuration for local-preview tooling without online token validation.
+
+Minimal JSON contract:
+
+```json
+{
+  "profile": "default",
+  "environment": "production",
+  "make_api_origin": "https://make.qtech.cn",
+  "tenant_id": "",
+  "operator_id": ""
+}
+```
+
+Use `make_api_origin` as a bare public gateway origin. Local-preview Services add `/api/make` when constructing upstream Make Meta/Data/Auth URLs. The command resolves `--env` first, then `[settings].environment`, then the default environment; profile `meta-server-url` and global `--meta-server-url` overrides are normalized to a bare origin.
 
 ---
 
