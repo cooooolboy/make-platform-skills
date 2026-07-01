@@ -41,7 +41,7 @@ It does not own UI layout (`makeui`), authentication implementation (`make-app-a
 - `make-app-service` defines Service-owned app APIs such as schema, records, candidates, lookup options, file proxy, and thin custom orchestration.
 - It may document route names, query/body shapes, response envelopes, and adapter behavior.
 - It may define Service-side Make adapter config semantics and environment variable names used by Service source, such as `MAKE_APP_KEY` and `MAKE_API_BASE_URL`, while leaving deployment injection to runtime/operations.
-- It must not decide authentication implementation or OAuth/session mechanics; those belong to `make-app-auth`. It may still mount and document the App Service auth proxy path required by the host contract, normally `/api/auth/**` for Make Deploy Service-fronted Apps.
+- It must not decide authentication implementation or OAuth/session mechanics; those belong to `make-app-auth`. It may still mount and document the App Service auth proxy path required by the host contract, normally `/api/make/auth/**` and `/api/make/oauth/**` for Make Deploy Service-fronted Apps that use `gatewayBaseUrl: "/api/make"`.
 - It must not decide build output, Service port, Docker/K8s entrypoint, package scripts, workspace manifests, or publish readiness; those belong to `make-app-runtime`.
 - It must not define business models, entities, field meanings, relations, or DSL YAML; those belong to `makedsl`.
 - It must not decide UI layout, component choice, Drawer layout, or CanvasTable rendering; those belong to `makeui` and `canvas-table-integration`.
@@ -64,7 +64,7 @@ Keep route handlers small. Put Make/backend calls in adapter modules, cross-rout
 ## Hard rules
 
 - `apps/docs/api.md` is the UI-Service contract source. Do not change Service route behavior without updating it.
-- For Make Deploy Service-fronted Apps, `apps/docs/api.md` must document published browser paths under `/api/**`, for example `/api/auth/**` and `/api/app/**`. Do not document prefix-free `/app/**` as the published path unless the deploy HTTPRoute exposes it.
+- For Make Deploy Service-fronted Apps that use `gatewayBaseUrl: "/api/make"`, `apps/docs/api.md` must document published browser paths under `/api/make/**`, for example `/api/make/auth/**`, `/api/make/oauth/**`, and `/api/make/app/**`. Do not document prefix-free `/app/**` as the published path unless the deploy HTTPRoute exposes it. Older `/api` projects may keep `/api/auth/**` and `/api/app/**` only as an explicit legacy contract.
 - New generated Make POC Services and non-trivial generated/refactored `apps/service` code must use a layered, componentized source structure instead of flat route/adapter/helper files. For new Make POC Services, default to the ExpensePoc-style tree: `app.ts`, `server.ts`, `config.ts`, `logger.ts`, `make-client/` for Make/backend adapters, `services/` for multi-step orchestration, `utils/` for pure helpers, and colocated tests.
 - A flat `apps/service/src` tree is a readiness defect for generated POC work when it mixes route registration, Make request construction, schema normalization, lookup/file orchestration, config parsing, logging, and helpers side by side. Split it before reporting the Service as complete.
 - Route handlers in `app.ts` or `routes/` only validate input, call a service/adapter, map errors, log safe boundary context, and send the documented response. Do not put raw Make payload construction, schema variant parsing, record lookup orchestration, file proxy mapping, or custom workflow steps directly into route handlers.

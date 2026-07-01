@@ -1,7 +1,7 @@
 import {
   applyLocalPreviewAuthorization,
   isLocalPreviewEnabled,
-  localPreviewGatewayBaseUrl
+  loadLocalPreviewContext
 } from './makecliPreview';
 
 const MAKE_AUTH_BASE_URL = process.env.MAKE_AUTH_BASE_URL ?? 'http://make-gateway/make';
@@ -57,9 +57,10 @@ export async function proxyMakeAuth(request: Request, pathname: string): Promise
 export async function proxyMakeBusiness(request: Request, pathname: string): Promise<Response> {
   const headers = pickProxyHeaders(request.headers, ['cookie']);
   applyForwardedHostContext(headers, request.headers);
-  const baseUrl = isLocalPreviewEnabled() ? localPreviewGatewayBaseUrl() : MAKE_BUSINESS_BASE_URL;
-  if (isLocalPreviewEnabled()) {
-    applyLocalPreviewAuthorization(headers);
+  const localPreviewContext = isLocalPreviewEnabled() ? loadLocalPreviewContext() : undefined;
+  const baseUrl = localPreviewContext ? localPreviewContext.gatewayBaseUrl : MAKE_BUSINESS_BASE_URL;
+  if (localPreviewContext) {
+    applyLocalPreviewAuthorization(headers, localPreviewContext);
   }
   const upstream = await fetch(`${baseUrl}${pathname}`, {
     method: request.method,

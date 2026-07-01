@@ -78,7 +78,7 @@ Default:
 
 Rules:
 
-- Make-backed list and detail routes read records through the Service Make adapter calling gateway `/make/data/v1/record`, with the incoming request's login/session context forwarded to gateway.
+- Make-backed list and detail routes read records through the Service Make adapter using the runtime-mode gateway scope: local preview calls `/api/make/data/v1/record` with the Service-side makecli token, while published runtime calls `/make/data/v1/record` with the incoming request's login/session context forwarded to gateway.
 - Do not serve record routes from `makecli`, local makecli config, makecli stdout, generated fixtures, or local DSL/YAML in published runtime.
 - List and detail are separate contracts. Use Make single-record reads for detail when available.
 - Validate `sort` shape. Prefer `{ fieldKey, order }`; reject ambiguous legacy `{ field, order }` in new contracts.
@@ -113,7 +113,7 @@ Rules:
 
 - Resolve target entity and display field from runtime schema relation metadata.
 - Read only the target record identity and target display field by default.
-- Read target records through gateway `/make/data/v1/record` with forwarded login/session context, not through makecli.
+- Read target records through the runtime-mode gateway scope: local preview `/api/make/data/v1/record`, published runtime `/make/data/v1/record` with forwarded login/session context. Do not use makecli command output as runtime data.
 - `keyword` applies to the target display field when supported.
 - Do not let UI call generic target-record list APIs for every lookup dropdown unless the host contract explicitly chooses that path.
 - Reject non-lookup fields and unsupported relation directions with 400.
@@ -153,7 +153,7 @@ Rules:
 - Normalize multipart filenames when the backend cannot handle non-ASCII filenames.
 - Do not expose raw signed backend download URLs when a Service download proxy exists.
 - Strip or redact signed query strings in logs.
-- Attachment previews must use a browser-compatible Service proxy URL, for example the host's `/api/files/download/*` or `/api/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
+- Attachment previews must use a browser-compatible Service proxy URL, for example the host's `/api/make/app/files/download/*`, `/api/files/download/*`, or legacy `/api/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
 - When the upstream Make download endpoint needs a bearer token, document that the Service validates the current App session before proxying the binary download with a Service-side token; unauthenticated requests should return 401 and failed auth checks should return a stable 5xx/contracted error.
 - `/api/config` and any UI-facing file metadata response must not expose Make download tokens.
 

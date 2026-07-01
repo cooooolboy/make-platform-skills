@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { handleRequest } from './routes';
 
@@ -79,7 +79,10 @@ export async function testLocalPreviewUsesMakecliTokenServerSide(): Promise<void
   const originalPreview = process.env.MAKE_APP_LOCAL_PREVIEW;
   const originalConfigDir = process.env.MAKE_CLI_CONFIG_DIR;
   const originalProfile = process.env.MAKE_PROFILE;
+  const originalMakeApiBaseUrl = process.env.MAKE_API_BASE_URL;
+  const originalPath = process.env.PATH;
   const configDir = mkdtempSync(`${tmpdir()}/make-app-preview-`);
+  const binDir = `${configDir}/bin`;
   const claims = base64Url(JSON.stringify({
     userId: 'u-1001',
     tenantId: 't-2001',
@@ -87,9 +90,17 @@ export async function testLocalPreviewUsesMakecliTokenServerSide(): Promise<void
     avatar: 'https://avatar.example.com/u-1001.png'
   }));
   const token = `header.${claims}.signature`;
+  let capturedUrl = '';
   let capturedHeaders: Headers | undefined;
 
   mkdirSync(configDir, { recursive: true });
+  mkdirSync(binDir, { recursive: true });
+  writeFileSync(`${binDir}/makecli`, [
+    '#!/bin/sh',
+    'printf \'%s\\n\' \'{"profile":"default","environment":"test","make_api_origin":"https://resolved-make.qtech.cn","tenant_id":"t-resolved","operator_id":"u-resolved"}\'',
+    ''
+  ].join('\n'));
+  chmodSync(`${binDir}/makecli`, 0o755);
   writeFileSync(`${configDir}/credentials`, `[default]\naccess_token = ${token}\n`);
   writeFileSync(`${configDir}/config`, [
     '[settings]',
@@ -105,8 +116,11 @@ export async function testLocalPreviewUsesMakecliTokenServerSide(): Promise<void
   process.env.MAKE_APP_LOCAL_PREVIEW = 'true';
   process.env.MAKE_CLI_CONFIG_DIR = configDir;
   process.env.MAKE_PROFILE = 'default';
+  process.env.MAKE_API_BASE_URL = 'https://stale-env.example.com/api/make';
+  process.env.PATH = `${binDir}:${originalPath ?? ''}`;
 
-  globalThis.fetch = async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    capturedUrl = String(input);
     capturedHeaders = init?.headers as Headers;
     return new Response(JSON.stringify({ code: 200, data: { ok: true } }), {
       status: 200,
@@ -119,8 +133,8 @@ export async function testLocalPreviewUsesMakecliTokenServerSide(): Promise<void
       'http://127.0.0.1:3000/api/make/auth/current-context?return_url=http%3A%2F%2F127.0.0.1%3A3000%2F'
     ));
     const contextPayload = await contextResponse.json();
-    assert(contextPayload.data.userId === 'u-config', 'local preview current-context should prefer makecli operator id');
-    assert(contextPayload.data.tenantId === 't-config', 'local preview current-context should use makecli tenant id');
+    assert(contextPayload.data.userId === 'u-resolved', 'local preview current-context should prefer makecli resolve operator id');
+    assert(contextPayload.data.tenantId === 't-resolved', 'local preview current-context should use makecli resolve tenant id');
     assert(contextPayload.data.name === 'Local Preview User', 'local preview current-context should expose token claim display name when available');
     assert(contextPayload.data.localPreview === true, 'local preview current-context must be explicitly marked');
 
@@ -136,14 +150,17 @@ export async function testLocalPreviewUsesMakecliTokenServerSide(): Promise<void
       { method: 'POST', body: JSON.stringify({}) }
     ));
     assert(businessResponse.status === 200, 'local preview business request should reach gateway');
+    assert(capturedUrl === 'https://resolved-make.qtech.cn/api/make/data/v1/record', 'local preview business request should use makecli resolve make_api_origin before env fallback');
     assert(capturedHeaders?.get('authorization') === `Bearer ${token}`, 'Service should attach makecli token only on upstream request');
-    assert(capturedHeaders?.get('x-tenant-id') === 't-config', 'Service should forward makecli tenant id on upstream request');
-    assert(capturedHeaders?.get('x-operator-id') === 'u-config', 'Service should forward makecli operator id on upstream request');
+    assert(capturedHeaders?.get('x-tenant-id') === 't-resolved', 'Service should forward makecli tenant id on upstream request');
+    assert(capturedHeaders?.get('x-operator-id') === 'u-resolved', 'Service should forward makecli operator id on upstream request');
   } finally {
     globalThis.fetch = originalFetch;
     restoreEnv('MAKE_APP_LOCAL_PREVIEW', originalPreview);
     restoreEnv('MAKE_CLI_CONFIG_DIR', originalConfigDir);
     restoreEnv('MAKE_PROFILE', originalProfile);
+    restoreEnv('MAKE_API_BASE_URL', originalMakeApiBaseUrl);
+    restoreEnv('PATH', originalPath);
     rmSync(configDir, { recursive: true, force: true });
   }
 }

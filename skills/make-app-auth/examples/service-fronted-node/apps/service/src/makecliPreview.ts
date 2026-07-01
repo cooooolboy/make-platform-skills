@@ -25,12 +25,6 @@ type MakecliResolveResult = {
   operator_id?: string;
 };
 
-const ENV_GATEWAY_ORIGINS: Record<string, string> = {
-  dev: 'https://dev-make.qtech.cn',
-  test: 'https://test-make.qtech.cn',
-  production: 'https://make.qtech.cn'
-};
-
 export function isLocalPreviewEnabled(): boolean {
   return process.env.MAKE_APP_LOCAL_PREVIEW === 'true';
 }
@@ -47,12 +41,11 @@ export function loadLocalPreviewContext(): PreviewContext {
 
   const resolved = resolveMakecliLocalPreview(profile);
   const profileConfig = config[profile] ?? {};
-  const environment = resolved?.environment || process.env.MAKE_ENV || config.settings?.environment || 'production';
-  const gatewayOrigin = process.env.MAKE_API_BASE_URL
-    || resolved?.make_api_origin
-    || profileConfig['meta-server-url']
-    || ENV_GATEWAY_ORIGINS[environment]
-    || ENV_GATEWAY_ORIGINS.production;
+  const environment = resolved?.environment || process.env.MAKE_ENV || config.settings?.environment || 'unknown';
+  const gatewayOrigin = resolved?.make_api_origin || profileConfig['meta-server-url'];
+  if (!gatewayOrigin) {
+    throw new Error('无法解析 Make local preview gateway origin，请升级 makecli 后运行 makecli configure resolve --target local-preview --output=json，或为旧版 makecli 配置 profile meta-server-url');
+  }
 
   return {
     profile,
@@ -109,8 +102,7 @@ export function localPreviewRuntimeView(): Response {
   });
 }
 
-export function applyLocalPreviewAuthorization(headers: Headers): void {
-  const context = loadLocalPreviewContext();
+export function applyLocalPreviewAuthorization(headers: Headers, context: PreviewContext): void {
   headers.set('authorization', `Bearer ${context.accessToken}`);
   if (context.tenantId) {
     headers.set('x-tenant-id', context.tenantId);
@@ -118,10 +110,6 @@ export function applyLocalPreviewAuthorization(headers: Headers): void {
   if (context.operatorId) {
     headers.set('x-operator-id', context.operatorId);
   }
-}
-
-export function localPreviewGatewayBaseUrl(): string {
-  return loadLocalPreviewContext().gatewayBaseUrl;
 }
 
 function assertLocalPreviewAllowed(): void {

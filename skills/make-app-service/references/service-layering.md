@@ -198,6 +198,6 @@ export const loadConfig = (
 
 `GET /api/config` must expose only public UI config. Do not return `appKey`, Make base URLs, tokens, cookies, service keys, signed URLs, or deployment-internal route details.
 
-For Service-fronted unified-login Apps, route registration should include the published auth proxy path (`/api/auth/**`) and business paths (`/api/app/**` or the documented `/api/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route.
+For Service-fronted unified-login Apps that use `gatewayBaseUrl: "/api/make"`, route registration should include the published auth proxy paths (`/api/make/auth/**` and `/api/make/oauth/**`) and business paths (`/api/make/app/**` or the documented `/api/make/<resource>/**`). If the code also keeps prefix-free local routes, tests must cover the `/api/make/**` published path so UI cannot accidentally call `/app/**` and fall through to the UI static route. Older `/api` projects may keep `/api/auth/**` and `/api/app/**` only as an explicit legacy contract.
 
 If the task is to change `apps/service/src/config.ts` structure for port, build, start, or runtime artifact reasons, use `make-app-runtime`.

@@ -18,7 +18,7 @@ If the repository has no Service test setup, add the smallest test harness consi
 Route tests should cover:
 
 - `/api/health`, local/probe `/health` when present, and `/api/config` do not expose secrets
-- Service-fronted published routes use `/api/**`: at minimum test `/api/auth/**` proxy paths and `/api/app/**` or the documented business paths; prefix-free compatibility routes alone are not enough
+- Service-fronted published routes for `gatewayBaseUrl: "/api/make"` projects use `/api/make/**`: at minimum test `/api/make/auth/**`, `/api/make/oauth/**`, and `/api/make/app/**` or the documented business paths; prefix-free compatibility routes alone are not enough. Older `/api` projects may keep `/api/auth/**` and `/api/app/**` only as an explicit legacy contract
 - schema routes return normalized schema and fields
 - record list parses `fields`, `filter`, `sort`, `pagination`
 - record list sends Make filters as `{ expression }`, omits empty filters, and rejects malformed filter query/body values before calling the adapter
@@ -87,7 +87,7 @@ Before reporting Service work as ready:
 - Make adapter gateway origins come from normalized Service config or `makecli configure resolve --target local-preview --output=json` in local preview, and the gateway scope is an explicit runtime-mode decision rather than a route-local string hack or env override
 - Published Service internal gateway requests use gateway-origin plus explicit `/make` service scope, such as `/make/meta/**` or `/make/data/**`, not bare-host `/meta|data|auth/**` and not `/api/make/**`
 - Local preview Service gateway requests use makecli resolve `make_api_origin` plus `/api/make/**`; tests must prove this branch is gated by `MAKE_APP_LOCAL_PREVIEW=true`
-- UI/Service integration tests prove `auth.api("/app/**")` reaches `/api/app/**` when `gatewayBaseUrl` is `/api`; do not ship a published App whose UI requests `/app/**` directly under the UI static route
+- UI/Service integration tests prove `auth.api("/app/**")` reaches `/api/make/app/**` when `gatewayBaseUrl` is `/api/make`; do not ship a published App whose UI requests `/app/**` directly under the UI static route. For older `/api` projects, keep equivalent legacy tests explicit instead of mixing the contracts
 - candidate endpoints use real host/Make data sources, not demo arrays
 - lookup updates preserve unrelated relations
 - file upload requires persisted record identity
