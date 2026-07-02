@@ -1,6 +1,9 @@
 ---
 name: setup-make-poc
 description: Use when preparing or updating a Make POC environment before development, including checking latest versions of Node, pnpm, git, makecli, Make platform skills, makecli login/verify, and Make environment selection. Triggered by Make POC, POC 环境安装, 更新 Make POC 环境, makecli 登录校验, or PoC 前置环境. Trigger matching is case-insensitive.
+metadata:
+   version: 0.1.0
+   homepage: https://github.com/qfeius/make-platform-skills
 ---
 
 # setup-make-poc
@@ -25,12 +28,9 @@ Use this skill only for environment readiness. For PRD, DSL, Service, UI, table 
 ## Safety Rules
 
 - Do not print or store tokens, cookies, Authorization headers, passwords, or secrets.
-- Do not use the old `server-url` setup flow.
-- Do not run `makecli apply`, `makecli app deploy`, sample data imports, migrations, real data writes, or `git commit`.
 - Do not create PRD, DSL, Service, or UI files.
 - Interactive secret entry must be completed by the user. Do not ask the user to paste secrets into chat.
 - "Latest" means the latest stable version available from the current install channel, not nightly, beta, or a hard-coded version.
-- Minimum acceptable `makecli` is `0.4.5+`, but still update to the latest stable channel version before proceeding.
 
 ## System Gate
 
