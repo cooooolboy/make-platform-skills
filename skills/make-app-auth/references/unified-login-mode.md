@@ -9,7 +9,7 @@ Unified mode requires:
 - A deployed App domain or an ngrok/external HTTPS domain that can receive browser callbacks.
 - The callback `redirect_uri` registered in Org whitelist.
 - Direct-gateway Apps: `/api/make/**` from the external domain routed to make-gateway.
-- Service-fronted Apps: `/api/**` from the external domain routed to App Service, with the Service proxying auth to make-gateway.
+- Service-fronted Apps: `/api/make/auth/**` and `/api/make/oauth/**` from the external domain routed to App Service, with the Service proxying auth/oauth to make-gateway.
 - Browser testing with real cookies enabled.
 
 If these are missing in local development, report the missing prerequisite as a blocker. Do not fall back to token mode or a no-login bypass.
@@ -62,22 +62,22 @@ if (boot.status === 'authenticated') {
 browser -> App domain/ngrok -> local or deployed frontend -> /api/make proxy -> make-gateway -> Org
 ```
 
-ngrok only exposes the frontend. It does not automatically forward `/api/make/**` or `/api/**` unless the frontend/dev server proxy is configured.
+ngrok only exposes the frontend. It does not automatically forward `/api/make/**` unless the frontend/dev server proxy is configured.
 
 Service-fronted deployed Apps use this split:
 
 ```text
-browser -> App domain -> /api/auth/** and /api/app/** -> App Service -> make-gateway
+browser -> App domain -> /api/make/auth/**, /api/make/oauth/**, and /api/make/app/** -> App Service -> make-gateway
 ```
 
-Read `service-fronted-mode.md`. Do not duplicate Service proxy details in generated UI code, and do not reuse direct-gateway `/api/make` as the App Service prefix.
+Read `service-fronted-mode.md`. Do not duplicate Service proxy details in generated UI code, and do not drop `/make` from browser-facing auth/oauth paths.
 
 ## Validation Checklist
 
 - Run `scripts/audit-auth-contract.mjs <project-root> --published` when a generated project tree is available.
 - Open the App through the registered external domain or ngrok URL.
 - Direct gateway: confirm `/api/make/**` reaches make-gateway.
-- Service-fronted: confirm `/api/auth/**` and `/api/app/**` reach App Service, then Service reaches make-gateway through internal `/make/**`.
+- Service-fronted: confirm `/api/make/auth/**`, `/api/make/oauth/**`, and the documented business Service path such as `/api/make/app/**` reach App Service, then Service reaches make-gateway through internal `/make/**`.
 - Complete Org login and callback in the same browser.
 - Confirm the next protected request succeeds without hand-written `Authorization`.
 - Confirm business-request 401 from schema/meta/list/create/update/delete/file/user/department APIs follows `request-adapter.md`.
