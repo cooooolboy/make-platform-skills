@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make Integration"
+  short_description: "Run Make Integration OCR workflows"
+  default_prompt: "Use $make-integration to recognize invoice or voucher files through Make Integration OCR."

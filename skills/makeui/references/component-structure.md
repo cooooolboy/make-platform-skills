@@ -4,6 +4,7 @@
 
 - [ExpensePoc default UI tree](#expensepoc-default-ui-tree)
 - [Default module boundaries](#default-module-boundaries)
+- [Componentization readiness checklist](#componentization-readiness-checklist)
 - [Route and page files](#route-and-page-files)
 - [Feature modules](#feature-modules)
 - [Object list and table pages](#object-list-and-table-pages)
@@ -29,6 +30,8 @@ apps/ui/src/
       types/
   hooks/
   lib/
+    make-field-types.ts
+    make-field-display.ts
     service-api/
     make-gateway-api/  # only when the host explicitly allows direct gateway UI mode
   pages/
@@ -41,6 +44,14 @@ The directory names may follow a host project's established equivalents, but the
 
 When refactoring a flat project, move toward this baseline before reporting the task ready. Preserve existing behavior, but make the source tree communicate page entrypoints, feature UI, shared hooks, Service adapters, pure adapters/config builders, routing, and shared types.
 
+Componentization is a readiness blocker for new Make POC UI and non-trivial generated/refactored `apps/ui` work. Do not report a UI as ready, complete, or delivered while the route page or `App.tsx` still owns the implementation details listed below.
+
+## Shared Make field type registry
+
+For new Make POC projects, create a shared field type registry at `apps/ui/src/lib/make-field-types.ts` unless the host already has an equivalent file. This registry is the source of truth for field-type semantics across form controls, detail display, CanvasTable table columns/renderers, advanced filter value editors, and cell editor selection. Do not duplicate `Make.Field.*` string lists in each feature module.
+
+The registry should cover all current Make field types and expose small metadata that downstream modules can reuse, such as `fieldType`, `displayGroup`, `renderKind`, `multiple`, default `width`, `align`, form/detail layout hints, and editor/filter support flags. Keep business role overrides, such as making a primary code clickable, in thin feature config layered on top of the registry.
+
 ## Default module boundaries
 
 New generated Make POC UI and non-trivial generated/refactored `apps/ui` code must be componentized by responsibility. Prefer the host project's existing directory style first when it already separates concerns. If the project has no clear convention, use the ExpensePoc default tree and these boundaries:
@@ -50,9 +61,27 @@ New generated Make POC UI and non-trivial generated/refactored `apps/ui` code mu
 - `components`: reusable presentational components
 - `hooks`: reusable UI state and data-loading hooks
 - `services`, `api`, or `clients`: host Service API calls
-- `utils` or `adapters`: value normalization, field display adaptation, and configuration builders
+- `utils`, `adapters`, or `lib`: value normalization, the shared Make field type registry, field display adaptation, and configuration builders
 
 Do not introduce a new folder taxonomy when the project already has a stable equivalent. Keep naming aligned with the existing codebase, but do not use naming consistency as a reason to keep unrelated logic flat.
+
+## Componentization readiness checklist
+
+Before finishing a new Make POC UI or a non-trivial UI feature, verify this minimum split exists:
+
+- `App.tsx`: providers, router mounting, and app-level shell composition only. `App.tsx` must not own data fetching, schema normalization, table column building, form/detail mapping, Drawer state, row actions, or field display rendering.
+- route/page module under `pages/` or `routes/`: reads route params, selects the current object/module, and composes feature modules with shallow page state only.
+- page shell component under `components/page-shell/` or the host equivalent: owns layout slots, sidebar/header placement, and current-user surface.
+- feature container under `components/<feature>/` or `features/<feature>/`: composes list toolbar, table host, Drawer surfaces, and state surfaces.
+- toolbar module: owns search, refresh, filter trigger placement, and primary action placement.
+- CanvasTable host module: owns sizing wrapper, table lifecycle, row-head defaults, and table identity reset.
+- table column/config builder: converts normalized schema fields plus field-type registry metadata into column config.
+- field display adapter: converts raw record values into display models before table/detail renderers consume them.
+- Drawer/form/detail modules: own create/edit/detail surfaces and type-appropriate field rendering, not the route page.
+- hooks: own reusable object metadata, record loading, candidate loading, selected record, and UI state.
+- `lib/service-api`: owns UI-to-Service calls and request adapters.
+
+This checklist is a delivery gate. If several of these responsibilities are still in one file, split them before saying the work is complete. The small-change exception below applies only to truly tiny edits that do not add table configuration, form/detail workflows, reusable logic, multiple UI regions, Make field adaptation, or create/edit/detail state.
 
 ## Route and page files
 

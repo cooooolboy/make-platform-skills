@@ -1,9 +1,6 @@
 ---
 name: makecli
-description: "Use when the user asks to manage Make platform resources — create/deploy apps, entities, relations, records, log in to Make, or use makecli CLI commands. Also triggered by requests like \"部署\", \"apply\", \"查看应用\", \"创建记录\", \"登录 Make\", or \"/makecli\"."
-version: 0.3.0
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills
+description: "Use when the user asks to manage Make platform resources with makecli — create/deploy apps, entities, relations, records, inspect resources, log in to Make, or run makecli CLI commands. Also triggered by requests like \"部署\", \"apply\", \"查看应用\", \"创建记录\", \"登录 Make\", or \"/makecli\". Does not own DSL schema design (use makedsl), frontend UI (makeui), auth (make-app-auth), Service/API code (make-app-service), runtime packaging (make-app-runtime), OCR integration (make-integration), or canvas-table behavior."
 ---
 
 # makecli — Make Platform CLI
@@ -108,12 +105,24 @@ All create commands accept `--dry-run` — server validates without persisting.
 ## Environment Configuration
 
 ```bash
-! makecli login                                  # browser OAuth (INTERACTIVE)
+# Step 1: Authenticate (INTERACTIVE -- user must run via !)
+! makecli login                                  # browser OAuth; manual fallback: configure token
+
+# Step 2: Set backend environment and profile headers (if non-default)
 makecli configure set environment test           # dev|test|production (global)
 makecli configure set meta-server-url <host>     # host only, /api/make auto-added
+makecli configure set X-Tenant-ID <tenant>
+makecli configure set X-Operator-ID <operator>
 makecli configure --sample                       # print full config reference
-makecli configure resolve --target local-preview # offline JSON for local-preview tooling
+
+# Verify
+makecli configure verify --output=json
+makecli configure resolve --target local-preview --output=json
 ```
+
+`environment` is global and accepts `dev`, `test`, or `production`. The `--env` flag overrides it for one command. For local preview, use `configure resolve --target local-preview --output=json` as the primary source of the effective public Make origin. Consume `make_api_origin` as a bare origin and let the local-preview Service add the browser-facing `/api/make` scope. Profile-specific host overrides such as `meta-server-url` and `repo-server-url` should be origins; path-scoped legacy values must be normalized before adapter URL construction.
+
+`--env` belongs on the specific `makecli` command being executed; do not route it through project-local package scripts such as `pnpm run verify:publish -- --env production`. For code publishing, run the project gate first, then run `makecli app deploy --env preview` or `makecli app deploy --env production`.
 
 **Profiles:** All commands accept `--profile <name>` (default: "default").
 **Config files:** `~/.make/credentials` and `~/.make/config` (INI format).

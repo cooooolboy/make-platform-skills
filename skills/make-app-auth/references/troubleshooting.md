@@ -15,7 +15,7 @@ Generated and reviewed Apps use unified login only.
 
 ## Evidence To Collect First
 
-- Request URL and status for the failing authenticated call: `/api/make/**` in direct-gateway mode, or `/api/auth/**` / `/api/app/**` in Service-fronted mode.
+- Request URL and status for the failing authenticated call: `/api/make/**` in direct-gateway mode, or `/api/make/auth/**` / `/api/make/oauth/**` / `/api/make/app/**` in Service-fronted mode.
 - Whether the request was made through the shared Make API adapter that wraps `auth.api`.
 - Browser request headers: especially Cookie presence, without exposing full token values in reports.
 - User-facing message shown by the App.
@@ -30,7 +30,7 @@ For redirect/callback failures:
 - Confirm the App is reachable through a registered external HTTPS domain or ngrok.
 - Confirm Org whitelist contains the exact callback `redirect_uri`.
 - Direct gateway: confirm `/api/make/**` routes to make-gateway from that domain.
-- Service-fronted: confirm `/api/auth/**` and `/api/app/**` route to App Service from that domain.
+- Service-fronted: confirm `/api/make/auth/**`, `/api/make/oauth/**`, and the documented business path such as `/api/make/app/**` route to App Service from that domain.
 - Confirm every schema/meta/list/create/update/delete/file/user/department request goes through the shared Make API adapter, not scattered unhandled `auth.api` calls or raw fetch.
 - Confirm browser accepts and sends cookies for the App domain.
 - Confirm the page does not auto-loop login on every 401.
@@ -38,18 +38,18 @@ For redirect/callback failures:
 
 For Service-fronted Apps:
 
-- Confirm browser business requests go to `/api/app/**`, not directly to `/api/make/meta/**` or `/api/make/data/**`.
-- Confirm `/api/auth/**` is transparent proxy traffic from Service to `http://make-gateway/make/auth/**`.
-- Confirm `/api/auth/current-context` exists on the published domain. A Service 404 for this route is an auth proxy contract bug, not a user login problem.
-- Confirm Service-fronted UI does not configure `gatewayBaseUrl: "/api/make"`; it should use `gatewayBaseUrl: "/api"` so `auth.api("/app/**")` reaches `/api/app/**`.
+- Confirm browser business requests go to `/api/make/app/**` or the host-documented Service business path, not directly to `/api/make/meta/**` or `/api/make/data/**`.
+- Confirm `/api/make/auth/**` and `/api/make/oauth/**` are transparent proxy traffic from Service to `http://make-gateway/make/auth/**` and `http://make-gateway/make/oauth/**`.
+- Confirm `/api/make/auth/current-context` exists on the published domain. A Service 404 for this route is an auth proxy contract bug, not a user login problem.
+- Confirm Service-fronted UI configures `gatewayBaseUrl: "/api/make"` so `auth.api("/app/**")` reaches `/api/make/app/**`.
 - Confirm Service calls k8s-internal business routes as `http://make-gateway/make/meta/**` and `http://make-gateway/make/data/**`; `/api/make/meta/**` usually indicates the wrong internal gateway path.
-- Confirm Service proxy keeps `session/complete` redirects manual. If Node `fetch` follows the gateway 302 internally, the browser URL can stay on `/api/auth/session/complete?...` and cause a login loop.
+- Confirm Service proxy keeps `session/complete` redirects manual. If Node `fetch` follows the gateway 302 internally, the browser URL can stay on `/api/make/auth/session/complete?...` and cause a login loop.
 
 For cookie problems:
 
 - Inspect browser DevTools Application/Cookies for App domain.
 - Check whether duplicate session cookies exist.
-- Check request Cookie header sent to `/api/make/**` in direct-gateway mode, or `/api/auth/**` / `/api/app/**` in Service-fronted mode.
+- Check request Cookie header sent to `/api/make/**` in direct-gateway mode, or `/api/make/auth/**` / `/api/make/oauth/**` / `/api/make/app/**` in Service-fronted mode.
 - Confirm make-gateway logs for session verification and challenge generation.
 - Confirm the request is same-origin or has the expected credentials behavior.
 
@@ -67,7 +67,7 @@ For logout problems:
 - 401 with Cookie present: make-gateway or Org token verification problem.
 - Repeated redirects after login: callback/exchange/cookie persistence problem, not UI layout.
 - Gateway 404 for `/api/make/meta/**` from Service: internal gateway business path should likely be `/make/meta/**`.
-- Browser stays on `/api/auth/session/complete?login_ticket=...`: Service likely swallowed the gateway 302 instead of returning it to the browser.
+- Browser stays on `/api/make/auth/session/complete?login_ticket=...`: Service likely swallowed the gateway 302 instead of returning it to the browser.
 - Authenticated schema/list APIs return 200 but the page is blank: leave auth runbook; this is likely runtime-schema normalization, render error handling, or UI smoke coverage.
 
 ## Fast Root-Cause Labels
@@ -75,7 +75,7 @@ For logout problems:
 - `token_mode_generated`: App generated token mode or local-token fallback even though only unified login is supported.
 - `redirect_uri_not_whitelisted`: Org rejects callback.
 - `api_proxy_missing`: frontend loads, but the expected authenticated prefix does not reach the correct backend.
-- `auth_proxy_missing`: Service-fronted App did not proxy `/api/auth/**`, so unified login cannot start or complete.
+- `auth_proxy_missing`: Service-fronted App did not proxy `/api/make/auth/**` and `/api/make/oauth/**`, so unified login cannot start or complete.
 - `api_adapter_missing`: Make backend requests bypass the shared adapter, so business-request 401 is not routed into the login recovery flow.
 - `cookie_not_set`: exchange/login succeeded but browser has no App session cookie.
 - `cookie_not_sent`: browser stores cookie but request does not include it.

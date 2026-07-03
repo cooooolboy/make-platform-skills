@@ -4,6 +4,8 @@ Use this reference when mapping Make field metadata to package operators and val
 
 ## Source of truth
 
+Use backend Record filter docs for what Make Data can accept, and package APIs for what the host UI can safely expose. The backend contract is owned by `makedsl`; read its EntityDataFilterUsage reference when you need the full contract. Do not re-create it in host UI code.
+
 Use package APIs:
 
 - `getFilterableFields`
@@ -20,7 +22,7 @@ Do not duplicate the operator matrix in host code. If an old project keeps local
 
 ## Current package baseline
 
-The package owns the exact matrix. The current Make baseline is:
+The package owns the exact UI matrix. The current package baseline is:
 
 | Make field type | Filter kind | Operators | Value editor |
 | --- | --- | --- | --- |
@@ -40,15 +42,26 @@ The package owns the exact matrix. The current Make baseline is:
 | `Make.Field.Date` | date | `eq`, `neq`, `lt`, `gt` | date picker |
 | `Make.Field.DateTime` | dateTime | `eq`, `neq`, `lt`, `gt` | date-time picker |
 
-Unsupported by default:
+Backend-supported but package-gated field types:
 
 - `Make.Field.File`
 - `Make.Field.DateRange`
 - `Make.Field.Lookup`
+
+The backend Record list filter supports these field types through `filter.expression`:
+
+- File: filename contains/not-contains, attachment count comparison, empty/not-empty
+- DateRange: contains date, does not contain date, fully contains, is contained by, equals, empty/not-empty
+- Lookup: expression references the current Entity's Lookup field key, then backend validates operators and values against the configured `targetFieldKey` type
+
+Expose these fields in advanced filter UI only when the installed `@qfei-design/make-filter` public APIs support the field and operator combination. If the backend supports a field but the package does not, upgrade or fix the package before exposing it; do not hand-write a host-only operator matrix, value normalizer, or CEL compiler.
+
+Still unsupported:
+
 - unknown field types
 - fields with invalid CEL identifiers
 
-Hide unsupported fields from field selectors and hide header "按该字段筛选" for them.
+Hide package-unsupported fields from field selectors and hide header "按该字段筛选" for them.
 
 ## Value identity rules
 

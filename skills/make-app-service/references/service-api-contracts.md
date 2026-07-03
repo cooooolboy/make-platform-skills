@@ -15,7 +15,7 @@ Before changing code:
 
 Do not leave undocumented routes as the only integration path for generated UI.
 
-For Make Deploy Service-fronted Apps, published browser-facing Service routes live under `/api/**` because the default HTTPRoute sends `/api` to App Service and `/` to UI. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
+For Make Deploy Service-fronted Apps, published browser-facing Service routes live under `/api/**` because the default HTTPRoute sends `/api` to App Service and `/` to UI. In Make App projects that use `gatewayBaseUrl: "/api/make"`, document the browser-facing paths under `/api/make/**`. Prefix-free routes such as `/app/**` or `/auth/**` may exist for local Service tests or compatibility, but they must not be the only documented or tested published path.
 
 ## Public routes
 
@@ -29,15 +29,17 @@ Public config must not expose `appKey`, tokens, Make API base URLs, session cook
 
 ## Auth proxy routes
 
-For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose the browser-facing proxy paths:
+For Service-fronted unified-login Apps, auth implementation details belong to `make-app-auth`, but the Service route contract must expose the browser-facing proxy paths used by the host project. For `gatewayBaseUrl: "/api/make"` projects, use `/api/make/auth/**` and `/api/make/oauth/**`; for older `/api` projects, use `/api/auth/**` and `/api/oauth/**`.
 
-- `GET/POST /api/auth/**` -> transparent proxy to make-gateway internal `/make/auth/**`
+- `GET/POST /api/make/auth/**` -> transparent proxy to make-gateway auth scope
+- `GET/POST /api/make/oauth/**` -> transparent proxy to make-gateway oauth scope
 
 Rules:
 
 - Preserve upstream status, `Set-Cookie`, `Location`, and body for auth proxy responses.
-- Strip only the browser-facing `/api` prefix before calling make-gateway; do not forward `/api/auth/**` or `/api/make/auth/**` to the internal gateway.
-- If local development keeps `/auth/**`, also test the published `/api/auth/**` path.
+- Select the upstream gateway scope by runtime mode: local preview uses makecli resolve `make_api_origin` plus `/api/make/auth|oauth/**`; published runtime uses the k8s-internal gateway plus `/make/auth|oauth/**`.
+- Do not forward `/api/make/auth/**`, `/api/make/oauth/**`, `/api/auth/**`, or `/api/oauth/**` unchanged to the internal gateway.
+- If local development keeps `/auth/**`, also test the published browser-facing path.
 
 ## Schema routes
 
@@ -76,11 +78,12 @@ Default:
 
 Rules:
 
-- Make-backed list and detail routes read records through the Service Make adapter calling gateway `/make/data/v1/record`, with the incoming request's login/session context forwarded to gateway.
+- Make-backed list and detail routes read records through the Service Make adapter using the runtime-mode gateway scope: local preview calls `/api/make/data/v1/record` with the Service-side makecli token, while published runtime calls `/make/data/v1/record` with the incoming request's login/session context forwarded to gateway.
 - Do not serve record routes from `makecli`, local makecli config, makecli stdout, generated fixtures, or local DSL/YAML in published runtime.
 - List and detail are separate contracts. Use Make single-record reads for detail when available.
 - Validate `sort` shape. Prefer `{ fieldKey, order }`; reject ambiguous legacy `{ field, order }` in new contracts.
-- Validate `filter` shape before passing to Make. Prefer `{ expression }` for CEL-style filters.
+- Validate `filter` shape before passing to Make. New Record list contracts should use `{ expression }` for CEL-style filters and omit `filter` when no expression exists.
+- Do not generate new Service contracts that send `filter: []`, `filter: {}`, blank raw strings, or old object-array DSL to Make Data. Raw non-blank CEL strings are legacy compatibility only when the host API already documents them.
 - Do not infer returned fields from arbitrary UI row keys. The UI should request fields by schema keys when it needs a smaller payload.
 - Create/update payloads carry raw submit values, not formatted display labels.
 
@@ -110,7 +113,7 @@ Rules:
 
 - Resolve target entity and display field from runtime schema relation metadata.
 - Read only the target record identity and target display field by default.
-- Read target records through gateway `/make/data/v1/record` with forwarded login/session context, not through makecli.
+- Read target records through the runtime-mode gateway scope: local preview `/api/make/data/v1/record`, published runtime `/make/data/v1/record` with forwarded login/session context. Do not use makecli command output as runtime data.
 - `keyword` applies to the target display field when supported.
 - Do not let UI call generic target-record list APIs for every lookup dropdown unless the host contract explicitly chooses that path.
 - Reject non-lookup fields and unsupported relation directions with 400.
@@ -150,7 +153,7 @@ Rules:
 - Normalize multipart filenames when the backend cannot handle non-ASCII filenames.
 - Do not expose raw signed backend download URLs when a Service download proxy exists.
 - Strip or redact signed query strings in logs.
-- Attachment previews must use a browser-compatible Service proxy URL, for example the host's `/api/files/download/*` or `/api/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
+- Attachment previews must use a browser-compatible Service proxy URL, for example the host's `/api/make/app/files/download/*`, `/api/files/download/*`, or legacy `/api/app/files/download/*`, not raw Make Data paths such as `/data/v1/download/*`, `/make/data/v1/download/*`, or `/api/make/data/v1/download/*`.
 - When the upstream Make download endpoint needs a bearer token, document that the Service validates the current App session before proxying the binary download with a Service-side token; unauthenticated requests should return 401 and failed auth checks should return a stable 5xx/contracted error.
 - `/api/config` and any UI-facing file metadata response must not expose Make download tokens.
 

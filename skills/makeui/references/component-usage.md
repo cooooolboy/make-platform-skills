@@ -79,6 +79,8 @@ Form and field components should consume normalized UI field metadata, not raw b
 
 If no field metadata exists, stop and call out the missing UI dependency instead of inventing static form controls.
 
+For new Make POC projects, create or reuse a shared field type registry at `apps/ui/src/lib/make-field-types.ts` before implementing field-driven UI. The registry is the shared source for form controls, detail display, CanvasTable table display, advanced filter value editors, and table cell editors; these consumers should resolve `Make.Field.*` behavior from the registry instead of carrying separate local mappings.
+
 Use type-appropriate controls:
 
 | Make field group | Default control |

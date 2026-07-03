@@ -1,15 +1,13 @@
 ---
 name: make-app-runtime
 description: Use when generating, refactoring, reviewing, or debugging Make App project runtime structure, workspace manifests, Service runtime, local/dev scripts, build outputs, Docker/K8s image entrypoints, publish readiness, or packaging errors such as missing `apps/service/dist/server.js`. Covers `apps/` workspace contracts, `apps/ui/dist`, `apps/service` port/build/start contracts, runtime config file location, runtime artifact tests, and forwarded host/proto header preservation. Does not cover UI layout, authentication implementation, Make adapter env semantics, DSL modeling, Make CLI resource deployment, or canvas-table internals.
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills/make-app-runtime
 ---
 
 # make-app-runtime
 
 Use this skill for Make App runtime and packaging contracts. These rules are intentionally strict because platform image entrypoints and publish artifacts should not vary per POC.
 
-This skill owns project runtime structure, workspace manifests, build outputs, Service start entry, Service port baseline, runtime config file location, Docker/K8s runtime entry alignment, and publish-readiness checks.
+This skill owns project runtime structure, workspace manifests, build outputs, Service start entry, Service port baseline, runtime config file location, Docker/K8s runtime entry alignment, publish-readiness script guidance, and publish-readiness checks.
 
 It does not own UI layout (`makeui`), authentication implementation (`make-app-auth`), Make adapter environment variable semantics (`make-app-service`), DSL modeling (`makedsl`), Make resource deployment (`makecli`), or canvas-table behavior (`canvas-table-integration`).
 
@@ -47,7 +45,45 @@ packages:
   - "packages/*"
 ```
 
-`apps/package.json` must provide runnable scripts such as `app:ui`, `app:service`, `dev`, and `build`. `pnpm --filter` targets must match the actual package names, including scoped names.
+`apps/package.json` must provide runnable scripts such as `app:ui`, `app:service`, `dev`, `test`, and `build`. `pnpm --filter` targets must match the actual package names, including scoped names.
+
+`make-app-runtime` is the owner of `apps/package.json` generation and repair. `makecli app deploy` must not generate or rewrite workspace manifests.
+
+Treat `makecli app deploy` as a code deployment boundary unless the target makecli version is proven to run a stricter publish gate. Do not report a generated App as publish-ready merely because deploy succeeded.
+
+When preparing a generated App for publish, provide enough project-local scripts and documentation for the agent or CI to run publish-readiness checks before deploy:
+
+- install dependencies for `apps`
+- run the workspace build
+- run the `make-app-auth` published contract audit for Service-fronted Apps
+- run Service gateway-mode contract tests proving local preview and published upstream scopes are separated
+- verify `apps/ui/dist` and `apps/service/dist/server.js`
+- run Service contract tests, including auth callback proxy behavior, when tests exist
+
+For publish-ready Service-fronted Apps, prefer a project-local `verify:publish` script that runs the publish gate in one command. Keep `check:publish` for build/artifact checks, but do not make it the only release gate.
+
+Recommended workspace scripts:
+
+```json
+{
+  "scripts": {
+    "auth:audit": "node /Users/apple/.agents/skills/make-app-auth/scripts/audit-auth-contract.mjs . --mode service-fronted --published",
+    "schema:diff": "cd .. && makecli diff -f apps/dsl --output=json",
+    "check:publish": "pnpm run build && test -f service/dist/server.js && test -d ui/dist",
+    "verify:publish": "pnpm run test && pnpm run auth:audit && pnpm run check:publish && pnpm run schema:diff"
+  }
+}
+```
+
+Do not describe `verify:publish` as a universal makecli hook unless the target makecli version supports it. It is a project-local quality gate to run before `makecli app deploy`.
+
+Do not pass deploy-environment flags through `verify:publish`. Run the gate as `pnpm run verify:publish`; choose the publish target on the follow-up deploy command, for example `makecli app deploy --env preview` or `makecli app deploy --env production`. If a project-local Node wrapper must accept flags through `pnpm run`, normalize argv by dropping a standalone `--` before parsing because `pnpm run <script> -- --flag` can expose that separator to the script.
+
+For Service-fronted Apps, the Service test suite behind `pnpm run test` must include the gateway-mode contract:
+
+- `MAKE_APP_LOCAL_PREVIEW=true`: Service uses `makecli configure resolve --target local-preview --output=json` field `make_api_origin` and `/api/make/**`.
+- published mode, where the flag is absent or false: Service uses the deployed k8s-internal gateway origin and `/make/**`.
+- The local-preview token branch is unreachable in published mode.
 
 ## Frontend build contract
 
@@ -148,11 +184,13 @@ Do not hard-code environment domains in generated Service code. Use the incoming
 
 Before reporting a Service-backed App as ready to publish or ready for user-domain access:
 
-1. Run the workspace build that produces `apps/ui/dist`.
-2. Run the Service build.
-3. Verify `apps/service/dist/server.js` exists when the runtime entry points there.
-4. Run the Service contract test.
-5. If a start smoke is available, start the built Service with the production start script and verify it reaches the expected health or root response, then stop it.
+1. Run `cd apps && pnpm run verify:publish` when the project provides it.
+2. Otherwise, run the workspace build that produces `apps/ui/dist`.
+3. Run the Service build.
+4. Verify `apps/service/dist/server.js` exists when the runtime entry points there.
+5. Run the Service contract test and the make-app-auth published audit for Service-fronted Apps.
+6. For Service-fronted Apps, verify the Service contract test covers both local-preview and published gateway modes. Published upstream requests must not use `/api/make/**`; local preview must consume makecli resolve `make_api_origin` and must not use k8s-internal `/make/**`.
+7. If a start smoke is available, start the built Service with the production start script and verify it reaches the expected health or root response, then stop it.
 
 Do not mark a Service-backed App ready based only on successful local `tsx src/server.ts` development startup.
 

@@ -122,14 +122,15 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 2. For new Make App projects, apply the ExpensePoc-derived table display baseline unless the user explicitly asks for another visual style.
 3. Identify the Make field schema shape and the actual backend value formats.
 4. Normalize backend schema variants, such as `entity.properties.fields` or `entity.fields`, before the table layer consumes them.
-5. Gate table initialization until normalized schema fields are available; missing schema is a loading/error state, not a reason to infer columns from row data.
-6. Build or reuse a pure display adapter by field type before writing canvas shapes.
-7. Derive column configs from normalized schema fields; avoid hand-maintained static columns for dynamic schemas.
-8. Route display groups to focused renderers: text/clickable URL, tag list, compact user avatar/name list, attachment list, lookup reference text, and generic text fallback.
-9. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
-10. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
-11. Add focused tests for schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
-12. Verify at least one table path with representative backend values.
+5. Create or reuse the shared Make field type registry at `apps/ui/src/lib/make-field-types.ts`; it should expose `displayGroup`, `renderKind`, default `width`, `align`, multiplicity, and UI capability hints for all current Make field types.
+6. Gate table initialization until normalized schema fields are available; missing schema is a loading/error state, not a reason to infer columns from row data.
+7. Build or reuse a pure display adapter by field type before writing canvas shapes.
+8. Derive column configs from normalized schema fields and the shared registry; avoid hand-maintained static columns for dynamic schemas.
+9. Route display groups to focused renderers: text/clickable URL, tag list, compact user avatar/name list, attachment list, lookup reference text, and generic text fallback.
+10. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
+11. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
+12. Add focused tests for registry coverage, schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
+13. Verify at least one table path with representative backend values.
 
 ## Capability checklists
 
@@ -170,6 +171,7 @@ Track C common capabilities:
 - raw Make schema variants normalized before table code sees them
 - normalized Make schema fields converted to `IColumn[]` at runtime
 - initialization waits for schema fields instead of inferring columns from row keys
+- shared registry in `apps/ui/src/lib/make-field-types.ts` maps all current Make field types to `displayGroup`, `renderKind`, default `width`, `align`, multiplicity, and UI capability hints
 - 18 Make field types mapped to display group and kind
 - pure field-display adapter before canvas rendering
 - text/link renderer with ellipsis, tooltip, empty `-`, and safe click handling

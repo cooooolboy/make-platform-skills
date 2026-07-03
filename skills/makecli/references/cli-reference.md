@@ -8,8 +8,8 @@
 |------|-------------|---------|
 | `--env` | Backend environment `dev\|test\|production` (overrides `[settings] environment`) | `production` |
 | `--profile` | Credentials profile | `default` |
-| `--meta-server-url` | Meta Server **host** (gateway prefix `/api/make` auto-added) | environment preset |
-| `--repo-server-url` | Code Repository Server host | environment preset |
+| `--meta-server-url` | Meta Server **host** override for the current profile (gateway prefix `/api/make` auto-added) | environment preset |
+| `--repo-server-url` | Code Repository Server host override for the current profile | environment preset |
 
 Environment presets: `production` → `qfei.cn` hosts, `dev`/`test` → `qtech.cn` hosts.
 
@@ -34,7 +34,7 @@ Manages `~/.make/credentials` (tokens) and `~/.make/config` (INI, `[settings]` +
 | Subcommand | Behavior |
 |------------|----------|
 | `configure` / `configure token` | Prompt for access token (masked). **INTERACTIVE** — user runs via `!` |
-| `configure config` | Prompt for custom headers. **INTERACTIVE** — user runs via `!` |
+| `configure config` | Prompt for `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, `X-Operator-ID`. **INTERACTIVE** — user runs via `!` |
 | `configure set <key> <value>` | Non-interactive single-value write |
 | `configure get <key>` | Read a single value |
 | `configure verify [--output table\|json]` | Check the current profile has a valid token |
@@ -44,6 +44,34 @@ Manages `~/.make/credentials` (tokens) and `~/.make/config` (INI, `[settings]` +
 **Keys for set/get** — profile keys: `meta-server-url`, `repo-server-url`, `auth-server-url`, `X-Tenant-ID`, `X-Operator-ID`. Special key `environment` (values `dev|test|production`) writes the global `[settings]` section shared by every profile.
 
 `X-Tenant-ID` / `X-Operator-ID` are injected as HTTP headers on every request. Server URLs are host-only (no path).
+
+```bash
+makecli configure set environment test        # global [settings], affects every profile
+makecli configure set meta-server-url <host>
+makecli configure get environment
+```
+
+### configure resolve
+
+```
+makecli configure resolve --target local-preview --output=json [--profile <name>] [--env dev|test|production]
+```
+
+Resolve the current MakeCLI configuration for local-preview tooling without online token validation.
+
+Minimal JSON contract:
+
+```json
+{
+  "profile": "default",
+  "environment": "production",
+  "make_api_origin": "https://make.qfei.cn",
+  "tenant_id": "",
+  "operator_id": ""
+}
+```
+
+Use `make_api_origin` as a bare public gateway origin. Local-preview Services add `/api/make` when constructing upstream Make Meta/Data/Auth URLs. The command resolves `--env` first, then `[settings].environment`, then the default environment; profile `meta-server-url` and global `--meta-server-url` overrides are normalized to a bare origin.
 
 ---
 

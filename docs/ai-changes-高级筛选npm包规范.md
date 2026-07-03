@@ -32,3 +32,17 @@
 - 删除 `skills/make-app-filter/SKILL.md` frontmatter 中的非标准 `metadata.homepage` 字段，保持 frontmatter 只包含 `name` 和 `description`。
 - 修复 `package-integration.md` 和 `ui-style.md` 中直接传 `onConfirm={controller.confirm}` 的示例，改为宿主 `handleConfirm` 调用 `controller.confirm()`，并只在 `validation.valid` 时关闭 Popover。
 - 为 `make-app-filter` 和 `makeui` 补充 `agents/openai.yaml`，用于共享 skill 的 UI 展示与默认提示。
+
+## 2026-06-16 11:22 CST
+
+- 变更摘要：同步 Make Record 列表筛选文档与 `EntityDataHandler.list` / `FilterResolver` 真实逻辑。
+- 涉及文件：`skills/make-app-filter/**`、`skills/make-app-service/SKILL.md`、`skills/make-app-service/references/**`、`README.md`。
+- 关键逻辑：明确新请求使用 `filter: { expression }`，空表达式省略；补充 CEL/DNF、系统变量、DateRange/File/Lookup 后端支持。
+- 关键决策：UI 是否展示高级类型仍以 `@qfei-design/make-filter` 公开能力为准，能力不一致时升级/修复包，不在宿主手写 CEL。
+
+## 2026-06-16 11:36 CST
+
+- 变更摘要：同步 `makedsl` 数据 API filter 文档与后端 CEL 解析和系统变量能力。
+- 涉及文件：`skills/makedsl/references/EntityDataFilterUsage.md`、`skills/makedsl/references/DataAPIDesign.md`。
+- 关键逻辑：补齐 `_currentOrg`、`_today`、`_now`，增加 `_today +/- duration("Nd")` 天级偏移说明，并修正多部门字段 `exists` 示例。
+- 关键决策：继续要求生成 `filter: { expression }`；裸字符串仅视为迁移兼容，不作为 AI 生成格式。

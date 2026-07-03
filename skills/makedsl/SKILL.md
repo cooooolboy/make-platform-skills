@@ -1,9 +1,6 @@
 ---
 name: makedsl
-description: Use when designing or generating Make platform DSL YAML — defining apps, entities, fields, relations, views, or record schemas. Also triggered by requests like "建模", "建表", "加字段", "定义关联", or "生成 DSL".
-version: 0.1.9
-metadata:
-  homepage: https://github.com/qfeius/make-platform-skills/makedsl
+description: Use when designing or generating Make platform DSL YAML — defining apps, entities, fields, relations, views, or record schemas. Also triggered by requests like "建模", "建表", "加字段", "定义关联", or "生成 DSL". Does not deploy resources (use makecli), build frontend UI (makeui), implement Service/API code (make-app-service), handle auth (make-app-auth), runtime packaging (make-app-runtime), OCR integration (make-integration), or canvas-table behavior.
 ---
 
 # makedsl usage
@@ -19,6 +16,19 @@ make platform 从 kubernetes 和 ansible 中借鉴了设计思路, 业务的模�
 - Published Service should load schema from Make remote schema APIs or environment-provided config. Local DSL files are acceptable for development, fixtures, tests, and `makecli apply`, but must not be the only source required for k8s startup.
 - If a Service needs a fallback local schema for offline development, make it explicit and test both the remote-schema path and the fallback path.
 - When frontend build or published App runtime needs remote schema, use Meta Service APIs from @references/MetaAPIDesign.md instead of reading local DSL files.
+
+## Reference map
+
+| Topic | Read |
+| --- | --- |
+| Make Meta API schema access | `references/MetaAPIDesign.md` |
+| Make Data API and relation payloads | `references/DataAPIDesign.md` |
+| Relation declarations | `references/RelationDesign.md` |
+| Base field DSL and lookup fields | `references/FieldDesign.md` |
+| User field design | `references/UserFieldDesign.md` |
+| Department field design | `references/DepartmentFieldDesign.md` |
+| File field design | `references/FileFieldDesign.md` |
+| Entity data filter usage | `references/EntityDataFilterUsage.md` |
 
 # DSL定义
 

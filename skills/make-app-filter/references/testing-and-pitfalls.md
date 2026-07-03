@@ -6,7 +6,7 @@ Use this reference before finishing package-backed advanced filter work.
 
 Package source:
 
-- `apps/ui/package.json` depends on `@qfei-design/make-filter@^0.1.4` or newer
+- `apps/ui/package.json` depends on `@qfei-design/make-filter@^0.2.2` or newer
 - UI entry imports `@qfei-design/make-filter/styles.css`
 - local advanced-filter shim, if any, imports from `@qfei-design/make-filter`
 - host code does not contain copied operator matrix, CEL compiler/parser, validator, or `AdvancedFilterPanel` clone
@@ -18,15 +18,19 @@ Filter model and operators:
 - unsupported fields are excluded
 - single select supports package operators including `in`
 - multi select/user/department expose collection and empty operators
-- DateRange, File, Lookup, invalid field keys, and unknown types are skipped by default
+- DateRange, File, and Lookup follow package public support; if backend docs support them but the installed package does not, the UI hides them and reports the mismatch instead of compiling host-only CEL
+- invalid field keys and unknown types are skipped
 
 Expression compiler:
 
 - string escaping
 - numeric comparisons
 - nested group parentheses
+- DNF output: outer `OR`, inner `AND`; `(A || B) && C` is distributed or rejected before request
 - collection `has_any`, `not_contains`, `eq`, `neq`
 - empty and not-empty for collection fields
+- DateRange/File/Lookup expressions are covered when supported by the package
+- system variables are emitted only as right-hand values
 - empty condition rows do not compile
 - invalid field identifiers do not compile
 - search group merges with advanced filter through `AND`
@@ -38,6 +42,11 @@ UI behavior:
 - opening with no conditions inserts one default draft condition through `beginDraft`
 - package panel renders inside a host-owned container
 - host Popover uses max height rather than fixed initial height
+- panel follows the BizFinancePoc fixed layout: header top, scrollable condition body middle, footer bottom
+- header and footer remain visible while conditions scroll; they must not scroll with the condition body
+- header remains visible while the body scrolls, with `筛选` on the left and `清空所有` on the right
+- footer remains visible while the body scrolls, with `+ 添加条件` and `+ 添加条件组` on the left and `确认` on the right
+- only the condition body scrolls; the whole Popover content does not become one full-panel scroll surface
 - edits do not reload records before `确认`
 - `确认` commits and closes only when validation passes
 - validation failure marks invalid controls and keeps the popover open
@@ -60,7 +69,7 @@ Service and integration:
 
 - UI sends `filter: { expression }`
 - empty expression omits `filter`
-- Service rejects blank filter query with 400
+- Service omits or normalizes missing/null/blank `filter.expression` according to the documented route contract, and rejects malformed filter query input with 400
 - Service passes `filter.expression` to Make Data API
 - Service still handles legacy payloads only when the host project already needs compatibility
 - URL/deep-link `advancedFilter` echoes into package panel when valid
@@ -72,8 +81,9 @@ Service and integration:
 - forgetting package `styles.css`
 - submitting on every keystroke instead of waiting for `确认`
 - closing the popover but keeping unconfirmed draft changes
-- sending `filter: []` or `{}` when no valid condition exists
-- showing File, DateRange, Lookup, invalid keys, or unknown fields in advanced filter without package support
+- sending `filter: []`, `{}`, `{ expression: "" }`, blank raw strings, or old object-array DSL when no valid condition exists
+- hiding DateRange, File, or Lookup because old docs said backend did not support them, without checking current package and backend capabilities
+- showing File, DateRange, Lookup, invalid keys, or unknown fields in advanced filter without package public support
 - using display labels instead of ids for user/department filters
 - locally filtering already loaded rows instead of requesting backend-filtered records
 - creating a second header-only filter state that drifts from the package controller
@@ -83,3 +93,5 @@ Service and integration:
 - host CSS forks package internals and breaks future package fixes
 - fixed value controls remain red after the user enters or selects a valid value
 - changing an operator to empty/not-empty leaves an old value error on the row
+- missing fixed top header and bottom footer, or placing header/footer actions inside the scrollable condition body, is a blocker/regression for advanced filter delivery
+- full-panel scroll makes `清空所有`, `+ 添加条件`, `+ 添加条件组`, or `确认` scroll away from the user

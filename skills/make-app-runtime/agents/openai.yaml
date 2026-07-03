@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make App Runtime"
+  short_description: "Validate Make App runtime and publish artifacts"
+  default_prompt: "Use $make-app-runtime to fix Make App build, package, Service runtime, and publish-readiness contracts."

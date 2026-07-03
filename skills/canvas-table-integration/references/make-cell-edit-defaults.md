@@ -2,15 +2,17 @@
 
 Use this reference for Make schema-driven editable cells in `@qfei-design/canvas-table`.
 
-These defaults are derived from the current ExpensePoc table-editing implementation. Apply them unless the user explicitly asks for another interaction.
+These defaults are derived from the current ExpensePoc table-editing implementation. They are the mandatory baseline / 强制准入规范 for every CanvasTable cell-edit implementation. Host component names may vary, but the lifecycle, value contract, no-double-border visual rule, popup behavior, and save/rollback behavior must not be weakened.
+
+If an implementation misses this baseline, treat it as a readiness blocker / 交付阻断. Do not report the editable table as done, complete, ready, or delivered until the standard is satisfied.
 
 ## 1. Required editing baseline
 
 Use `editType: "custom"` plus a host `customEdit(options)` bridge for business fields.
 
-For generated Make App editable tables, the ExpensePoc-style cell editor is the default and only baseline unless the user explicitly asks for another interaction model. Do not invent a second cell-edit style for new POC projects.
+For generated Make App editable tables, the ExpensePoc-style cell editor is the required baseline. Do not invent a second cell-edit style for new POC projects.
 
-For Make App editable tables, prefer:
+For Make App editable tables, use the applicable required defaults:
 
 - `editApplyMode: "controlled"`
 - a dedicated editor DOM element for the active cell
@@ -90,14 +92,19 @@ Placement baseline:
 
 ## 3. No double-border rule
 
-The edited cell already has a canvas-table active outline. Field editor controls inside that cell must not draw a second focus border or focus shadow.
+The edited cell already has the CanvasTable active editing border / active outline. Field editor controls inside that cell must not draw a second focus border, component border, or focus shadow.
 
 Default visual requirements:
 
+- Non-popup / 非弹窗 inline editors for text, textarea, URL, number, currency, and percent fields keep only the CanvasTable-owned edit border. The inner input is a full-cell editing surface, not a nested form control box.
 - Select, user, department, date, and date-range triggers inside the cell are borderless, shadowless, full width, and full height.
 - Ant Design style components should use borderless variants and remove selector/picker focus `box-shadow`; the dropdown/picker panel may keep its normal popup shadow.
+- Ant Design style `InputNumber` should use `variant="borderless"` and `controls={false}` by default. Other UI libraries should use their equivalent NumberInput / 数字输入框 with hidden steppers for the standard Make cell editor.
+- Text and textarea editors should use the host Input / TextArea / 文本输入框 equivalents with `border: none`, no focus ring, no outer margin, and no wrapper border inside the cell.
+- Date and date-time editors should use the host `DatePicker` / 日期选择器, and select/user/department editors should use the host `Select` / 选择器 or business selector. Popup-style controls must mount with `open` / controlled-open behavior so the panel is visible immediately after edit activation.
 - Single-select and identity tags can render as compact pills inside the cell, but the trigger container itself must not draw another blue rectangle.
 - Clear, search, and suffix icons stay inside the same borderless trigger area and must not create a nested input box.
+- Visible helper/hint/help text, range tips such as `0-5`, `Form.Item` help, or inline validation instructions must not render inside the active cell editor. Put constraints in `aria-label`, `title`, placeholder text, tooltip, or an external validation/error surface that does not occupy the edited cell.
 - The only visible blue border during normal editing is the canvas-table active cell outline. Attachment panels may draw one panel border that covers or replaces the active-cell outline.
 
 If a screenshot shows a blue cell outline plus another blue rectangle around the Select/Input/Pick trigger, the editor is wrong.
@@ -107,10 +114,11 @@ Default ExpensePoc sizing:
 - editor root, popup editor wrapper, select trigger, date picker, and number input are `width: 100%` and `height: 100%`
 - the input/trigger can keep small horizontal text padding, but must not introduce an inset bordered rectangle
 - select/date/number components use borderless style; number steppers are hidden by default
+- Any width clamp, fixed narrow width, `min-width`/`max-width` workaround, or 80-120px-style input sizing is forbidden and must not replace full-cell `width: 100%` / `height: 100%` sizing for the editor root and actual control.
 
 ## 4. Inline editor visual rule
 
-Inline editors must fill the active cell.
+Inline editors must fill the active cell. These are the default non-popup editors.
 
 Default inline fields:
 
@@ -125,9 +133,17 @@ The editor root and the actual input/textarea/number component should use `width
 
 Small horizontal content padding is acceptable inside the input text area, but it must not create an extra inset box. Textarea editors must also fill the cell instead of rendering as a smaller bordered textarea floating inside the cell.
 
+Do not add visible helper, hint, range, or validation copy below or beside inline editors inside the active cell. For example, a score editor may expose `0-5` through `aria-label` or validation logic, but it must not render a visible `0-5` span in the edited cell.
+
+Concrete component expectations:
+
+- text and URL fields: host Input / native input, full-cell, borderless, select current value on focus
+- textarea fields: host TextArea / textarea, full-cell, borderless, no extra `Form.Item`
+- number, currency, and percent fields: host InputNumber / NumberInput / 数字输入框, full-cell, borderless, right-aligned when the table display is right-aligned, `controls={false}` or hidden steppers by default, finite numeric parser before commit
+
 ## 5. Attachment editor visual rule
 
-Attachment editing should follow the ExpensePoc-style table editor unless the host project already has a better matching attachment component.
+Attachment editing must preserve the ExpensePoc-style table editor behavior. A host attachment component may be reused only when it satisfies the same connected-panel, no nested form-card chrome, value, and data-source-boundary rules.
 
 Default attachment editor shape:
 
@@ -149,14 +165,14 @@ A panel that contains a title, toolbar button, inner bordered list row, and card
 | Field group | Default editor behavior | Submit value |
 | --- | --- | --- |
 | ID | read-only | none |
-| Text / URL | inline text input, select current value on focus | string |
-| TextArea | inline textarea that fills the cell; commit on outside click or explicit key path | string |
-| Number / Currency / Percent | inline numeric input, right-aligned display, no extra stepper box by default; parser failures must not commit or backfill `NaN` | finite number |
-| Date | popup date picker opens immediately | `YYYY-MM-DD` or host agreed date string |
-| DateTime | popup date-time picker opens immediately; resolve typed input before OK commit | `YYYY-MM-DD HH:mm:ss` or host agreed date-time string |
-| DateRange | popup range picker opens immediately | `{ begin, end }` or host equivalent |
-| SingleSelect | popup select opens immediately; single selection may request commit after change; empty value is clear state/placeholder, not a `-` option | option value |
-| MultiSelect | popup multi-select opens immediately; keep responsive tags and `+N` overflow; empty value is `[]`, not a `-` tag | option value array |
+| Text / URL | non-popup inline host Input / 文本输入框, full-cell borderless, select current value on focus | string |
+| TextArea | non-popup inline host TextArea that fills the cell; commit on outside click or explicit key path | string |
+| Number / Currency / Percent | non-popup inline host InputNumber / NumberInput / 数字输入框, borderless, right-aligned display, `controls={false}` or hidden steppers by default; parser failures must not commit or backfill `NaN` | finite number |
+| Date | popup host DatePicker / 日期选择器 opens immediately | `YYYY-MM-DD` or host agreed date string |
+| DateTime | popup host DatePicker / 日期时间选择器 opens immediately; resolve typed input before OK commit | `YYYY-MM-DD HH:mm:ss` or host agreed date-time string |
+| DateRange | popup host RangePicker / 日期区间选择器 opens immediately | `{ begin, end }` or host equivalent |
+| SingleSelect | popup host Select / 选择器 opens immediately; single selection may request commit after change; empty value is clear state/placeholder, not a `-` option | option value |
+| MultiSelect | popup host Select / 多选选择器 opens immediately; keep responsive tags and `+N` overflow; empty value is `[]`, not a `-` tag | option value array |
 | SingleUser / MultiUser | searchable user selector opens immediately; include current value and candidates from `/api/users` or host equivalent; do not add a fake `-` candidate | user id or user id array |
 | SingleDepartment / MultiDepartment | searchable department selector opens immediately; include current value and candidates from `/api/departments` or host equivalent; do not add a fake `-` candidate | department id or department id array |
 | File | attachment panel/editor opens as host popup; empty state shows only upload zone; upload/delete goes through host data-source boundary | normalized file payload |
@@ -297,6 +313,8 @@ Before reporting an editable Make table as done, verify at least:
 - popup placement is decided from post-scroll geometry; popups default left/top-start when they fit, flip or shift near right/bottom viewport edges, and attachment panels default left and switch right only when right-side space is insufficient
 - select, date, user, and department triggers do not draw a second blue border inside the active cell
 - inline editors fill the active cell and have no extra nested border or outer margin
+- inline editors do not render visible helper/hint/help text, range tips such as `0-5`, or `Form.Item` validation copy inside the active cell
+- editor roots and actual controls are full-cell sized; there is no width clamp, fixed narrow width, or min/max-width workaround that makes the editor smaller than the edited cell
 - select/user/department empty states do not create a fake `-` option
 - attachment fields use one connected popup/panel with compact thumbnails and one upload zone, not a nested form card
 - empty attachment editors show only the upload zone, not a fake `-` card or empty list row

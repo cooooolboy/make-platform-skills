@@ -23,3 +23,15 @@
 - `make-app-filter` 不负责 CanvasTable 渲染和 suffixRender API 细节，表格接入仍交给 `canvas-table-integration`。
 - `make-app-filter` 不负责 Service 路由实现、日志和 adapter，具体代码仍交给 `make-app-service`。
 - `make-app-filter` 不负责认证、打包发布、DSL 建模或 Make CLI 操作。
+
+## 2026-06-10 15:15 CST
+
+- 变更摘要：同步 `make-app-filter` 与当前 `filter.expression` 能力，补齐 DateRange、File、Lookup 支持边界，并修正搜索 OR 与高级筛选 AND 必须展开为 DNF。
+- 涉及文件：`skills/make-app-filter/SKILL.md` 及 `references/filter-model.md`、`operator-matrix.md`、`service-translation.md`、`header-table-linkage.md`、`testing-and-pitfalls.md`。
+- 关键逻辑：Lookup 只能使用当前 Entity 的 Lookup 字段 key，操作符和值格式按 `targetFieldKey` 目标字段类型决定；缺少目标元数据或嵌套 Lookup 时仍隐藏。
+
+## 2026-06-11 18:08 CST
+
+- 变更摘要：回退提交 `6e7f6a25` 中 `make-app-filter` 关于 `@qfei-design/make-filter` 包能力门禁和扩展合同的同步内容。
+- 涉及文件：`skills/make-app-filter/SKILL.md` 及 `references/package-integration.md`、`operator-matrix.md`、`service-translation.md`、`header-table-linkage.md`、`testing-and-pitfalls.md`。
+- 关键逻辑：恢复到回退前一版高级筛选说明，撤销 host 不手写 File、DateRange、Lookup 或 DNF 编译逻辑等新增约束。
