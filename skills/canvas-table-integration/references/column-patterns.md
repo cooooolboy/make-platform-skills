@@ -95,9 +95,9 @@ const formattedRows = rows.map((row) => ({
 
 For editable number-like fields, keep row and submit values numeric, then format in the table `render` function or editor formatter/parser. Do not turn editable numeric row data into a currency string before it reaches the editor.
 
-For display-only number, currency, and percent columns, format only after a finite-number check. If parsing fails, render the empty placeholder instead of `NaN`, `Infinity`, or exception text.
+For display-only number, currency, and percent columns, accept backend values only as finite numbers or pure numeric strings, then format only after a finite-number check. If parsing fails, render the empty placeholder instead of `NaN`, `Infinity`, or exception text.
 
-For preformatted currency strings such as `¥1,000.00`, `￥1,000.00`, `$1,000.00`, or `1,000.00`, clean the value in a boundary adapter before the column render path: remove currency symbols, thousands separators, and whitespace, then parse the cleaned value and require `Number.isFinite(parsed)`. Do not call `Number('¥1,000.00')` or direct `Number(rawCurrencyText)` inside the renderer.
+Currency and percent symbols are frontend display concerns. `Make.Field.Currency` renderers add the field/schema currency symbol, defaulting to `￥` when the host does not provide one. `Make.Field.Percent` renderers add `%`. Do not put these symbols, thousands separators, or formatted text into row data, editor values, submit values, or API payloads.
 
 ## 6. Use `render` only when necessary
 

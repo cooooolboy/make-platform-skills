@@ -88,7 +88,7 @@ Use type-appropriate controls:
 | --- | --- |
 | `ID`, generated fields | read-only text |
 | `Text`, `TextArea`, `URL` | text, textarea, or URL input |
-| `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values |
+| `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values; submit values are finite numbers or pure numeric strings |
 | `Date`, `DateTime`, `DateRange` | date, date-time, or range picker |
 | `SingleSelect`, `MultiSelect` | single or multiple select from schema options |
 | `SingleUser`, `MultiUser` | searchable user selector using the host-provided candidate source |
@@ -225,8 +225,8 @@ Default detail display by Make field type:
 | `Make.Field.TextArea` | long text | full-row text, preserved line breaks, safe wrapping |
 | `Make.Field.URL` | string or `{ href/url/value, label/name }` | safe clickable link when href is valid; otherwise text |
 | `Make.Field.Number` | number or numeric string | formatted number |
-| `Make.Field.Currency` | number or numeric string | formatted currency, defaulting to the field/schema symbol when present |
-| `Make.Field.Percent` | number or numeric string | formatted percent text |
+| `Make.Field.Currency` | number or pure numeric string | formatted currency added by the frontend field-type display adapter, defaulting to the field/schema symbol or `￥` when absent |
+| `Make.Field.Percent` | number or pure numeric string | formatted percent text with `%` added by the frontend field-type display adapter |
 | `Make.Field.Date` | date-like value | `YYYY-MM-DD` or the host project date format |
 | `Make.Field.DateTime` | date-time-like value | `YYYY-MM-DD HH:mm` or the host project date-time format |
 | `Make.Field.DateRange` | `[begin, end]` or `{ begin, end }`, also accepting `start/from/to` aliases when the host already returns them | `YYYY-MM-DD 至 YYYY-MM-DD`; do not render raw JSON such as `{"begin":...,"end":...}` |
@@ -238,6 +238,9 @@ Default detail display by Make field type:
 | `Make.Field.Lookup` | object/JSON wrapper, often `{ entity, field, data }` | extract labels/references from `data`; openable references are links, deleted references are muted/struck through when status is available |
 
 Value extraction should be tolerant but deterministic:
+
+- Number, Currency, and Percent backend/API values stay numeric: accept finite numbers or pure numeric strings only. Do not submit or persist display strings containing `￥`, `¥`, `%`, thousands separators, or unit text.
+- Currency and Percent symbols are presentation. Add them only in detail/table renderers or input formatters after finite-number validation, never in the form store value or API payload.
 
 - empty values display a muted `-`
 - generic object label priority is `label`, `name`, `title`, `displayName`, then `value`
