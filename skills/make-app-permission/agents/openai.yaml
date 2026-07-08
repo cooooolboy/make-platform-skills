@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make App Permission"
+  short_description: "Enforce Make App permissions by default"
+  default_prompt: "Use $make-app-permission to add complete single-app permission enforcement to a Make App."

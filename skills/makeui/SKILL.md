@@ -1,6 +1,6 @@
 ---
 name: makeui
-description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Also triggered by mentions of makeui or `skills/makeui`. Covers UI, 界面, app shell, page layout, styling, component placement, current-user header menu, componentized module structure, 组件化拆分, 模块化拆分, responsive behavior, dynamic object routes, field-metadata-driven UI rendering, list pages, create/edit/detail drawers, route-based form/detail pages, custom form field controlled props, user/department selector UI candidate-source usage, and UI states. Requires Make record tables to use `@qfei-design/canvas-table` through `canvas-table-integration`, and Make advanced filters to use `@qfei-design/make-filter` through `make-app-filter`. Does not cover authentication/login, build output, publishing/deployment, Service runtime, business API design, permissions, data persistence, business modeling, canvas-table internals, or advanced-filter package internals.
+description: Use when designing, generating, refactoring, or reviewing Make App frontend UI and `apps/ui` React UI code. Triggered by makeui, UI, 界面, app shell, layout, component structure, responsive behavior, dynamic object routes, field-metadata rendering, list pages, create/edit/detail drawers, controlled form fields, user/department selectors, and UI states. Requires Make record tables to use `canvas-table-integration`, advanced filters to use `make-app-filter`, and generated Make App permission gates to use `make-app-permission`. Does not own auth, build/publish, Service runtime, business API design, permission logic, persistence, DSL, canvas-table internals, or filter package internals.
 ---
 
 # makeui
@@ -9,7 +9,7 @@ Current skill revision: 0.3.46.
 
 Use this skill for Make App frontend UI work in `apps/ui`. The default stack is React + Vite + React Router, but `makeui` only owns UI structure and presentation decisions.
 
-`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, current-user header menu placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permissions, persistence, business modeling, domain mapping, `canvas-table` internals, or advanced-filter package internals.
+`makeui` owns app shell layout, navigation layout, list-page layout, toolbar placement, current-user header menu placement, component-library usage, field-control presentation, create/edit/detail layout, user/department selector UI behavior, responsive behavior, visual states, and UI polish. It does not own authentication/login, frontend build or publish rules, Service runtime structure, business API/data contracts, permission logic, persistence, business modeling, domain mapping, `canvas-table` internals, or advanced-filter package internals. For generated Make Apps, pair this skill with `make-app-permission`; do not treat permission gates as optional UI polish.
 
 ## Quick start
 
@@ -24,10 +24,11 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 9. Use the ExpensePoc-style create/edit/detail layout by default: right Drawer, desktop two-column field grid, full-span rows only for wide fields, and one-column only on small screens or explicit user request.
 10. Custom form field controls must be host-form controlled adapters: accept and forward `value/onChange/onBlur/id/disabled` from the host form layer, and make the form value seen by submit/validation match the displayed selection. This is UI-library neutral and does not require Ant Design, Arco, or shadcn.
 11. Render detail values through a field-type display adapter. Do not display raw objects, arrays, or JSON wrapper text when the field type has a stable Make display shape.
-12. If filtering, advanced filtering, table filtering, or header filtering is requested or already present, route the integrated filtering behavior to `make-app-filter`; `makeui` only places the toolbar trigger area and preserves the table region needed by CanvasTable header linkage.
-13. If Make record table cell editing is requested or already present, route the editor lifecycle, `customEdit`, borderless in-cell chrome, popup placement, and field-editor mapping to `canvas-table-integration` Track B. `makeui` may place the table host, but must not invent a one-off cell editor in a page component. Non-standard CanvasTable cell editors are a readiness blocker / 交付阻断; do not report the UI as ready, complete, or delivered.
-14. Treat missing componentization as a readiness blocker for new Make POC UI and non-trivial UI changes. Before reporting ready or complete, verify that `App.tsx` and route/page files only orchestrate and that implementation logic is split into page, shell, feature components, hooks, `lib/service-api`, field display/config adapters, table host, toolbar, and Drawer modules.
-15. Read only the needed reference files from the map below.
+12. For generated Make App UI, use `make-app-permission` for required permission gates: PermissionProvider placement, route guard, read/create/update/delete buttons, field editability, payload filtering, and refresh-time permission reload. `makeui` only decides how the resulting states render.
+13. If filtering, advanced filtering, table filtering, or header filtering is requested or already present, route the integrated filtering behavior to `make-app-filter`; `makeui` only places the toolbar trigger area and preserves the table region needed by CanvasTable header linkage.
+14. If Make record table cell editing is requested or already present, route the editor lifecycle, `customEdit`, borderless in-cell chrome, popup placement, and field-editor mapping to `canvas-table-integration` Track B. `makeui` may place the table host, but must not invent a one-off cell editor in a page component. Non-standard CanvasTable cell editors are a readiness blocker / 交付阻断; do not report the UI as ready, complete, or delivered.
+15. Treat missing componentization as a readiness blocker for new Make POC UI and non-trivial UI changes. Before reporting ready or complete, verify that `App.tsx` and route/page files only orchestrate and that implementation logic is split into page, shell, feature components, hooks, `lib/service-api`, field display/config adapters, table host, toolbar, and Drawer modules.
+16. Read only the needed reference files from the map below.
 
 ## Topic reference map
 
@@ -43,6 +44,7 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 | Spacing, density, responsive layout, loading/empty/error states | `references/styling-and-responsive.md` |
 | Make record table display or cell editing | Use `canvas-table-integration` |
 | Advanced filter panel, condition builder, filter expression, header field filter | Use `make-app-filter` |
+| Single-app permissions, route guard, operation buttons, field editability, refresh permission reload | Use `make-app-permission` |
 | Authentication, login, logout handler, token, session behavior | Use `make-app-auth`; `makeui` only owns the current-user menu surface and placement |
 | Build output, Service runtime, packaging, publish readiness | Use `make-app-runtime`; `makeui` does not own runtime contracts |
 
@@ -51,7 +53,8 @@ Use this skill for Make App frontend UI work in `apps/ui`. The default stack is 
 ### Scope boundary
 
 - Do not add or modify authentication/login, token, OAuth, cookie, logout behavior, session mechanics, `/api/make/**`, domain, gateway, deployment, Docker/K8s, Node runtime, package-manager, build-output, or Service runtime rules in `makeui`.
-- Do not define business API paths, Service contracts, data persistence, permissions, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source behavior for UI selectors. Route names must yield to host project docs and the owning Service/API skill when the host documents a different transport.
+- Do not define business API paths, Service contracts, data persistence, permission logic, approval flows, or environment mapping in `makeui`. The only allowed endpoint guidance here is the default user/department candidate-source behavior for UI selectors. Route names must yield to host project docs and the owning Service/API skill when the host documents a different transport.
+- Generated Make App UI must not be reported complete without the required single-app permission gates from `make-app-permission`, unless the user explicitly opts out of permissions.
 - If the task needs auth/login/logout/session behavior, use `make-app-auth`. If the task needs build output, Service runtime, packaging, or publish-readiness rules, use `make-app-runtime`.
 - If the task needs 筛选, advanced filtering, table filtering, filter builders, `filter.expression`, or header "按该字段筛选", use `make-app-filter`. `makeui` must not implement or fork `@qfei-design/make-filter` logic, and must not ship a Make record-list filtering UI without the paired CanvasTable header linkage owned by `make-app-filter` plus `canvas-table-integration`.
 - `makeui` may consume host-provided object/field metadata for UI rendering, but must not decide how that metadata is fetched, stored, authenticated, or deployed.
