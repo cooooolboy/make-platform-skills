@@ -248,6 +248,8 @@ frontmatter：
 ---
 name: make-app-permission
 description: Use when generating, refactoring, reviewing, or debugging Make App single-app permission management and frontend permission enforcement. Covers /api/make/app/principal/permission Service proxy, Make IAM /api/make/iam/v1/principal/permission calls, app-scope permission payloads, schema-vs-permission separation, route/menu gating, read/create/update/delete button gating, field editability, cell-edit and form payload filtering, refresh-time permission reload, and tests. Does not own platform-admin permissions, auth mechanics, generic Service routes, UI layout, CanvasTable internals, DSL modeling, Make CLI deploy, or runtime packaging.
+metadata:
+  version: 0.1.0
 ---
 ```
 
