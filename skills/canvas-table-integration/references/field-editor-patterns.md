@@ -107,7 +107,7 @@ Recommended pattern:
 - full-cell, non-popup, borderless inline editor; hide steppers by default with `controls={false}` or the host-library equivalent unless the product explicitly needs stepper controls
 - submit-style editing
 - keep precision and unit behavior in field metadata or field config
-- keep the row value and submit value as a number when the backend expects a number
+- keep the row value and submit value as a finite number or pure numeric string, according to the backend contract
 - put currency, percent, thousands separators, and unit display in the editor formatter or table render layer
 - parse formatted input back to a number before commit
 - round or clamp to backend precision before submit when metadata such as `precision` or `decimalPlaces` is present
@@ -126,7 +126,7 @@ Good defaults:
 - `Enter` may commit for simple number editors, similar to text fields.
 - `Escape` should cancel without writing the candidate value.
 - Do not pre-format the row data into a display string before it reaches the editor; that often makes initial values and submit payloads brittle.
-- Do not submit `¥3.005` or `3.005` when the backend field allows only two decimals; normalize to `3.01` or the host's agreed rounding rule before calling the save API.
+- Do not submit formatted values such as `¥3.005`, `3.005%`, or `85%`. If the backend field allows only two decimals, normalize to a finite number or pure numeric string such as `3.01` before calling the save API.
 
 ## 5. Date fields
 

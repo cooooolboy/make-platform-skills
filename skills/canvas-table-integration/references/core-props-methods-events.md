@@ -140,8 +140,13 @@ Use these methods first:
 
 - local mode: `setData(rows)`
 - virtual mode: `setData(rows, page)`
+- `setData([])` is valid. Empty rows still keep the table header visible and show the configured `emptyStateOptions` / 暂无数据 empty state; do not hide or skip the CanvasTable host just because rows are empty.
 
 Do not omit `page` in virtual mode.
+
+Keep row synchronization independent from instance creation timing. In React/Vue wrappers, API rows may arrive before `ResizeObserver` has produced a real size and before `CanvasTableComponent` exists. Store the latest rows in a ref or equivalent stable holder, update that holder whenever rows change, call `table.setData(latestRows)` whenever the instance already exists, and call `table.setData(latestRows)` again immediately after creating the instance. Do not drop a data update simply because `tableRef.current` was `null` during the first rows effect.
+
+Do not use `records.length`, `rows.length`, or a summary total as the gate for table creation. The gate is container size plus schema/columns readiness. Rows can be empty and still produce a valid table with headers and empty state.
 
 #### `scrollTo(...)` and `getScrollState()`
 

@@ -1,6 +1,8 @@
 ---
 name: canvas-table-integration
-description: Use when integrating `@qfei-design/canvas-table` into an existing app or page. Covers consumer-side local or virtual tables, public props/methods/events, row-head suffix actions, selection, drag, fixed columns, summary rows, empty states, lightweight `render + TextShape + shape click` interactions, host-side cell-edit architecture, schema-driven Make field editors, mandatory ExpensePoc-derived cell-edit standards, `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `editApplyMode: controlled`, attachment editors, and Make field-display columns with value normalization, ExpensePoc-derived field renderers, and overflow-only tooltip behavior. Only supports `@qfei-design/canvas-table`, never UI-library tables. Read package AI docs first, choose Track A, B, or C, use documented public APIs, and do not modify the table library itself.
+description: "Use when integrating `@qfei-design/canvas-table` into an existing app or page. Covers consumer-side local or virtual tables, public props/methods/events, row-head suffix actions, selection, drag, fixed columns, summary rows, empty states, async latest rows synchronization, lightweight `render + TextShape + shape click` interactions, host-side cell-edit architecture, schema-driven Make field editors, mandatory ExpensePoc-derived cell-edit standards, `customEdit`, `commit/cancel`, object `autoClose`, `relatedElements`, `overlayOptions`, `editApplyMode: controlled`, attachment editors, and Make field-display columns with value normalization, ExpensePoc-derived field renderers, and overflow-only tooltip behavior. Only supports `@qfei-design/canvas-table`, never UI-library tables. Read package AI docs first, choose Track A, B, or C, use documented public APIs, and do not modify the table library itself."
+metadata:
+  version: 0.1.0
 ---
 
 # canvas-table-integration
@@ -57,9 +59,10 @@ Hard Track B rule: every CanvasTable cell edit / 单元格编辑 implementation 
 7. Enable table row defaults unless the user explicitly opts out: `showSN` sequence numbers plus a hover-revealed open-detail action through `bodyRowHeadSuffixOptions`.
 8. For Make schema tables, apply the ExpensePoc-derived field renderer defaults. Text-bearing overflow must show ellipsis, and tooltip is enabled by default only for ellipsized overflow or hidden `+N` content; do not require the user to ask for it.
 9. When the object/entity/schema key changes, reset table interaction state and scroll position. Do not carry the previous object's horizontal or vertical scroll into the next object.
-10. If Track B is in scope, verify the mandatory cell-edit standard before finishing; a non-standard cell editor is not a shippable partial result.
-11. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
-12. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
+10. Keep table initialization independent of row count: create the table after container size plus schema/columns are ready, call `setData(latestRows)` after the instance is ready, and call `setData([])` for empty rows so headers and empty state still render.
+11. If Track B is in scope, verify the mandatory cell-edit standard before finishing; a non-standard cell editor is not a shippable partial result.
+12. Add only the capabilities the user explicitly needs now; pagination, selection, grouping, and editing are not defaults.
+13. Before finishing, read the relevant pitfalls reference and verify one concrete table path.
 
 ## Typical requests
 
@@ -240,7 +243,9 @@ Default Make schema table baseline:
 - normalize field values once through a pure adapter before canvas rendering
 - route display by field type group, not by business field names, except for explicit business roles such as a primary code link
 - use the ExpensePoc-proven renderer families by default: text/link, tag list, compact user avatar/name list, attachment list, lookup reference text, and safe generic fallback
-- number, currency, and percent renderers must only format finite parsed numbers; blank, invalid, `NaN`, `Infinity`, or unparseable values render the empty placeholder `-` and must never display `NaN`
+- number, currency, and percent backend values must stay numeric: accept finite numbers or pure numeric strings only. Currency symbols, percent signs, thousands separators, and other display formatting belong to the frontend field-type renderer, not the API payload.
+- number, currency, and percent renderers must parse through a finite-number guard before display formatting; blank, invalid, `NaN`, `Infinity`, formatted strings, or unparseable values render the empty placeholder `-` and must never display `NaN`
+- `Make.Field.Currency` display adds the field/schema currency symbol, defaulting to `￥` when the host has no symbol. `Make.Field.Percent` display adds `%` after finite validation. Do not persist, submit, or backfill these formatted display strings.
 - apply ellipsis plus overflow-only tooltip by default: visible text/tag/user/lookup labels must show ellipsis when truncated and get tooltip only when ellipsized; attachment/tag/user/lookup `+N` badges get a tooltip with the full hidden value list
 - keep option, user, department, file, and lookup candidate loading outside cell renderers. Generated Make App table editors use the same default UI-Service candidate contract as forms: `GET /api/users?keyword=&page=&size=` and `GET /api/departments?keyword=&page=&size=`, or host equivalent routes, normalized to `userId/userName` and `departmentId/departmentName`
 - treat object/entity/schema key as table identity. On identity change, rebuild or reset the table so scrollLeft/scrollTop, active edit state, selection, hover/suffix state, and header popups do not leak from the previous object
@@ -261,7 +266,10 @@ Treat these as safety rules:
 - never pass raw meta directly into the table runtime
 - convert meta into `IColumn[]` before creating the table
 - for Make schema tables, do not create the table with generic placeholder columns or row-key-inferred columns while waiting for schema
+- do not use `records.length`, `rows.length`, or business totals as the gate for creating the table. Empty rows are a valid table state: keep headers visible and show the built-in empty state after `setData([])`
+- when rows can arrive before the CanvasTable instance is ready, store the latest rows and call `setData(latestRows)` immediately after instance creation; do not let early data updates disappear because `tableRef.current` was `null`
 - never render numeric parser failures as `NaN`, `Infinity`, or exception text; normalize them to an empty display value before canvas rendering
+- never accept formatted currency or percent text as the normal backend contract. Values such as strings containing `¥`, `￥`, `%`, or thousands separators are dependency defects; render `-` or surface the data-contract issue instead of silently treating them as API-ready values
 - do not put `aria-hidden` or `inert` on the visual canvas-table host, or on any ancestor that can contain the package-created focusable canvas
 - if a screen-reader fallback table is needed, keep it as a separate visually-hidden structure and give the visual host its own non-hidden accessible label
 - pagination is opt-in: do not add visible pagination controls, page-size selectors, page state, page query params, total-count handling, paginated fetch logic, `virtualOptions`, or `data:load` wiring unless the user explicitly asks for pagination, virtual loading, or paginated backend integration

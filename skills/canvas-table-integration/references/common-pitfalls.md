@@ -158,7 +158,31 @@ Fix:
 - use a separate unmount cleanup to call `destroy()` once; avoid splitting create and update effects so that cleanup from one effect can remove the instance expected by another
 - verify in the browser by comparing wrapper, host, and canvas rectangles; host and canvas CSS size should match, while canvas `width`/`height` attributes may be larger due to DPR scaling
 
-## 13. Carrying scroll position across object switches
+## 13. Dropping rows that arrive before the table instance
+
+Symptom:
+
+- summary cards or other React/Vue state show records, but the CanvasTable body still shows the empty state
+- the first API response has rows, yet the table only appears after a manual refresh, route switch, or second data update
+- empty datasets accidentally hide the whole table instead of showing headers plus the built-in empty state
+
+Cause:
+
+- records or rows arrive before the CanvasTable instance is created later by `ResizeObserver`, real-size measurement, or schema/column readiness
+- the rows effect checks `tableRef.current` and returns while it is `null`
+- the later instance-creation path does not reapply the latest rows with `setData(latestRows)`
+- initialization is incorrectly gated by `records.length` / `rows.length`, so empty rows never create a valid table shell
+
+Fix:
+
+- keep `latestRowsRef.current = rows` or an equivalent latest rows holder in the host wrapper
+- when rows change, update the latest holder and call `tableRef.current?.setData(rows)` if the table already exists
+- when the CanvasTable instance is created or recreated, immediately call `setData(latestRowsRef.current)`, even when it is `[]`
+- gate creation on real container size plus schema/columns readiness, not on row count, API totals, or summary card values
+- empty rows must render the table header and `emptyStateOptions` / 暂无数据 state; they are not a reason to skip the CanvasTable host
+- if a non-empty latest rows array still renders empty, verify whether filters, pagination, permissions, or a deliberate business transform reduced the table rows before `setData`
+
+## 14. Carrying scroll position across object switches
 
 Symptom:
 
