@@ -31,6 +31,8 @@ Default structure:
 - keep option, user, department, file, and lookup candidate loading in hooks/data sources; never fetch from a cell renderer
 - for generated Make App table editing/search selectors, use the host candidate source. The ExpensePoc default UI-Service contract is `GET /api/users?keyword=&page=&size=` -> `{ users, total }` and `GET /api/departments?keyword=&page=&size=` -> `{ departments, total }`; if the host documents a different route, use its equivalent route while preserving the same response semantics. Normalize results before passing options to table editors
 - keep `showSN` sequence numbers and the hover-revealed row detail entry through `bodyRowHeadSuffixOptions`
+- create or update the CanvasTable after schema/columns are ready and the host has real size; do not wait for `records.length`, `rows.length`, or data totals to become positive. Empty rows still render headers and the configured empty state after `setData([])`
+- keep latest rows in the table host/controller and call `setData(latestRows)` after the CanvasTable instance is created, because backend rows can arrive before `ResizeObserver` or schema readiness finishes creating the instance
 - treat object/entity/schema key as table identity. Switching to another object must reset scroll to the top-left and clear old table interaction state; data refresh within the same object may preserve scroll
 
 Default visual rules:
@@ -40,7 +42,8 @@ Default visual rules:
 - text/link cells use 14px sans-serif text, 8px horizontal padding, `#1f2937`, ellipsis, and overflow-only tooltip
 - empty values render muted `-` with `#9ca3af`
 - clickable text, safe URLs, and openable lookup references use `#1677ff`
-- number, currency, and percent cells parse through a finite-number guard before formatting. Invalid, blank, `NaN`, `Infinity`, or unparseable values render muted `-`, never `NaN`, `Infinity`, or parser error text.
+- number, currency, and percent cells accept only finite numbers or pure numeric strings from backend/API data. Parse through a finite-number guard before display formatting. Invalid, blank, formatted, `NaN`, `Infinity`, or unparseable values render muted `-`, never `NaN`, `Infinity`, or parser error text.
+- currency and percent display formatting is frontend-owned and driven by field type. `Make.Field.Currency` renderers add the field/schema currency symbol, defaulting to `￥` when absent; `Make.Field.Percent` renderers add `%` after finite validation. API payloads, row data used for editing, and submit values stay numeric or pure numeric strings.
 - date and date-range cells render formatted text, ellipsize when clipped, and use the same overflow-only tooltip
 - tags are 22px tall, 4px radius, 12px text, 8px horizontal text padding, and use `+N` overflow when space runs out. A visible tag's tooltip appears only when that tag label is ellipsized; a `+N` tag's tooltip contains the full label list joined with `、`
 - select tags use `#eef4ff` background and `#1677ff` text, with option labels resolved from field properties before falling back to raw values
@@ -59,7 +62,9 @@ Before constructing `CanvasTableComponent` or rendering a project wrapper around
 4. prepare a render registry by display group
 5. keep a pure value adapter available to every render callback
 6. pass `showSN` and `bodyRowHeadSuffixOptions` unless explicitly disabled
-7. on object/entity/schema identity change, reset or recreate the canvas-table instance before presenting the new object's table
+7. create/update the table when schema/columns and host size are ready, not when `records.length` or `rows.length` is positive
+8. after creating the CanvasTable instance, immediately call `setData(latestRows)`; use `setData([])` when rows are empty so headers and empty state render
+9. on object/entity/schema identity change, reset or recreate the canvas-table instance before presenting the new object's table
 
 Do not initialize a Make schema table from `Object.keys(row)` or temporary generic text columns while schema is loading. Show loading/error/empty chrome around the canvas host until schema is ready.
 
@@ -109,8 +114,8 @@ In new Make POC code, this table should be represented in the shared registry in
 | `Make.Field.TextArea` | text | string/object | wider text column, ellipsis + overflow-only tooltip |
 | `Make.Field.URL` | url | string or `{ href/url/value, label/name }` | clickable text only for safe hrefs |
 | `Make.Field.Number` | number | finite number or finite numeric string; invalid/non-finite is empty | right-aligned ellipsized number text, overflow-only tooltip, never `NaN` |
-| `Make.Field.Currency` | number | finite number or finite numeric string; invalid/non-finite is empty | ellipsized currency text with host/default symbol, right-aligned, overflow-only tooltip, never `NaN` |
-| `Make.Field.Percent` | number | finite number or finite numeric string; invalid/non-finite is empty | ellipsized percent text, right-aligned, overflow-only tooltip, never `NaN` |
+| `Make.Field.Currency` | number | finite number or pure numeric string; formatted strings are invalid | ellipsized currency text with field/schema symbol, default `￥`, right-aligned, overflow-only tooltip, never `NaN` |
+| `Make.Field.Percent` | number | finite number or pure numeric string; formatted strings are invalid | ellipsized percent text with `%`, right-aligned, overflow-only tooltip, never `NaN` |
 | `Make.Field.Date` | date | parseable date string/value | ellipsized `YYYY-MM-DD` or host date format, overflow-only tooltip |
 | `Make.Field.DateTime` | date | parseable date-time string/value | ellipsized `YYYY-MM-DD HH:mm` or host date-time format, overflow-only tooltip |
 | `Make.Field.DateRange` | date | `[begin,end]` or `{ begin/end/start/from/to }` | format as `YYYY-MM-DD 至 YYYY-MM-DD` or host date-range text; apply ellipsis only when the column clips the rendered text, with overflow-only tooltip |
@@ -128,8 +133,9 @@ In new Make POC code, this table should be represented in the shared registry in
 Use tolerant extraction. Do not fail the cell because one key is absent.
 
 - generic object label priority: `label`, `name`, `title`, `displayName`, `value`
-- numeric values: accept finite numbers directly; for trimmed numeric strings, parse to a number first and accept only when `Number.isFinite(parsed)` is true. Treat `null`, `undefined`, blank strings, `NaN`, `Infinity`, and unparseable strings as empty. Do not render `Number(value)` directly.
-- currency and percent display may apply symbols, separators, precision, or `%` only after finite validation. If a host returns preformatted numeric strings, normalize them in a boundary adapter first; renderers still require finite numeric output before formatting.
+- numeric values: accept finite numbers directly; for trimmed pure numeric strings, parse to a number first and accept only when `Number.isFinite(parsed)` is true. Treat `null`, `undefined`, blank strings, `NaN`, `Infinity`, formatted strings, and unparseable strings as empty. Do not render `Number(value)` directly.
+- currency and percent display may apply symbols, separators, precision, or `%` only after finite validation. Backend/API values for `Make.Field.Currency` and `Make.Field.Percent` must be finite numbers or pure numeric strings; strings already containing currency symbols, percent signs, thousands separators, or display units are data-contract defects and should not be silently normalized as the standard path.
+- keep percent scale consistent with host metadata or documented backend semantics. Do not multiply or divide percent values by 100 unless the field metadata or project contract explicitly says backend stores fractions.
 - select labels: `field.properties.options[]` with `{ value, label }`, fallback to raw value
 - user candidate API results: value/id is `userId`, label is `userName`, optional avatar is `avatar`
 - user label priority: `name`, `userName`, `displayName`, `label`, `userId`, `id`, `recordID`
@@ -180,10 +186,14 @@ Add focused tests before or with implementation:
 
 - field type -> display group/kind mapping covers all 18 supported types
 - table initialization waits for schema fields and never infers Make columns from row keys
+- table initialization gates on schema/columns and real host size, not on `records.length`, `rows.length`, or data totals
+- rows arriving before the table instance is ready are applied after creation by calling `setData(latestRows)`
+- empty rows / `setData([])` still render table header plus `emptyStateOptions` / 暂无数据 state
 - Make schema table defaults include `showSN` and `bodyRowHeadSuffixOptions` unless explicitly disabled
 - object switch resets horizontal and vertical scroll instead of reusing the previous object's scrollLeft/scrollTop
 - overflow tooltips are default behavior, but only appear when text/tag/user/attachment/lookup content is ellipsized, clipped, or hidden behind `+N`; text-bearing overflow must visibly show ellipsis before tooltip
-- number/currency/percent values cover `0`, negative, decimal, numeric string, `null`, empty string, non-numeric string, `NaN`, and `Infinity`, and never render `NaN`
+- number/currency/percent values cover `0`, negative, decimal, pure numeric string, `null`, empty string, non-numeric string, formatted strings, `NaN`, and `Infinity`, and never render `NaN`
+- currency and percent display tests verify that backend values such as `"1000.00"` and `"85.00"` remain pure numeric input values while the frontend renderer adds the currency symbol or `%` according to field type
 - backend variants: primitive, object, array, JSON string, empty value
 - select option label fallback
 - user backend shapes with `name`, `userName`, `recordID`, `userId`, and avatar keys
@@ -201,11 +211,14 @@ Mock canvas-table shapes in unit tests when the host test environment cannot dra
 - Do not parse backend values inside every column render callback. Normalize once through the display adapter.
 - Do not initialize Make schema tables before schema fields are available.
 - Do not infer Make columns from returned row object keys.
+- Do not gate CanvasTable creation on row count. Empty rows are valid and must still render headers plus the empty state.
+- Do not drop rows that arrive before the table instance is ready. Reapply the latest rows with `setData(latestRows)` after instance creation.
 - Do not carry scroll position or object-scoped interaction state across different object/entity/schema keys.
 - Do not branch generic display behavior by business field name. Field names are only for explicit business roles, such as a claim number link.
 - Do not let custom renderers fetch data per cell.
 - Do not call user or department candidate APIs inside canvas renderers. Load candidates at the page/table-controller layer and pass normalized options into editors or display adapters.
 - Do not call `Number(value).toLocaleString()` or similar formatting without first checking `Number.isFinite`.
+- Do not treat formatted strings containing currency symbols, percent signs, thousands separators, or display units as valid backend values. The normal API contract for `Currency` and `Percent` is finite number or pure numeric string; display formatting is added only by frontend renderers.
 - Do not flatten select, user, department, file, or lookup values into plain text when the schema type supports richer default rendering.
 - Do not show tooltip for every cell unconditionally. Tooltip is for visible ellipsis, unavoidable non-text clipping, or `+N` hidden values.
 - Do not render raw JSON wrapper text when a label can be extracted.

@@ -28,6 +28,7 @@ Codex 判断优先级：
 | CanvasTable、表格渲染、字段类型展示、表格编辑、序号列、行头详情图标、`showSN`、`bodyRowHeadSuffixOptions` | `canvas-table-integration` | 只负责 `@qfei-design/canvas-table` 消费侧接入，不负责页面 Shell 和业务 API |
 | 筛选、高级筛选、表格筛选、表头筛选、筛选条件组、AND/OR、字段类型操作符、CEL/DNF、系统变量、DateRange/File/Lookup 筛选、filter expression、筛选值归一化、表头按字段筛选联动、`@qfei-design/make-filter` | `make-app-filter` | 负责完整筛选能力：`@qfei-design/make-filter` 消费侧接入、高级筛选控件行为、CanvasTable 表头筛选联动和 `filter.expression` 合同；不负责页面 Shell、表格渲染 API 细节、Service 实现、认证或发布 |
 | Service 接口、`apps/service` API、UI-Service 合同、`apps/docs/api.md`、schema/records/users/departments/lookup/file 代理接口、Make Data API adapter、Service 网关 origin 与服务 scope 配置语义 | `make-app-service` | 只负责 Service API、薄编排和 Make adapter 配置语义，不负责 UI、认证、打包发布、端口/构建产物、DSL 建模、Make CLI、CanvasTable |
+| 权限、单应用权限、App 权限、`/principal/permission`、`/api/make/app/principal/permission`、菜单权限、路由权限、按钮权限、字段可编辑、read/create/update/delete、URL 防绕过、刷新权限 | `make-app-permission` | Make 项目默认必须接入；负责单个 App 权限链路、Service 调 Make IAM、App scope、schema/permission 分工、路由和按钮/字段权限、刷新重取和测试；不负责平台管理权限、认证机制、通用 Service API、UI 布局、CanvasTable 内部、DSL 或部署 |
 | 登录、认证、Token、统一登录、OAuth、Cookie、Session、logout、401/403、`/api/make/**` 鉴权请求 | `make-app-auth` | 只负责认证和鉴权请求，不负责 UI 布局和打包发布 |
 | 打包、发布、镜像入口、K8s、Service 启动失败、`apps/ui/dist`、`apps/service/dist/server.js`、Service 端口 `3000`、workspace/package.json、`X-Forwarded-Host` | `make-app-runtime` | 只负责运行态和打包发布契约，不负责 Service API、认证实现或 Make adapter 配置语义 |
 | App/Entity/Relation/Field 建模、DSL YAML、对象、字段、关系、选项 | `makedsl` | 只负责 DSL 设计和生成，不负责远端 apply |
@@ -40,10 +41,12 @@ Codex 判断优先级：
 - 做筛选、高级筛选、表格筛选或表头按字段筛选：`make-app-filter` + `makeui` + `canvas-table-integration`，必须同时完成 package 高级筛选和 CanvasTable 表头筛选联动
 - 做筛选 Service 合同或 filter.expression 透传：`make-app-filter` + `make-app-service`
 - 做 UI 需要的 Service 接口：`make-app-service` + `makeui`
+- 做 Make 项目默认权限体系：`make-app-permission` + `make-app-service` + `make-app-auth` + `makeui`，涉及表格编辑时加 `canvas-table-integration`
 - 做一个登录后的页面：`makeui` + `make-app-auth`
 - 做 Service-fronted 登录后接口：`make-app-service` + `make-app-auth`
 - 打包发布失败或 Service 启动失败：`make-app-runtime`
 - 新增对象字段并部署：`makedsl` + `makecli`
+- 新建完整 Make App：默认包含 `make-app-permission`，通常组合 `makedsl` + `makecli` + `make-app-auth` + `make-app-service` + `make-app-permission` + `makeui` + `canvas-table-integration`
 
 ## 可用 Skill 列表
 
@@ -158,6 +161,23 @@ npx skills update make-app-service
 - 不负责认证实现；统一登录、cookie、session、401/403 交给 `make-app-auth`
 - 不负责打包发布；端口、`dist/server.js`、package scripts 和镜像入口交给 `make-app-runtime`
 - 不负责 DSL 建模、Make CLI 操作或 CanvasTable 渲染；这些分别交给 `makedsl`、`makecli` 和 `canvas-table-integration`
+
+### make-app-permission
+指导生成、重构或审查 Make App 单应用权限体系。Make 项目默认必须接入此能力，除非用户明确要求跳过权限。
+
+#### 升级 skill
+```bash
+npx skills update make-app-permission
+```
+
+**使用场景**
+- 增加或审查 `/api/make/app/principal/permission` Service 接口
+- Service 调 Make IAM `/api/make/iam/v1/principal/permission`，使用 App scope，不混用平台权限
+- 前台登录后加载权限，结合 schema 控制菜单、路由、列表、详情、新建、编辑、删除、单元格编辑和表单字段
+- 防止通过手动修改 URL 进入未授权 App、对象页或固定业务页面
+- 刷新时重新获取权限，再决定是否刷新数据或关闭已打开工作区
+- 使用 `scripts/audit-make-app-permission.mjs` 做权限合同检查
+- 不负责 make-console 平台管理权限、认证机制、通用 Service API、UI 布局、CanvasTable 内部、DSL 建模或部署
 
 ### make-app-runtime
 指导 Make App 运行态和打包发布契约，覆盖 `apps/` workspace、`apps/ui/dist`、`apps/service` 构建产物、Service 端口、镜像启动入口和发布前契约检查。

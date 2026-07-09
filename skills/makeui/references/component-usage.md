@@ -5,6 +5,7 @@
 - [Selection strategy](#selection-strategy)
 - [Default candidate mapping](#default-candidate-mapping)
 - [Make field-metadata-driven components](#make-field-metadata-driven-components)
+- [Host form controlled field contract](#host-form-controlled-field-contract)
 - [Detail value display](#detail-value-display)
 - [Table component rule](#table-component-rule)
 - [Action hierarchy](#action-hierarchy)
@@ -87,7 +88,7 @@ Use type-appropriate controls:
 | --- | --- |
 | `ID`, generated fields | read-only text |
 | `Text`, `TextArea`, `URL` | text, textarea, or URL input |
-| `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values |
+| `Number`, `Currency`, `Percent` | numeric input with display formatting kept out of submit values; submit values are finite numbers or pure numeric strings |
 | `Date`, `DateTime`, `DateRange` | date, date-time, or range picker |
 | `SingleSelect`, `MultiSelect` | single or multiple select from schema options |
 | `SingleUser`, `MultiUser` | searchable user selector using the host-provided candidate source |
@@ -100,6 +101,63 @@ Do not silently degrade date, user, department, select, file, or lookup fields t
 If a field type is unknown, prefer a read-only display or an explicit unsupported-field fallback. Do not pretend it is a plain text field unless the user confirms that downgrade.
 
 File fields are mode-sensitive. If upload requires a persisted record identity, create forms must omit `Make.Field.File` controls. Render attachment upload/edit only after a record exists and the stable id is available. Detail views may display existing attachments.
+
+## Host form controlled field contract
+
+Host form controlled custom field components are mandatory for Make create/edit Drawer forms and route forms. Any reusable field adapter, remote selector, or field-type control rendered under the host form layer must accept the host form's controlled props and forward them to the interactive control that owns the input value:
+
+- required controlled props: `value`, `onChange`, `onBlur`, `id`, `disabled`
+- also preserve when provided: `name`, `ref`, `required`, validation status, `aria-invalid`, `aria-describedby`, and project-specific form item context
+- normalize event shapes if needed, but call `onChange(nextValue)` with the submitted value shape every time the user commits text, selects an option, clears a value, uploads/removes a file, or confirms a picker
+- call or forward `onBlur` so touched state, required validation, and submit-time validation behave the same as native/project controls
+
+The form store and validation state must match the displayed selection. If `validateFields`, a resolver, or a submit handler reads an empty value while the control visually displays a selected user, department, lookup record, date, or option, the field adapter is broken. Display labels, avatars, option objects, and popup rows are presentation data; the form value remains the source of truth.
+
+This contract applies to all type-specific field controls, especially `SingleUser` / `MultiUser`, `SingleDepartment` / `MultiDepartment`, `Lookup`, select, date, file, and custom relation selectors. For `SingleUser`, `SingleDepartment`, and `Lookup`, the selector may keep transient search text, popup open state, loading flags, and fetched candidate options in local state, but local state must not be the source of truth for selected values. Current selected options may be merged into the options list for display, yet the rendered selection must come from the host `value`, and every selection/clear must update the host form through `onChange`.
+
+Component library choice does not require a different contract.
+
+Ant Design, Arco, shadcn, or any existing project component library can be used for the visible control. Do not solve controlled-field bugs by forcing a project to use a specific form item or select component. The required behavior is the library-neutral adapter boundary between the host form layer and the field control.
+
+Common failure pattern to reject:
+
+```tsx
+// Broken: the visual selector updates local state, but the host form value stays undefined.
+function RemoteUserSelect() {
+  const [selected, setSelected] = useState<UserOption | null>(null);
+  return <HostSelect value={selected?.label} onChange={setSelected} />;
+}
+```
+
+Use a controlled adapter instead:
+
+```tsx
+type RemoteUserSelectProps = {
+  value?: string;
+  onChange?: (nextUserId?: string) => void;
+  onBlur?: () => void;
+  id?: string;
+  disabled?: boolean;
+};
+
+function RemoteUserSelect({
+  value,
+  onChange,
+  onBlur,
+  id,
+  disabled,
+}: RemoteUserSelectProps) {
+  return (
+    <HostSelect
+      id={id}
+      disabled={disabled}
+      value={value}
+      onChange={(nextUserId) => onChange?.(nextUserId)}
+      onBlur={onBlur}
+    />
+  );
+}
+```
 
 User and department selectors require a real host-provided candidate source. For generated Make App projects, use the ExpensePoc-proven default UI-Service candidate contract unless the host project already documents equivalent endpoints or Service/API routes:
 
@@ -167,8 +225,8 @@ Default detail display by Make field type:
 | `Make.Field.TextArea` | long text | full-row text, preserved line breaks, safe wrapping |
 | `Make.Field.URL` | string or `{ href/url/value, label/name }` | safe clickable link when href is valid; otherwise text |
 | `Make.Field.Number` | number or numeric string | formatted number |
-| `Make.Field.Currency` | number or numeric string | formatted currency, defaulting to the field/schema symbol when present |
-| `Make.Field.Percent` | number or numeric string | formatted percent text |
+| `Make.Field.Currency` | number or pure numeric string | formatted currency added by the frontend field-type display adapter, defaulting to the field/schema symbol or `￥` when absent |
+| `Make.Field.Percent` | number or pure numeric string | formatted percent text with `%` added by the frontend field-type display adapter |
 | `Make.Field.Date` | date-like value | `YYYY-MM-DD` or the host project date format |
 | `Make.Field.DateTime` | date-time-like value | `YYYY-MM-DD HH:mm` or the host project date-time format |
 | `Make.Field.DateRange` | `[begin, end]` or `{ begin, end }`, also accepting `start/from/to` aliases when the host already returns them | `YYYY-MM-DD 至 YYYY-MM-DD`; do not render raw JSON such as `{"begin":...,"end":...}` |
@@ -180,6 +238,9 @@ Default detail display by Make field type:
 | `Make.Field.Lookup` | object/JSON wrapper, often `{ entity, field, data }` | extract labels/references from `data`; openable references are links, deleted references are muted/struck through when status is available |
 
 Value extraction should be tolerant but deterministic:
+
+- Number, Currency, and Percent backend/API values stay numeric: accept finite numbers or pure numeric strings only. Do not submit or persist display strings containing `￥`, `¥`, `%`, thousands separators, or unit text.
+- Currency and Percent symbols are presentation. Add them only in detail/table renderers or input formatters after finite-number validation, never in the form store value or API payload.
 
 - empty values display a muted `-`
 - generic object label priority is `label`, `name`, `title`, `displayName`, then `value`

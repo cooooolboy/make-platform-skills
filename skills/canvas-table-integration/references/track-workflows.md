@@ -129,8 +129,9 @@ Use these defaults for first-pass editable-list work. Adapt them to the host pro
 9. Route display groups to focused renderers: text/clickable URL, tag list, compact user avatar/name list, attachment list, lookup reference text, and generic text fallback.
 10. Keep option/candidate loading outside cell renderers; pass normalized rows and field schemas into the table.
 11. Enable default row affordances: `showSN` sequence numbers and hover-revealed detail entry through `bodyRowHeadSuffixOptions`, unless explicitly disabled.
-12. Add focused tests for registry coverage, schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, and the row-head defaults.
-13. Verify at least one table path with representative backend values.
+12. Keep the latest rows in the table host/controller and call `setData(latestRows)` after instance creation; do not gate table creation on `records.length`, `rows.length`, or data totals.
+13. Add focused tests for registry coverage, schema normalization, value normalization, renderer overflow/empty states, schema-gated initialization, latest rows synchronization, empty rows table shell behavior, and the row-head defaults.
+14. Verify at least one table path with representative backend values.
 
 ## Capability checklists
 
@@ -138,6 +139,8 @@ Track A common capabilities:
 
 - base columns: `key`, `title`, `width`, `align`, `headerAlign`, `fixed`, `showEllipsis`
 - local data updates via `setData(rows)`
+- local empty rows via `setData([])`: table header stays visible and `emptyStateOptions` / 暂无数据 renders
+- rows arrive before the table instance is ready: after ready, apply latest rows with `setData(latestRows)`
 - virtual paged updates via `setData(rows, page)`
 - `updateProps(...)` for column / size / config updates
 - default sequence numbers via `showSN`
@@ -171,6 +174,9 @@ Track C common capabilities:
 - raw Make schema variants normalized before table code sees them
 - normalized Make schema fields converted to `IColumn[]` at runtime
 - initialization waits for schema fields instead of inferring columns from row keys
+- initialization waits for schema/columns and real host size, not for positive row count
+- latest rows are synchronized after CanvasTable instance creation, including the race where rows arrive before instance ready
+- empty rows / `setData([])` render headers plus the empty state instead of hiding or skipping the table
 - shared registry in `apps/ui/src/lib/make-field-types.ts` maps all current Make field types to `displayGroup`, `renderKind`, default `width`, `align`, multiplicity, and UI capability hints
 - 18 Make field types mapped to display group and kind
 - pure field-display adapter before canvas rendering

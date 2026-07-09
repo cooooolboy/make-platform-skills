@@ -329,8 +329,8 @@ Response Body
     "projectContent": "<p>需要支持富文本说明</p>",
     "website": "https://example.com/projects/1",
     "score": 95.5,
-    "budget": "¥1,999.00",
-    "completionRate": "85.00%",
+    "budget": "1999.00",
+    "completionRate": "85.00",
     "startDate": "2026-02-24",
     "createdAt": "2026-02-24 17:00:00",
     "deliveryPeriod": {
@@ -496,8 +496,8 @@ Response Body
       "projectContent": "<p>需要支持富文本说明</p>",
       "website": "https://example.com/projects/1",
       "score": 95.5,
-      "budget": "¥1,999.00",
-      "completionRate": "85.00%",
+      "budget": "1999.00",
+      "completionRate": "85.00",
       "startDate": "2026-02-24",
       "createdAt": "2026-02-24 17:00:00",
       "deliveryPeriod": {
@@ -893,8 +893,8 @@ Response Body
 | `Make.Field.TextArea`     | `"升级 FAQ 与工单联动能力"`                                                                                                                                     | 多行文本，仍按 string 处理                                                  |
 | `Make.Field.URL`           | `"https://example.com/projects/1"`                                                                                                                     | URL 字符串                                                            |
 | `Make.Field.Number`        | `95.5`                                                                                                                                                 | 按 number 处理                                                        |
-| `Make.Field.Currency`      | `"¥1,999.00"`                                                                                                                                          | 已带货币符号，按 string 展示                                                 |
-| `Make.Field.Percent`       | `"85.00%"`                                                                                                                                             | 已带 `%`，按 string 展示                                                 |
+| `Make.Field.Currency`      | `"1999.00"`                                                                                                                                            | 前后端交互保持数字或纯数字字符串；货币符号由前端按字段类型展示                                 |
+| `Make.Field.Percent`       | `"85.00"`                                                                                                                                              | 前后端交互保持数字或纯数字字符串；`%` 由前端按字段类型展示                                  |
 | `Make.Field.Date`          | `"2026-02-24"`                                                                                                                                         | 按 string 理解                                                        |
 | `Make.Field.DateTime`     | `"2026-02-24 17:00:00"`                                                                                                                                | 按 string 理解                                                        |
 | `Make.Field.DateRange`    | `{"begin":"2026-02-24","end":"2026-03-31"}`                                                                                                            | 固定对象结构                                                             |
